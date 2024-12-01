@@ -1,0 +1,27 @@
+{
+  "name": "fabre",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/minsihihi/Fabre.git"
+  },
+  "author": "minsihihi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/minsihihi/Fabre/issues"
+  },
+  "homepage": "https://github.com/minsihihi/Fabre#readme",
+  "description": "이화여대24캡스톤 파프르팀",
+  "dependencies": {
+    "ejs": "^3.1.10",
+    "express": "^4.21.1",
+    "openai": "^4.73.1",
+    "puppeteer": "^23.9.0",
+    "selenium-webdriver": "^4.27.0"
+  }
+}
