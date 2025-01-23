@@ -4,6 +4,8 @@ const bcrypt = require('bcrypt'); // 비밀번호 해싱
 const jwt = require('jsonwebtoken'); // JWT 토큰 생성
 const { User } = require('../models');
 
+require('dotenv').config({ path: 'backend/.env' });
+
 
 router.post('/register', async (req, res) => {
     try {
@@ -42,7 +44,7 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
     try {
-        const { loginId, password } = req.body;
+        const { login_id, password } = req.body;
         
         // 사용자 찾기
         const user = await User.findOne({ where: { login_id } });
@@ -71,7 +73,7 @@ router.post('/login', async (req, res) => {
         res.json({ 
             token, 
             user: {
-                loginId: user.loginId,
+                login_id: user.login_id,
                 name: user.name,
                 role: user.role
             }
