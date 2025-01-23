@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capstone Project</title>
+</head>
+<body>
+    <h1>회원 시스템</h1>
+
+    <div id="register">
+        <h2>회원가입</h2>
+        <input type="text" id="register-id" placeholder="아이디" required>
+        <input type="password" id="register-password" placeholder="비밀번호" required>
+        <input type="text" id="register-name" placeholder="이름" required>
+        <select id="register-role">
+            <option value="member">회원</option>
+            <option value="trainer">트레이너</option>
+        </select>
+        <button id="register-btn">회원가입</button>
+        <p id="register-message"></p>
+    </div>
+
+    <div id="login">
+        <h2>로그인</h2>
+        <input type="text" id="login-id" placeholder="아이디" required>
+        <input type="password" id="login-password" placeholder="비밀번호" required>
+        <button id="login-btn">로그인</button>
+        <p id="login-message"></p>
+    </div>
+
+    <script>
+        // 회원가입 요청
+        document.getElementById('register-btn').addEventListener('click', async () => {
+            const login_id = document.getElementById('register-id').value;
+            const password = document.getElementById('register-password').value;
+            const name = document.getElementById('register-name').value;
+            const role = document.getElementById('register-role').value;
+
+            // 회원가입 API 호출
+            try {
+                const response = await fetch('http://localhost:3000/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ login_id, password, name, role }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('회원가입 실패');
+                }
+
+                const data = await response.json();
+                document.getElementById('register-message').innerText = '회원가입 성공: ' + data.message;
+            } catch (error) {
+                document.getElementById('register-message').innerText = '회원가입 에러: ' + error.message;
+            }
+        });
+
+        // 로그인 요청
+        document.getElementById('login-btn').addEventListener('click', async () => {
+            const login_id = document.getElementById('login-id').value;
+            const password = document.getElementById('login-password').value;
+
+            // 로그인 API 호출
+            try {
+                const response = await fetch('http://localhost:3000/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ login_id, password }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('로그인 실패');
+                }
+
+                const data = await response.json();
+                document.getElementById('login-message').innerText = '로그인 성공: ' + data.message;
+            } catch (error) {
+                document.getElementById('login-message').innerText = '로그인 에러: ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html>
