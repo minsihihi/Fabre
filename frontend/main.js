@@ -6,7 +6,7 @@ function createWindow() {
     width: 800,
     height: 600,
     webPreferences: {
-      nodeIntegration: true, // 이 부분을 추가하여 Node.js 기능을 렌더러에서 사용할 수 있게 합니다.
+        nodeIntegration: true,
         },
     });
 
