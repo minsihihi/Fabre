@@ -78,7 +78,7 @@
                 }
 
                 const data = await response.json();
-                document.getElementById('login-message').innerText = '로그인 성공: ' + data.message;
+                document.getElementById('login-message').innerText = '로그인 성공';
             } catch (error) {
                 document.getElementById('login-message').innerText = '로그인 에러: ' + error.message;
             }

@@ -20,7 +20,7 @@ router.post('/register', async (req, res) => {
         // loginId 유효성 검사
         if (!/^[A-Za-z0-9]{4,30}$/.test(login_id)) {
             return res.status(400).json({ 
-                message: '아이디는 영문자와 숫자로만 구성된 4\~30자여야 합니다.' 
+                message: '아이디는 영문자와 숫자로만 구성된 4~30자여야 합니다.' 
             });
         }
         
@@ -46,7 +46,7 @@ router.post('/login', async (req, res) => {
     try {
         const { login_id, password } = req.body;
         
-        // 사용자 찾기
+        // 아이디 확인
         const user = await User.findOne({ where: { login_id } });
         if (!user) {
             return res.status(401).json({ message: '아이디 또는 비밀번호가 일치하지 않습니다.' });
@@ -84,6 +84,9 @@ router.post('/login', async (req, res) => {
     }
 });
 
+router.post('/record', async(req, res) => {
+
+});
 
 router.get('/', (req, res) => {
     res.send('Test');
