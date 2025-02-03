@@ -84,8 +84,26 @@ router.post('/login', async (req, res) => {
     }
 });
 
-router.post('/record', async(req, res) => {
+// 로그아웃
+router.post('/logout', verifyToken, async(req, res) => {
+    const token = req.cookies.token;
 
+    try{
+        if(!token){
+            return res.status(404).json({ message: '토큰이 없습니다. '});
+        }
+        res.clearCookie(token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict'
+        });
+
+        return res.status(200).json({ message: '로그아웃 성공'});
+    }catch(error){
+        console.error(error);
+        return res.status(500).json({ message: '서버 오류가 발생했습니다. '})
+    }
+    
 });
 
 router.get('/', (req, res) => {
