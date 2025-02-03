@@ -90,12 +90,11 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// 로그아웃 (쿠키 없이 처리)
+// 로그아웃
 router.post('/logout', async (req, res) => {
     try {
         console.log('로그아웃 요청 받음');
 
-        // 로그아웃은 프론트엔드에서 localStorage에서 토큰 삭제하는 방식으로 처리하면 됨.
         return res.status(200).json({ message: '로그아웃 성공' });
     } catch (error) {
         console.error(error);
@@ -103,7 +102,6 @@ router.post('/logout', async (req, res) => {
     }
 });
 
-// 기본 라우트
 router.get('/', (req, res) => {
     res.send('Test');
 });
