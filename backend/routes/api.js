@@ -6,7 +6,6 @@ const { User } = require('../models');
 
 require('dotenv').config({ path: 'backend/.env' });
 
-
 router.post('/register', async (req, res) => {
     try {
         const { login_id, password, name, role } = req.body;
@@ -42,16 +41,21 @@ router.post('/register', async (req, res) => {
     }
 });
 
+// 로그인
 router.post('/login', async (req, res) => {
     try {
         const { login_id, password } = req.body;
         
+        if (!login_id || !password) {
+            return res.status(400).json({ message: '아이디와 비밀번호를 모두 입력해주세요.' });
+        }
+
         // 아이디 확인
         const user = await User.findOne({ where: { login_id } });
         if (!user) {
             return res.status(401).json({ message: '아이디 또는 비밀번호가 일치하지 않습니다.' });
         }
-        
+
         // 비밀번호 확인
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
@@ -69,7 +73,7 @@ router.post('/login', async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: '1h' }
         );
-        
+
         res.json({ 
             token, 
             user: {
@@ -84,8 +88,14 @@ router.post('/login', async (req, res) => {
     }
 });
 
-router.post('/record', async(req, res) => {
-
+// 로그아웃
+router.post('/logout', async (req, res) => {
+    try {
+        return res.status(200).json({ message: '로그아웃 성공' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
 });
 
 router.get('/', (req, res) => {
