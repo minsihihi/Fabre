@@ -50,8 +50,6 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ message: '아이디와 비밀번호를 모두 입력해주세요.' });
         }
 
-        console.log('로그인 요청 데이터:', req.body); 
-
         // 아이디 확인
         const user = await User.findOne({ where: { login_id } });
         if (!user) {
@@ -93,8 +91,6 @@ router.post('/login', async (req, res) => {
 // 로그아웃
 router.post('/logout', async (req, res) => {
     try {
-        console.log('로그아웃 요청 받음');
-
         return res.status(200).json({ message: '로그아웃 성공' });
     } catch (error) {
         console.error(error);
