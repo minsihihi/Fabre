@@ -1,10 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const cookieParser = require('cookie-parser');
 const bcrypt = require('bcrypt'); // 비밀번호 해싱
 const jwt = require('jsonwebtoken'); // JWT 토큰 생성
 const { User } = require('../models');
-const { verifyToken, checkRole } = require('../middleware/auth');
 
 require('dotenv').config({ path: 'backend/.env' });
 
@@ -77,13 +75,7 @@ router.post('/login', async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: '1h' }
         );
-        // 로그인 API에서 토큰을 쿠키에 저장
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',  // https 환경에서만 Secure 플래그 적용
-            sameSite: 'None', // 다른 도메인에서 쿠키를 사용하려면 SameSite=None을 설정
-            maxAge: 3600000, // 1시간 동안 유효
-        });
+
         res.json({ 
             token, 
             user: {
@@ -98,26 +90,12 @@ router.post('/login', async (req, res) => {
     }
 });
 
-router.use(cookieParser());
-
-// 로그아웃
+// 로그아웃 (쿠키 없이 처리)
 router.post('/logout', async (req, res) => {
-    const token = req.cookies.token;
-    console.log('로그아웃 요청 받은 토큰:', token);
-
     try {
-        if (!token) {
-            return res.status(404).json({ message: '토큰이 없습니다.' });
-        }
+        console.log('로그아웃 요청 받음');
 
-        // 쿠키 삭제
-        res.clearCookie('token', { 
-            sameSite: 'None', 
-            secure: false
-        });
-        console.log('쿠키 삭제 완료');
-
-        // 성공 응답
+        // 로그아웃은 프론트엔드에서 localStorage에서 토큰 삭제하는 방식으로 처리하면 됨.
         return res.status(200).json({ message: '로그아웃 성공' });
     } catch (error) {
         console.error(error);
@@ -125,7 +103,7 @@ router.post('/logout', async (req, res) => {
     }
 });
 
-
+// 기본 라우트
 router.get('/', (req, res) => {
     res.send('Test');
 });

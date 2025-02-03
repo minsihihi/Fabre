@@ -93,31 +93,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 로그아웃 이벤트
     document.getElementById('logout-btn').addEventListener('click', async () => {
         try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                alert('로그인 후 로그아웃을 시도해주세요.');
-                return;
-            }
-
             const response = await fetch(`${API_BASE_URL}/logout`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
             });
-
-            if (!response.ok) throw new Error('로그아웃 실패');
-
+    
+            if (!response.ok) {
+                throw new Error('로그아웃 실패');
+            }
+    
+            // localStorage에서 토큰 삭제
             localStorage.removeItem('token');
-            resetUIAfterLogout();
-
+            updateUIAfterLogout();
+    
             alert('로그아웃 되었습니다.');
-            showPage('main');
         } catch (error) {
             alert('로그아웃 중 오류가 발생했습니다: ' + error.message);
         }
     });
+    
 
     // 로그인 후 UI 업데이트 함수
     function updateUIAfterLogin(user) {
@@ -128,12 +124,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('register-page-btn').style.display = 'none';
     }
 
-    // 로그아웃 후 UI 초기화 함수
-    function resetUIAfterLogout() {
-        document.getElementById('user-info').style.display = 'none';
-        document.getElementById('login-page-btn').style.display = 'block';
-        document.getElementById('register-page-btn').style.display = 'block';
-        document.getElementById('login-id').value = '';
-        document.getElementById('login-password').value = '';
+    function updateUIAfterLogout() {
+        console.log('updateUIAfterLogout 실행'); // 디버깅용 로그
+    
+        // 사용자 정보 숨기기
+        const userInfoSection = document.getElementById('user-info');
+        if (userInfoSection) {
+            userInfoSection.style.display = 'none'; // 사용자 정보 숨기기
+        }
+    
+        // 로그인/회원가입 버튼 보이기
+        const loginButton = document.getElementById('login-page-btn');
+        const registerButton = document.getElementById('register-page-btn');
+    
+        if (loginButton) {
+            loginButton.style.display = 'block'; // 로그인 버튼 보이기
+        }
+        if (registerButton) {
+            registerButton.style.display = 'block'; // 회원가입 버튼 보이기
+        }
+    
+        // 메인 화면으로 전환
+        showPage('main');
     }
+    
+    
 });
