@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt'); // 비밀번호 해싱
 const jwt = require('jsonwebtoken'); // JWT 토큰 생성
 const { User } = require('../models');
+const { verifyToken, checkRole } = require('../middleware/auth');
 
 require('dotenv').config({ path: 'backend/.env' });
 
@@ -96,6 +97,27 @@ router.post('/logout', async (req, res) => {
         console.error(error);
         return res.status(500).json({ message: '서버 오류가 발생했습니다.' });
     }
+});
+
+// 유저 정보 가져오기
+router.get('/users', verifyToken, checkRole(['trainer']), async(req, res) => {
+    try{
+        const users = await User.findAll({ 
+            where: { role: 'member' },
+            attributes: ['id', 'login_id', 'name', 'createdAt'],
+            order: [['createdAt', 'DESC']]
+        });
+        res.status(200).send(users);
+    }catch(error){
+        console.error(error);
+        return res.status(500).json({ message: '서버 오류가 발생했습니다. '});
+    }
+    
+});
+
+// 운동 기록
+router.post('/record', async(req, res) => {
+
 });
 
 router.get('/', (req, res) => {
