@@ -11,9 +11,16 @@ const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, proces
 });
 
 const db = {};
-db.sequelize = sequelize;
-db.Sequelize = Sequelize;
 
 db.User = require('./user')(sequelize, Sequelize);
+db.TrainerMembers = require('./trainerMembers')(sequelize, Sequelize);
+
+db.TrainerMembers.belongsTo(db.User, {
+    foreignKey: 'memberId',
+    as: 'member'
+});
+
+db.sequelize = sequelize;
+db.Sequelize = Sequelize;
 
 module.exports = db;
