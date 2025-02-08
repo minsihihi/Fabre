@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt'); // 비밀번호 해싱
 const jwt = require('jsonwebtoken'); // JWT 토큰 생성
-const { User } = require('../models');
+const { User, TrainerMembers } = require('../models');
 const { verifyToken, checkRole } = require('../middleware/auth');
 
 require('dotenv').config({ path: 'backend/.env' });
@@ -11,7 +11,7 @@ router.post('/register', async (req, res) => {
     try {
         const { login_id, password, name, role } = req.body;
         
-        // loginId 중복 체크
+        // login_id 중복 체크
         const existingUser = await User.findOne({ where: { login_id } });
         if (existingUser) {
             return res.status(400).json({ message: '이미 사용 중인 아이디입니다.' });
@@ -99,7 +99,7 @@ router.post('/logout', async (req, res) => {
     }
 });
 
-// 유저 정보 가져오기
+// 유저 정보 가져오기(트레이너)
 router.get('/users', verifyToken, checkRole(['trainer']), async(req, res) => {
     try{
         const users = await User.findAll({ 
@@ -113,6 +113,114 @@ router.get('/users', verifyToken, checkRole(['trainer']), async(req, res) => {
         return res.status(500).json({ message: '서버 오류가 발생했습니다. '});
     }
     
+});
+
+// 회원 추가(트레이너)
+router.post('/trainer/members', verifyToken, checkRole('trainer'), async (req, res) => {
+    try {
+        const trainerId = req.user.id;
+        const { memberId, sessionsLeft } = req.body;
+
+        // 회원 존재 여부 확인
+        const member = await User.findOne({
+            where: { id: memberId, role: 'member' }
+        });
+
+        if (!member) {
+            return res.status(404).json({ message: '해당 회원을 찾을 수 없습니다.' });
+        }
+
+        // 이미 등록된 회원인지 확인
+        const existingMember = await TrainerMembers.findOne({
+            where: {
+                trainerId,
+                memberId,
+                status: 'active'
+            }
+        });
+
+        if (existingMember) {
+            return res.status(400).json({ message: '이미 등록된 회원입니다.' });
+        }
+
+        const trainerMember = await TrainerMembers.create({
+            trainerId,
+            memberId,
+            sessionsLeft,
+            status: 'active',
+            startDate: new Date()
+        });
+
+        res.status(201).json({
+            message: '회원이 성공적으로 추가되었습니다.',
+            data: trainerMember
+        });
+
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+});
+
+// 트레이너의 회원 목록 조회
+router.get('/trainer/members', verifyToken, checkRole(['trainer']), async (req, res) => {
+    try {
+        const trainerId = req.user.id;
+
+        const myMembers = await TrainerMembers.findAll({
+            where: { 
+                trainerId: trainerId,
+                status: 'active'
+            },
+            include: [{
+                model: User,
+                as: 'member',
+                attributes: ['id', 'login_id', 'name', 'createdAt']
+            }],
+            attributes: ['id', 'startDate', 'sessionsLeft', 'status'],
+            order: [['startDate', 'DESC']]
+        });
+
+        if (!myMembers.length) {
+            return res.status(200).json({ message: '등록된 회원이 없습니다.', data: [] });
+        }
+
+        res.status(200).json({
+            message: '회원 목록을 성공적으로 조회했습니다.',
+            data: myMembers
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+});
+
+// 회원 삭제 (또는 비활성화)
+router.put('/trainer/members/:memberId', verifyToken, checkRole(['trainer']), async (req, res) => {
+    try {
+        const trainerId = req.user.id;
+        const { memberId } = req.params;
+
+        const member = await TrainerMembers.findOne({
+            where: { 
+                trainerId,
+                memberId,
+                status: 'active'
+            }
+        });
+
+        if (!member) {
+            return res.status(404).json({ message: '해당 회원을 찾을 수 없습니다.' });
+        }
+
+        await member.update({ status: 'inactive' });
+
+
+        res.status(200).json({ message: '회원이 성공적으로 삭제되었습니다.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
 });
 
 // 운동 기록
