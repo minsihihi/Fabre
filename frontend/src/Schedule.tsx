@@ -50,10 +50,10 @@ export default function SchedulePage() {
         onClickDay={handleDateClick}
         tileContent={({ date }) => {
           const selectedDate = date.toISOString().split("T")[0];
-         return workouts[selectedDate] ? (
+          return workouts[selectedDate] ? (
             <p className="text-blue-500 text-sm">{workouts[selectedDate]}</p>
-         ) : null;
-       }}
+        ) : null;
+      }}
       />
     </div>
 
