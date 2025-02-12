@@ -5,7 +5,7 @@ import Home from './Home';
 import Schedule from './Schedule';
 import Diet from './Diet';
 import Feedback from './Feedback';
-import logo from './assets/logo.png'; // 로고 이미지 가져오기
+// import logo from './assets/logo.png'; // 로고 이미지 가져오기
 
 const App: React.FC = () => {
   return (
@@ -13,7 +13,7 @@ const App: React.FC = () => {
       <div className="container">
         {/* 왼쪽 사이드바 */}
         <div className="left-sidebar">
-          <img src={logo} alt="채찍피티 로고" className="logo" />
+          {/* <img src={logo} alt="채찍피티 로고" className="logo" /> */}
           <h1 className="logo-text">채찍피티</h1>
           <div className="space-y-4">
             <a href="/home" className="block py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600">🏠 H O M E </a>
@@ -26,6 +26,7 @@ const App: React.FC = () => {
         {/* 오른쪽 콘텐츠 영역 */}
         <div className="main-content">
           <Routes>
+            <Route path="/" element={<Home />} /> {/* 기본 경로 설정 */}
             <Route path="/home" element={<Home />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/diet" element={<Diet />} />
