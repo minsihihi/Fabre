@@ -226,7 +226,7 @@ router.put('/trainer/members/:memberId', verifyToken, checkRole(['trainer']), as
 });
 
 // 운동 기록
-router.post('/record', verifyToken, async(req, res) => {
+router.post('/record', async(req, res) => {
     try {
         if (!req.user) {
             return res.status(401).json({ message: '인증되지 않은 사용자입니다.' });
@@ -331,6 +331,64 @@ router.post('/record', verifyToken, async(req, res) => {
     } catch(error) {
         console.error(error);
         res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message });
+    }
+});
+
+// 운동 기록 조회
+router.get('/record', verifyToken, async (req, res) => {
+    try {
+        let workoutLogs;
+
+        if (req.user.role === 'trainer') {
+            const { memberId } = req.query;
+            if (!memberId) {
+                return res.status(400).json({ message: '회원 ID가 필요합니다.' });
+            }
+
+            const trainerMember = await TrainerMembers.findOne({
+                where: {
+                    trainerId: req.user.id,
+                    memberId: memberId,
+                    status: 'active'
+                }
+            });
+
+            if (!trainerMember) {
+                return res.status(403).json({ message: '해당 회원의 기록을 조회할 수 없습니다.' });
+            }
+
+            workoutLogs = await WorkoutLog.findAll({
+                where: { user_id: memberId },
+                include: [{
+                    model: WorkoutDetail,
+                    include: [{ model: Exercise }]
+                }],
+                order: [['workout_date', 'DESC']]
+            });
+
+        } else if (req.user.role === 'member') {
+            workoutLogs = await WorkoutLog.findAll({
+                where: { user_id: req.user.id },
+                include: [{
+                    model: WorkoutDetail,
+                    include: [{ model: Exercise }]
+                }],
+                order: [['workout_date', 'DESC']]
+            });
+
+        } else {
+            return res.status(403).json({ message: '접근 권한이 없습니다.' });
+        }
+
+        if (!workoutLogs.length) {
+            return res.status(200).json({ message: '운동 기록이 없습니다.', data: [] });
+        }
+
+        res.status(200).json({ message: '운동 기록 조회 성공', data: workoutLogs });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
     }
 });
 
