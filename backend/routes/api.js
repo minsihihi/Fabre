@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt'); // 비밀번호 해싱
 const jwt = require('jsonwebtoken'); // JWT 토큰 생성
-const { User, TrainerMembers } = require('../models');
+const { User, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise } = require('../models');
 const { verifyToken, checkRole } = require('../middleware/auth');
 
 require('dotenv').config({ path: 'backend/.env' });
 
+// 회원 가입
 router.post('/register', async (req, res) => {
     try {
         const { login_id, password, name, role } = req.body;
@@ -177,7 +178,8 @@ router.get('/trainer/members', verifyToken, checkRole(['trainer']), async (req, 
                 as: 'member',
                 attributes: ['id', 'login_id', 'name', 'createdAt']
             }],
-            attributes: ['id', 'startDate', 'sessionsLeft', 'status'],
+            // 회원 아이디와 시작 날짜, 남은 세션, 회원 상태(활성 비활성)
+            attributes: ['id', 'startDate', 'sessionsLeft', 'status'], 
             order: [['startDate', 'DESC']]
         });
 
@@ -225,8 +227,171 @@ router.put('/trainer/members/:memberId', verifyToken, checkRole(['trainer']), as
 
 // 운동 기록
 router.post('/record', async(req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: '인증되지 않은 사용자입니다.' });
+        }
+        const { 
+            memberId, 
+            trainerId,
+            workout_date = new Date(), 
+            start_time, 
+            end_time, 
+            total_duration, 
+            note,
+            exercises 
+        } = req.body;
 
+        if (!workout_date || !start_time || !end_time) {
+            return res.status(400).json({ message: '필수 운동 정보가 누락되었습니다.' });
+        }
+
+
+        let workoutLog;
+        let userId;
+
+        if (req.user.role === 'trainer') {
+            const trainerMember = await TrainerMembers.findOne({
+                where: {
+                    trainerId: req.user.id,
+                    memberId: memberId,
+                    status: 'active' 
+                }
+            });
+
+            if (!trainerMember) {
+                return res.status(400).json({ message: '유효하지 않은 회원입니다.' });
+            }
+
+            userId = memberId;
+
+            // 운동 로그 생성
+            workoutLog = await WorkoutLog.create({
+                user_id: userId,
+                workout_date,
+                start_time,
+                end_time,
+                total_duration,
+                note
+            });
+
+            // 세션 차감
+            await trainerMember.update({
+                sessionsLeft: trainerMember.sessionsLeft - 1 
+            });
+
+        } else if (req.user.role === 'member') {
+            if (!trainerId) {
+                return res.status(400).json({ message: '트레이너 정보가 필요합니다.' });
+            }
+
+            userId = req.user.id;
+
+            // 운동 로그 생성
+            workoutLog = await WorkoutLog.create({
+                user_id: userId,
+                workout_date,
+                start_time,
+                end_time,
+                total_duration,
+                note
+            });
+        } else {
+            return res.status(403).json({ message: '접근 권한이 없습니다.' });
+        }
+
+        // 운동 상세 정보 생성
+        if (exercises && exercises.length > 0) {
+            for (let exerciseData of exercises) {
+                // 운동 정보 생성 또는 찾기
+                const [exercise] = await Exercise.findOrCreate({
+                    where: { 
+                        name: exerciseData.name, 
+                        category: exerciseData.category 
+                    }
+                });
+
+                // 운동 상세 정보 생성
+                await WorkoutDetail.create({
+                    workout_log_id: workoutLog.id,
+                    exercise_id: exercise.id,
+                    sets: exerciseData.sets,
+                    reps: exerciseData.reps,
+                    weight: exerciseData.weight,
+                    note: exerciseData.note
+                });
+            }
+        }
+
+        res.status(201).json({ 
+            message: '운동 기록이 성공적으로 저장되었습니다.',
+            workoutLog 
+        });
+
+    } catch(error) {
+        console.error(error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message });
+    }
 });
+
+// 운동 기록 조회
+router.get('/record', verifyToken, async (req, res) => {
+    try {
+        let workoutLogs;
+
+        if (req.user.role === 'trainer') {
+            const { memberId } = req.query;
+            if (!memberId) {
+                return res.status(400).json({ message: '회원 ID가 필요합니다.' });
+            }
+
+            const trainerMember = await TrainerMembers.findOne({
+                where: {
+                    trainerId: req.user.id,
+                    memberId: memberId,
+                    status: 'active'
+                }
+            });
+
+            if (!trainerMember) {
+                return res.status(403).json({ message: '해당 회원의 기록을 조회할 수 없습니다.' });
+            }
+
+            workoutLogs = await WorkoutLog.findAll({
+                where: { user_id: memberId },
+                include: [{
+                    model: WorkoutDetail,
+                    include: [{ model: Exercise }]
+                }],
+                order: [['workout_date', 'DESC']]
+            });
+
+        } else if (req.user.role === 'member') {
+            workoutLogs = await WorkoutLog.findAll({
+                where: { user_id: req.user.id },
+                include: [{
+                    model: WorkoutDetail,
+                    include: [{ model: Exercise }]
+                }],
+                order: [['workout_date', 'DESC']]
+            });
+
+        } else {
+            return res.status(403).json({ message: '접근 권한이 없습니다.' });
+        }
+
+        if (!workoutLogs.length) {
+            return res.status(200).json({ message: '운동 기록이 없습니다.', data: [] });
+        }
+
+        res.status(200).json({ message: '운동 기록 조회 성공', data: workoutLogs });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+});
+
 
 router.get('/', (req, res) => {
     res.send('Test');
