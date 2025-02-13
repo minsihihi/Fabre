@@ -22,23 +22,19 @@ db.WorkoutLog = require('./workoutLog')(sequelize, Sequelize);
 
 db.TrainerMembers.belongsTo(db.User, {
     foreignKey: 'memberId',
-    as: 'member'
 });
 
-// db.WorkoutLog.hasMany(WorkoutDetail, { 
-//     foreignKey: 'workout_log_id',
-//     as: 'details'
-// });
+db.WorkoutLog.hasMany(db.WorkoutDetail, { 
+    foreignKey: 'workout_log_id',
+});
 
-// db.WorkoutDetail.belongsTo(WorkoutLog, { 
-//     foreignKey: 'workout_log_id',
-//     as: 'workoutLog'
-// });
+db.WorkoutDetail.belongsTo(db.WorkoutLog, { 
+    foreignKey: 'workout_log_id',
+});
 
-// db.WorkoutDetail.belongsTo(Exercise, {
-//     foreignKey: 'exercise_id',
-//     as: 'exercise'
-// });
+db.WorkoutDetail.belongsTo(db.Exercise, {
+    foreignKey: 'exercise_id',
+});
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
