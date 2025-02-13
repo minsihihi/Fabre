@@ -14,10 +14,26 @@ const db = {};
 
 db.User = require('./user')(sequelize, Sequelize);
 db.TrainerMembers = require('./trainerMembers')(sequelize, Sequelize);
+db.Exercise = require('./exercise')(sequelize, Sequelize);
+db.WorkoutDetail = require('./workoutDetail')(sequelize, Sequelize);
+db.WorkoutLog = require('./workoutLog')(sequelize, Sequelize);
+
+// 모델 연관 관계 설정
 
 db.TrainerMembers.belongsTo(db.User, {
     foreignKey: 'memberId',
-    as: 'member'
+});
+
+db.WorkoutLog.hasMany(db.WorkoutDetail, { 
+    foreignKey: 'workout_log_id',
+});
+
+db.WorkoutDetail.belongsTo(db.WorkoutLog, { 
+    foreignKey: 'workout_log_id',
+});
+
+db.WorkoutDetail.belongsTo(db.Exercise, {
+    foreignKey: 'exercise_id',
 });
 
 db.sequelize = sequelize;
