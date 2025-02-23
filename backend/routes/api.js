@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken'); // JWT 토큰 생성
 const { User, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise } = require('../models');
 const { verifyToken, checkRole } = require('../middleware/auth');
 
+
 require('dotenv').config({ path: 'backend/.env' });
 
 // 회원 가입
@@ -175,7 +176,7 @@ router.get('/trainer/members', verifyToken, checkRole(['trainer']), async (req, 
             },
             include: [{
                 model: User,
-                as: 'member',
+                // as: 'managedMembers',
                 attributes: ['id', 'login_id', 'name', 'createdAt']
             }],
             // 회원 아이디와 시작 날짜, 남은 세션, 회원 상태(활성 비활성)
@@ -225,8 +226,9 @@ router.put('/trainer/members/:memberId', verifyToken, checkRole(['trainer']), as
     }
 });
 
+
 // 운동 기록
-router.post('/record', async(req, res) => {
+router.post('/record', verifyToken, async(req, res) => {
     try {
         if (!req.user) {
             return res.status(401).json({ message: '인증되지 않은 사용자입니다.' });

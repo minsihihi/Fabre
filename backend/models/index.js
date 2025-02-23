@@ -18,6 +18,7 @@ db.Exercise = require('./exercise')(sequelize, Sequelize);
 db.WorkoutDetail = require('./workoutDetail')(sequelize, Sequelize);
 db.WorkoutLog = require('./workoutLog')(sequelize, Sequelize);
 
+
 // 모델 연관 관계 설정
 
 db.TrainerMembers.belongsTo(db.User, {
