@@ -1,36 +1,57 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import Login from './Login';
 import Home from './Home';
 import Schedule from './Schedule';
 import Diet from './Diet';
-import Feedback from './Feedback';
-// import logo from './assets/logo.png'; // 로고 이미지 가져오기
+import Report from './Report';
+import logo from './assets/logo.png';
 
 const App: React.FC = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
     <Router>
       <div className="container">
-        {/* 왼쪽 사이드바 */}
-        <div className="left-sidebar">
-          {/* <img src={logo} alt="채찍피티 로고" className="logo" /> */}
+        {/* 모바일에서만 보이는 메뉴 버튼 */}
+        {isMobile && (
+          <button className="menu-button" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+            ☰
+          </button>
+        )}
+
+        {/* 왼쪽 사이드바 (모바일에서는 숨김 처리) */}
+        <div className={`left-sidebar ${isMobile ? (isSidebarOpen ? "open" : "closed") : ""}`}>
+          <img src={logo} alt="채찍피티 로고" className="logo" />
           <h1 className="logo-text">채찍피티</h1>
           <div className="space-y-4">
-            <a href="/home" className="block py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600">🏠 H O M E </a>
-            <a href="/schedule" className="block py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600">📅 S C H E D U L E</a>
-            <a href="/diet" className="block py-2 px-4 bg-green-500 text-white rounded-lg hover:bg-green-600">🍽️ D I E T</a>
-            <a href="/feedback" className="block py-2 px-4 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">📝 F E E D B A C K</a>
+            <Link to="/home" className="sidebar-link">🏠 H O M E</Link>
+            <Link to="/schedule" className="sidebar-link">📅 S C H E D U L E</Link>
+            <Link to="/diet" className="sidebar-link">🍽️ D I E T</Link>
+            <Link to="/report" className="sidebar-link">📝 R E P O R T</Link>
           </div>
         </div>
 
         {/* 오른쪽 콘텐츠 영역 */}
         <div className="main-content">
           <Routes>
-            <Route path="/" element={<Home />} /> {/* 기본 경로 설정 */}
+            <Route path="/" element={<Login />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/home" element={<Home />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/diet" element={<Diet />} />
-            <Route path="/feedback" element={<Feedback />} />
+            <Route path="/report" element={<Report />} />
           </Routes>
         </div>
       </div>
