@@ -1,48 +1,58 @@
+'use strict';
 module.exports = (sequelize, DataTypes) => {
-    const User = sequelize.define('User', {
+    const TrainerMembers = sequelize.define('TrainerMembers', {
         id: {
             type: DataTypes.INTEGER,
             autoIncrement: true,
             primaryKey: true
         },
-        login_id: {
-            type: DataTypes.STRING(30),
+        trainerId: {
+            type: DataTypes.INTEGER,
             allowNull: false,
-            unique: true,
-            validate: {
-                len: [4, 30],
-                isAlphanumeric: true
+            references: {
+                model: 'users',  // ✅ 테이블 명을 'users'로 변경 (소문자 + 복수형)
+                key: 'id'
             }
         },
-        password: {
-            type: DataTypes.STRING(255),
-            allowNull: false
-        },
-        name: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
-        role: {
-            type: DataTypes.ENUM('member', 'trainer'),
+        memberId: {
+            type: DataTypes.INTEGER,
             allowNull: false,
-            defaultValue: 'member'
+            references: {
+                model: 'users',  // ✅ 테이블 명을 'users'로 변경 (소문자 + 복수형)
+                key: 'id'
+            }
+        },
+        startDate: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
+        },
+        status: {
+            type: DataTypes.ENUM('active', 'inactive'),
+            defaultValue: 'active'
+        },
+        sessionsLeft: {
+            type: DataTypes.INTEGER,
+            allowNull: false
         }
     }, {
-        tableName: 'users',  // ✅ 테이블 이름을 명확히 지정
+        tableName: 'trainer_members',  // ✅ 테이블 이름을 명확히 지정
         timestamps: true,
-        underscored: true
+        underscored: true,
+        createdAt: 'created_at',
+        updatedAt: 'updated_at',
     });
 
-    User.associate = function(models) {
-        User.hasMany(models.TrainerMembers, {
+    TrainerMembers.associate = function(models) {
+        TrainerMembers.belongsTo(models.User, {
             foreignKey: 'trainerId',
-            as: 'trainerMembers'
+            as: 'trainer'
         });
-        User.hasMany(models.TrainerMembers, {
+        TrainerMembers.belongsTo(models.User, {
             foreignKey: 'memberId',
-            as: 'memberTrainers'
+            as: 'member'
         });
     };
 
-    return User;
+    return TrainerMembers;
 };
