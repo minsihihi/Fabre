@@ -1,56 +1,48 @@
-'use strict';
 module.exports = (sequelize, DataTypes) => {
-    const TrainerMembers = sequelize.define('TrainerMembers', {
+    const User = sequelize.define('User', {
         id: {
             type: DataTypes.INTEGER,
             autoIncrement: true,
             primaryKey: true
         },
-        trainerId:{
-            type: DataTypes.INTEGER,
+        login_id: {
+            type: DataTypes.STRING(30),
             allowNull: false,
-            references: {
-                model: 'User',
-                key: 'id'
+            unique: true,
+            validate: {
+                len: [4, 30],
+                isAlphanumeric: true
             }
         },
-        memberId:{
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'User',
-                key: 'id'
-            }
-        },
-        startDate: {
-            type: DataTypes.DATE,
-            allowNull: false,
-            defaultValue: DataTypes.NOW
-        },
-        status:{
-            type:DataTypes.ENUM('active', 'inactive'),
-            defaultValue:'active',
-        },
-        sessionsLeft: { // 회원 남은 횟수 기록
-            type: DataTypes.INTEGER,
+        password: {
+            type: DataTypes.STRING(255),
             allowNull: false
+        },
+        name: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        role: {
+            type: DataTypes.ENUM('member', 'trainer'),
+            allowNull: false,
+            defaultValue: 'member'
         }
-    },{
-        tableName: 'TrainerMembers',
+    }, {
+        tableName: 'users',  // ✅ 테이블 이름을 명확히 지정
         timestamps: true,
-        underscored: false,
-        createdAt: 'created_at',
-        updatedAt: 'updated_at',
+        underscored: true
     });
 
-    TrainerMembers.associate = function(models) {
-        TrainerMembers.belongsTo(models.User, {
+    User.associate = function(models) {
+        User.hasMany(models.TrainerMembers, {
             foreignKey: 'trainerId',
+            as: 'trainerMembers'
         });
-        TrainerMembers.belongsTo(models.User, {
+        User.hasMany(models.TrainerMembers, {
             foreignKey: 'memberId',
+            as: 'memberTrainers'
         });
     };
 
-    return TrainerMembers;
-}
+    return User;
+};
