@@ -1,9 +1,125 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt'); // 비밀번호 해싱
-const jwt = require('jsonwebtoken'); // JWT 토큰 생성
-const { User, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise } = require('../models');
+const bcrypt = require('bcrypt'); 
+const jwt = require('jsonwebtoken'); 
+const multer = require('multer');  
+const { OpenAI } = require('openai');  
+const fs = require('fs');
+const path = require('path');
+const { User, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise, Meal } = require('../models'); 
 const { verifyToken, checkRole } = require('../middleware/auth');
+
+require('dotenv').config({ path: 'backend/.env' });
+
+
+// ✅ OpenAI API 설정
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+});
+
+// ✅ 이미지 저장 경로 설정 (로컬 스토리지)
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadPath = path.join(__dirname, '../uploads/');
+        if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });  
+        cb(null, uploadPath);
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}_${file.originalname}`);
+    }
+});
+
+const upload = multer({ storage: storage });
+
+/* ----------------------------------- */
+/* ✅ 1. 식단 사진 업로드 API */
+/* ----------------------------------- */
+router.post('/meals/upload', verifyToken, upload.single('mealImage'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ message: '파일이 없습니다.' });
+
+        const imageUrl = `/uploads/${req.file.filename}`;
+        const userId = req.user.id;
+
+        console.log("✅ Meal Model:", Meal); // 🔥 Meal 모델이 undefined인지 확인
+
+        if (!Meal) {
+            return res.status(500).json({ message: "Meal 모델이 제대로 불러와지지 않았습니다." });
+        }
+
+        // 🔹 데이터베이스에 저장
+        const meal = await Meal.create({ userId, imageUrl });
+
+        res.status(201).json({ message: '사진 업로드 성공', meal });
+    } catch (error) {
+        console.error("❌ 식단 업로드 오류:", error);
+        res.status(500).json({ message: '서버 오류', error: error.message });
+    }
+});
+
+/* ----------------------------------- */
+/* ✅ 2. OpenAI API를 이용한 식단 분석 API */
+/* ----------------------------------- */
+router.post('/meals/analyze/:mealId', verifyToken, async (req, res) => {
+    try {
+        const { mealId } = req.params;
+        const meal = await Meal.findByPk(mealId);
+
+        if (!meal) return res.status(404).json({ message: '식단을 찾을 수 없습니다.' });
+
+        const imageUrl = `http://localhost:3000${meal.imageUrl}`;
+
+        // 🔹 OpenAI Vision API 요청 (🚀 수정된 부분)
+        const response = await openai.chat.completions.create({
+            
+            // gpt 모델명
+            model: "gpt-4o-mini",
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a nutritionist analyzing meal images."
+                },
+                {
+                    role: "user",
+                    content: [
+                        { type: "text", text: "Analyze this meal and estimate the calorie count." },
+                        { type: "image_url", image_url: { url: imageUrl } } // ✅ 수정된 부분
+                    ]
+                }
+            ],
+            max_tokens: 300
+        });
+
+        // 🔹 OpenAI 응답 데이터 저장
+        const analysisResult = response.choices[0].message.content;
+        await meal.update({ analysisResult });
+
+        res.status(200).json({ message: '식단 분석 완료', analysisResult });
+    } catch (error) {
+        console.error("❌ OpenAI API 오류:", error);
+        res.status(500).json({ message: '서버 오류', error: error.message });
+    }
+});
+
+/* ----------------------------------- */
+/* ✅ 3. 회원의 식단 목록 조회 API */
+/* ----------------------------------- */
+router.get('/meals', verifyToken, async (req, res) => {
+    try {
+        const meals = await Meal.findAll({
+            where: { userId: req.user.id },
+            order: [['createdAt', 'DESC']]
+        });
+
+        res.status(200).json({ message: '식단 목록 조회 성공', meals });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: '서버 오류' });
+    }
+});
+
+module.exports = router;
+
 
 
 require('dotenv').config({ path: 'backend/.env' });

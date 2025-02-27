@@ -16,6 +16,8 @@ app.use(cors({
 }));
 app.use(cookieParser());
 
+// ✅ API 라우트 설정
+app.use('/api', apiRoutes);
 
 db.sequelize
     .authenticate()
@@ -34,3 +36,7 @@ db.sequelize
     })
     .then(() => console.log('✅ Database synchronized'))
     .catch((err) => console.error('❌ Database connection error:', err));
+
+;
+
+
