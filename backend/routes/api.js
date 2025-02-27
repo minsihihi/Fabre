@@ -1,9 +1,15 @@
+const AWS = require('aws-sdk');
+
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt'); 
 const jwt = require('jsonwebtoken'); 
+
 const multer = require('multer');  
+const multerS3 = require('multer-s3');
+
 const { OpenAI } = require('openai');  
+
 const fs = require('fs');
 const path = require('path');
 const { User, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise, Meal } = require('../models'); 
@@ -15,6 +21,27 @@ require('dotenv').config({ path: 'backend/.env' });
 // ✅ OpenAI API 설정
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
+});
+
+// ✅ S3 설정
+AWS.config.update({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION
+});
+
+const s3 = new AWS.S3();
+
+// ✅ multer와 s3 연동 설정
+const upload = multer({
+    storage: multerS3({
+        s3: s3,
+        bucket: process.env.AWS_S3_BUCKET_NAME,
+        acl: 'public-read',  // 퍼블릭 읽기 권한
+        key: function (req, file, cb) {
+            cb(null, `meal-images/${Date.now()}_${file.originalname}`); // 파일 경로
+        }
+    })
 });
 
 // ✅ 이미지 저장 경로 설정 (로컬 스토리지)
@@ -29,8 +56,7 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ storage: storage });
-
+// s3 설정 부분 1
 /* ----------------------------------- */
 /* ✅ 1. 식단 사진 업로드 API */
 /* ----------------------------------- */
@@ -39,13 +65,8 @@ router.post('/meals/upload', verifyToken, upload.single('mealImage'), async (req
         if (!req.file) return res.status(400).json({ message: '파일이 없습니다.' });
 
         const imageUrl = `/uploads/${req.file.filename}`;
+        // const imageUrl = req.file.location;  // S3 URL
         const userId = req.user.id;
-
-        console.log("✅ Meal Model:", Meal); // 🔥 Meal 모델이 undefined인지 확인
-
-        if (!Meal) {
-            return res.status(500).json({ message: "Meal 모델이 제대로 불러와지지 않았습니다." });
-        }
 
         // 🔹 데이터베이스에 저장
         const meal = await Meal.create({ userId, imageUrl });
@@ -68,6 +89,9 @@ router.post('/meals/analyze/:mealId', verifyToken, async (req, res) => {
         if (!meal) return res.status(404).json({ message: '식단을 찾을 수 없습니다.' });
 
         const imageUrl = `http://localhost:3000${meal.imageUrl}`;
+        
+        // s3 설정 부분 2
+        // const imageUrl = req.file.location;  // S3 URL
 
         // 🔹 OpenAI Vision API 요청 (🚀 수정된 부분)
         const response = await openai.chat.completions.create({
