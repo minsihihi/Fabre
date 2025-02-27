@@ -40,6 +40,9 @@ db.Meal.belongsTo(db.User, {  // ✅ Meal 모델과 User 모델 연결
     foreignKey: 'userId',
 });
 
+db.WeeklyReport = require('./weeklyReport')(sequelize, Sequelize);
+
+
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
