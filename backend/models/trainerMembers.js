@@ -6,19 +6,19 @@ module.exports = (sequelize, DataTypes) => {
             autoIncrement: true,
             primaryKey: true
         },
-        trainerId:{
+        trainerId: {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'User',
+                model: 'users',  // ✅ 테이블 명을 'users'로 변경 (소문자 + 복수형)
                 key: 'id'
             }
         },
-        memberId:{
+        memberId: {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'User',
+                model: 'users',  // ✅ 테이블 명을 'users'로 변경 (소문자 + 복수형)
                 key: 'id'
             }
         },
@@ -27,18 +27,18 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: DataTypes.NOW
         },
-        status:{
-            type:DataTypes.ENUM('active', 'inactive'),
-            defaultValue:'active',
+        status: {
+            type: DataTypes.ENUM('active', 'inactive'),
+            defaultValue: 'active'
         },
-        sessionsLeft: { // 회원 남은 횟수 기록
+        sessionsLeft: {
             type: DataTypes.INTEGER,
             allowNull: false
         }
-    },{
-        tableName: 'TrainerMembers',
+    }, {
+        tableName: 'trainer_members',  // ✅ 테이블 이름을 명확히 지정
         timestamps: true,
-        underscored: false,
+        underscored: true,
         createdAt: 'created_at',
         updatedAt: 'updated_at',
     });
@@ -46,11 +46,13 @@ module.exports = (sequelize, DataTypes) => {
     TrainerMembers.associate = function(models) {
         TrainerMembers.belongsTo(models.User, {
             foreignKey: 'trainerId',
+            as: 'trainer'
         });
         TrainerMembers.belongsTo(models.User, {
             foreignKey: 'memberId',
+            as: 'member'
         });
     };
 
     return TrainerMembers;
-}
+};
