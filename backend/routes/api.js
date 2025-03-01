@@ -1,9 +1,152 @@
+const AWS = require('aws-sdk');
+
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt'); // 비밀번호 해싱
-const jwt = require('jsonwebtoken'); // JWT 토큰 생성
-const { User, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise } = require('../models');
+const bcrypt = require('bcrypt'); 
+const jwt = require('jsonwebtoken'); 
+
+const multer = require('multer');  
+const multerS3 = require('multer-s3');
+
+const { OpenAI } = require('openai');  
+
+const fs = require('fs');
+const path = require('path');
+const { User, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise, Meal, WeeklyReport  } = require('../models'); 
 const { verifyToken, checkRole } = require('../middleware/auth');
+const saveWeeklyReport = require('../utils/saveWeeklyReport');  // AI 분석 결과 저장 함수
+
+const { Op } = require('sequelize'); // 주간 리포트용 날짜 계산 - sequelize 제공 연산자 객체
+
+require('dotenv').config({ path: 'backend/.env' });
+
+
+// ✅ OpenAI API 설정
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+});
+
+// ✅ S3 설정
+AWS.config.update({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION
+});
+
+const s3 = new AWS.S3();
+
+// ✅ multer와 s3 연동 설정
+const upload = multer({
+    storage: multerS3({
+        s3: s3,
+        bucket: process.env.AWS_S3_BUCKET_NAME,
+        acl: 'public-read',  // 퍼블릭 읽기 권한
+        key: function (req, file, cb) {
+            cb(null, `meal-images/${Date.now()}_${file.originalname}`); // 파일 경로
+        }
+    })
+});
+
+// ✅ 이미지 저장 경로 설정 (로컬 스토리지)
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadPath = path.join(__dirname, '../uploads/');
+        if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });  
+        cb(null, uploadPath);
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}_${file.originalname}`);
+    }
+});
+
+// s3 설정 부분 1
+/* ----------------------------------- */
+/* ✅ 1. 식단 사진 업로드 API */
+/* ----------------------------------- */
+router.post('/meals/upload', verifyToken, upload.single('mealImage'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ message: '파일이 없습니다.' });
+
+        const imageUrl = `/uploads/${req.file.filename}`;
+        // const imageUrl = req.file.location;  // S3 URL
+        const userId = req.user.id;
+
+        // 🔹 데이터베이스에 저장
+        const meal = await Meal.create({ userId, imageUrl });
+
+        res.status(201).json({ message: '사진 업로드 성공', meal });
+    } catch (error) {
+        console.error("❌ 식단 업로드 오류:", error);
+        res.status(500).json({ message: '서버 오류', error: error.message });
+    }
+});
+
+/* ----------------------------------- */
+/* ✅ 2. OpenAI API를 이용한 식단 분석 API */
+/* ----------------------------------- */
+router.post('/meals/analyze/:mealId', verifyToken, async (req, res) => {
+    try {
+        const { mealId } = req.params;
+        const meal = await Meal.findByPk(mealId);
+
+        if (!meal) return res.status(404).json({ message: '식단을 찾을 수 없습니다.' });
+
+        const imageUrl = `http://localhost:3000${meal.imageUrl}`;
+        
+        // s3 설정 부분 2
+        // const imageUrl = req.file.location;  // S3 URL
+
+        // 🔹 OpenAI Vision API 요청 (🚀 수정된 부분)
+        const response = await openai.chat.completions.create({
+            
+            // gpt 모델명
+            model: "gpt-4o-mini",
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a nutritionist analyzing meal images."
+                },
+                {
+                    role: "user",
+                    content: [
+                        { type: "text", text: "Analyze this meal and estimate the calorie count." },
+                        { type: "image_url", image_url: { url: imageUrl } } // ✅ 수정된 부분
+                    ]
+                }
+            ],
+            max_tokens: 300
+        });
+
+        // 🔹 OpenAI 응답 데이터 저장
+        const analysisResult = response.choices[0].message.content;
+        await meal.update({ analysisResult });
+
+        res.status(200).json({ message: '식단 분석 완료', analysisResult });
+    } catch (error) {
+        console.error("❌ OpenAI API 오류:", error);
+        res.status(500).json({ message: '서버 오류', error: error.message });
+    }
+});
+
+/* ----------------------------------- */
+/* ✅ 3. 회원의 식단 목록 조회 API */
+/* ----------------------------------- */
+router.get('/meals', verifyToken, async (req, res) => {
+    try {
+        const meals = await Meal.findAll({
+            where: { userId: req.user.id },
+            order: [['createdAt', 'DESC']]
+        });
+
+        res.status(200).json({ message: '식단 목록 조회 성공', meals });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: '서버 오류' });
+    }
+});
+
+module.exports = router;
+
 
 
 require('dotenv').config({ path: 'backend/.env' });
@@ -395,8 +538,152 @@ router.get('/record', verifyToken, async (req, res) => {
 });
 
 
+router.post('/workouts/analyze-weekly', verifyToken, async (req, res) => {
+    try {
+        const { memberId } = req.body;
+
+        // 트레이너와 회원 관계 확인
+        const trainerMember = await TrainerMembers.findOne({
+            where: {
+                trainerId: req.user.id,
+                memberId: memberId,
+                status: 'active'
+            }
+        });
+
+        if (!trainerMember && req.user.role === 'trainer') {
+            return res.status(403).json({ message: '해당 회원의 기록을 조회할 수 없습니다.' });
+        }
+
+        // 일주일간의 운동 기록 조회
+        const workoutLogs = await WorkoutLog.findAll({
+            where: {
+                user_id: memberId,
+                workout_date: {
+                    [Op.gte]: new Date(new Date() - 7 * 24 * 60 * 60 * 1000), // 일주일 전부터
+                }
+            },
+            include: [{
+                model: WorkoutDetail,
+                include: [{ model: Exercise }]
+            }]
+        });
+
+        if (!workoutLogs.length) {
+            return res.status(200).json({ message: '운동 기록이 없습니다.', data: [] });
+        }
+
+        // 운동 기록을 GPT에게 전달하여 주간 리포트를 생성
+        const workoutData = workoutLogs.map(log => {
+            return {
+                workout_date: log.workout_date,
+                start_time: log.start_time,
+                end_time: log.end_time,
+                total_duration: log.total_duration,
+                note: log.note,
+                exercises: log.WorkoutDetails.map(detail => ({
+                    name: detail.Exercise.name,
+                    category: detail.Exercise.category,
+                    sets: detail.sets,
+                    reps: detail.reps,
+                    weight: detail.weight,
+                    note: detail.note
+                }))
+            };
+        });
+
+        // OpenAI API 호출 - 각 변수에 대한 별도의 프롬프트 생성
+      // OpenAI API 호출 후 응답 처리
+const response = await openai.chat.completions.create({
+    model: "gpt-4o-mini",  // 사용할 모델
+    messages: [
+        {
+            role: "system",
+            content: "You are a fitness coach analyzing workout data. Please provide the total calories burned, muscle mass change, and body weight change based on the workout data. Only return the following format: total_calories_burned: +/- n kcal, muscle_change: +/- n kg, body_change: +/- n kg, feedback: one sentence in Korean. You have to keep the form strictly including the under bar. Please calcluate all the required calorie/muscle change/body change even accuracy would drop due to lack of information. I just need the approximate value amoung average people"
+        },
+        {
+            role: "user",
+            content: `Here are the workout details for the past week: ${JSON.stringify(workoutData)}. Please calculate and return the total calories burned, muscle mass change, and body weight change. Provide a short feedback in Korean.`
+        }
+    ],
+    max_tokens: 200
+});
+
+// 응답에서 필요한 값 추출
+const result = response.choices[0].message.content;
+
+// 응답에서 'total_calories_burned', 'muscle_change', 'body_change'와 'feedback' 추출
+const regex = /total_calories_burned: (.+?) kcal, muscle_change: (.+?) kg, body_change: (.+?) kg, feedback: (.+)/;
+const matches = result.match(regex);
+
+if (matches) {
+    const total_calories_burned = matches[1];  // 칼로리 소모량
+    const muscle_change = matches[2];          // 근육량 변화
+    const body_change = matches[3];            // 체중 변화
+    const feedback = matches[4];               // 피드백
+
+    // AI 분석 결과 저장 (WeeklyReport 모델에 저장)
+    const report = await WeeklyReport.create({
+        workout_log_id: workoutLogs[0].id,  // 첫 번째 운동 기록의 ID를 사용
+        total_calories_burned,  // 칼로리 소모량
+        muscle_change,          // 근육량 변화
+        body_change,            // 체중 변화
+        feedback,               // 피드백
+        analysis_result: "분석 결과는 별도로 저장하지 않음",  // 전체 리포트 요약을 나중에 추가할 수 있음
+        expected_results: "예시 결과" // 추가적으로 예상 결과도 설정할 수 있음
+    });
+
+    res.status(200).json({ message: 'AI 분석 완료 및 저장', report });
+} else {
+    res.status(500).json({ message: 'AI 응답 처리 오류' });
+}
+
+
+        const feedback = feedbackResponse.choices[0].message.content.trim();  // 피드백
+
+        // AI 분석 결과 저장 (WeeklyReport 모델에 저장)
+        const report = await WeeklyReport.create({
+            workout_log_id: workoutLogs[0].id,  // 첫 번째 운동 기록의 ID를 사용
+            total_calories_burned: total_calories_burned, // 칼로리 소모량
+            muscle_change: muscle_change,  // 근육량 변화
+            body_change: body_change,    // 체중 변화
+            feedback: feedback,          // 피드백
+            analysis_result: "분석 결과는 별도로 저장하지 않음",  // 전체 리포트 요약을 나중에 추가할 수 있음
+            expected_results: "예시 결과" // 추가적으로 예상 결과도 설정할 수 있음
+        });
+
+        res.status(200).json({ message: 'AI 분석 완료 및 저장', report });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: '서버 오류', error: error.message });
+    }
+});
+
+
+
+// AI 리포트 조회
+router.get('/workouts/report/:id', verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;  // 리포트 ID
+
+        const report = await WeeklyReport.findByPk(id);  // 리포트 ID로 조회
+
+        if (!report) {
+            return res.status(404).json({ message: '리포트를 찾을 수 없습니다.' });
+        }
+
+        res.status(200).json({ message: 'AI 리포트 조회 성공', report });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: '서버 오류', error: error.message });
+    }
+});
+
+
 router.get('/', (req, res) => {
     res.send('Test');
 });
 
 module.exports = router;
+
+
