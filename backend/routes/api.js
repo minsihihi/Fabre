@@ -12,11 +12,13 @@ const { OpenAI } = require('openai');
 
 const fs = require('fs');
 const path = require('path');
-const { User, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise, Meal, WeeklyReport  } = require('../models'); 
+const { User, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise, Meal, WeeklyReport, TrainerSchedule  } = require('../models'); 
 const { verifyToken, checkRole } = require('../middleware/auth');
 const saveWeeklyReport = require('../utils/saveWeeklyReport');  // AI 분석 결과 저장 함수
 
-const { Op } = require('sequelize'); // 주간 리포트용 날짜 계산 - sequelize 제공 연산자 객체
+const { Op, Sequelize } = require('sequelize'); // 주간 리포트용 날짜 계산 - sequelize 제공 연산자 객체
+const trainerSchedule = require('../models/trainerSchedule');
+const { check } = require('express-validator');
 
 require('dotenv').config({ path: 'backend/.env' });
 
@@ -145,11 +147,7 @@ router.get('/meals', verifyToken, async (req, res) => {
     }
 });
 
-module.exports = router;
 
-
-
-require('dotenv').config({ path: 'backend/.env' });
 
 // 회원 가입
 router.post('/register', async (req, res) => {
@@ -369,7 +367,6 @@ router.put('/trainer/members/:memberId', verifyToken, checkRole(['trainer']), as
     }
 });
 
-
 // 운동 기록
 router.post('/record', verifyToken, async(req, res) => {
     try {
@@ -537,7 +534,149 @@ router.get('/record', verifyToken, async (req, res) => {
     }
 });
 
+// 트레이너 스케줄 등록
+router.post('/trainer/schedule', verifyToken, checkRole(['trainer']), async(req, res) => {
+    const trainer_id = req.user.id;
+    const { date, start_time, end_time } = req.body;
 
+    if (start_time >= end_time) {
+        return res.status(400).json({ message: "종료 시간은 시작 시간보다 이후여야 합니다." });
+    }
+    
+    try {
+        const formattedDate = new Date(date).toISOString().split('T')[0];
+
+        const startTime = new Date(`${formattedDate}T${start_time}`);
+        const currentTime = new Date();
+
+        // 과거 시간에 일정을 등록하려는지 확인
+        if(startTime < currentTime){
+            return res.status(400).json({ message: "과거 시간에는 일정을 등록할 수 없습니다." });
+        }
+
+        // 기존 일정과 겹치는지 확인
+        const existingSchedules = await TrainerSchedule.findAll({
+            where: {
+                trainer_id,
+                [Op.or]: [
+                    { date: formattedDate },
+                    Sequelize.where(
+                        Sequelize.fn('DATE', Sequelize.col('date')), 
+                        formattedDate
+                    )
+                ]
+            }
+        });
+
+        const isOverlapping = existingSchedules.some(schedule => {
+            const existingStart = new Date(`${formattedDate}T${schedule.start_time}`);
+            const existingEnd = new Date(`${formattedDate}T${schedule.end_time}`);
+            const newStart = new Date(`${formattedDate}T${start_time}`);
+            const newEnd = new Date(`${formattedDate}T${end_time}`);
+
+            return (newStart < existingEnd) && (newEnd > existingStart);
+        });
+
+        if (isOverlapping) {
+            return res.status(400).json({ message: "이 시간대에는 이미 일정이 등록되어 있습니다." });
+        }
+
+
+        // 새로운 일정 등록
+        const newSchedule = await TrainerSchedule.create({
+            trainer_id,
+            date: formattedDate,
+            start_time,
+            end_time,
+        });
+
+        return res.status(201).json({ message: "스케줄이 등록되었습니다." });
+    } catch (error) {
+        console.error("스케줄 등록 오류", error);
+        return res.status(500).json({ message: "서버 오류가 발생했습니다." });
+    }
+});
+
+// 트레이너 스케줄 삭제
+router.delete('/trainer/schedule/:scheduleId', verifyToken, checkRole(['trainer']), async(req, res) => {
+    try{
+        const trainer_id = req.user.id;
+        const { scheduleId } = req.params;
+
+        const existingSchedule = await TrainerSchedule.findOne({
+            where: {
+                id: scheduleId,
+                trainer_id: trainer_id,
+            }
+        });
+
+        if(!existingSchedule){
+            return res.status(404).json({ message: "해당 스케줄이 존재하지 않습니다."});
+        }
+
+        const scheduleDate = existingSchedule.date;
+        const formattedDate = new Date(scheduleDate).toISOString().split('T')[0];
+
+
+        const endTime = new Date(`${formattedDate}T${existingSchedule.end_time}`);
+        const currentTime = new Date();
+
+        if(endTime < currentTime){
+            return res.status(400).json({ message: "이미 종료된 수업입니다." });
+        }
+
+        await existingSchedule.destroy();
+        
+        return res.status(200).json({ message: "스케줄이 정상적으로 삭제되었습니다"});
+
+    }catch(error){
+        console.error("스케줄 삭제 오류", error);
+        return res.status(500).json({ message: "서버 오류가 발생했습니다"})
+    }
+});
+
+// 유저가 트레이너 스케줄 조회
+router.get('/trainer/schedule/:trainerId', verifyToken, checkRole(['member']), async(req, res) => {
+    try{
+        const { trainerId } = req.params;
+        const memberId = req.user.id;
+
+        const trainerMemberRelation = await TrainerMembers.findOne({
+            where:{
+                trainerId: trainerId,
+                memberId: memberId,
+                status: 'active'
+            }
+        })
+
+        if(!trainerMemberRelation){
+            return res.status(403).json("해당 트레이너의 스케줄은 조회할 수 없습니다.")
+        }
+
+        const schedule = await TrainerSchedule.findAll({
+            where: {
+                trainer_id: trainerId,
+                isBooked: false ,
+                date: {[Op.gte]: new Date()}
+            },
+            order:[
+                ['date', 'ASC'],
+                ['start_time', 'ASC']
+            ]
+        });
+
+        return res.status(200).json({ 
+            message: "트레이너 스케줄 조회 성공", 
+            schedule 
+        });
+
+    }catch(error){
+        console.log(error);
+        return res.status(500).json({ message: "서버 오류가 발생했습니다"});
+    }
+});
+
+// 주간 리포트
 router.post('/workouts/analyze-weekly', verifyToken, async (req, res) => {
     try {
         const { memberId } = req.body;
