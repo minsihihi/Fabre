@@ -36,7 +36,7 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false
         }
     }, {
-        tableName: 'trainer_members',  // ✅ 테이블 이름을 명확히 지정
+        tableName: 'trainer_members',
         timestamps: true,
         underscored: true,
         createdAt: 'created_at',
