@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'users',  // ✅ 테이블 명을 'users'로 변경 (소문자 + 복수형)
+                model: 'users',
                 key: 'id'
             }
         },
@@ -18,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'users',  // ✅ 테이블 명을 'users'로 변경 (소문자 + 복수형)
+                model: 'users',
                 key: 'id'
             }
         },

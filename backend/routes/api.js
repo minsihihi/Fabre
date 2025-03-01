@@ -18,6 +18,7 @@ const saveWeeklyReport = require('../utils/saveWeeklyReport');  // AI 분석 결
 
 const { Op, Sequelize } = require('sequelize'); // 주간 리포트용 날짜 계산 - sequelize 제공 연산자 객체
 const trainerSchedule = require('../models/trainerSchedule');
+const { check } = require('express-validator');
 
 require('dotenv').config({ path: 'backend/.env' });
 
@@ -631,6 +632,47 @@ router.delete('/trainer/schedule/:scheduleId', verifyToken, checkRole(['trainer'
     }catch(error){
         console.error("스케줄 삭제 오류", error);
         return res.status(500).json({ message: "서버 오류가 발생했습니다"})
+    }
+});
+
+// 유저가 트레이너 스케줄 조회
+router.get('/trainer/schedule/:trainerId', verifyToken, checkRole(['member']), async(req, res) => {
+    try{
+        const { trainerId } = req.params;
+        const memberId = req.user.id;
+
+        const trainerMemberRelation = await TrainerMembers.findOne({
+            where:{
+                trainerId: trainerId,
+                memberId: memberId,
+                status: 'active'
+            }
+        })
+
+        if(!trainerMemberRelation){
+            return res.status(403).json("해당 트레이너의 스케줄은 조회할 수 없습니다.")
+        }
+
+        const schedule = await TrainerSchedule.findAll({
+            where: {
+                trainer_id: trainerId,
+                isBooked: false ,
+                date: {[Op.gte]: new Date()}
+            },
+            order:[
+                ['date', 'ASC'],
+                ['start_time', 'ASC']
+            ]
+        });
+
+        return res.status(200).json({ 
+            message: "트레이너 스케줄 조회 성공", 
+            schedule 
+        });
+
+    }catch(error){
+        console.log(error);
+        return res.status(500).json({ message: "서버 오류가 발생했습니다"});
     }
 });
 
