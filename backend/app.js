@@ -1,5 +1,3 @@
-// app.js
-
 const dotenv = require('dotenv');
 dotenv.config({ path: 'backend/.env' });
 const express = require('express');
@@ -7,6 +5,10 @@ const db = require('./models'); // models 임포트
 const apiRoutes = require('./routes/api');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const { startScheduler } = require('./utils/scheduler');
+
+// 서버 실행 시 스케줄러 시작
+startScheduler();
 
 const app = express();
 app.use(express.json());
