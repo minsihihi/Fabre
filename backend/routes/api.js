@@ -12,13 +12,14 @@ const { OpenAI } = require('openai');
 
 const fs = require('fs');
 const path = require('path');
-const { User, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise, Meal, WeeklyReport, TrainerSchedule  } = require('../models'); 
+const { User, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise, Meal, WeeklyReport, TrainerSchedule, MemberBookings  } = require('../models'); 
 const { verifyToken, checkRole } = require('../middleware/auth');
 const saveWeeklyReport = require('../utils/saveWeeklyReport');  // AI 분석 결과 저장 함수
 
 const { Op, Sequelize } = require('sequelize'); // 주간 리포트용 날짜 계산 - sequelize 제공 연산자 객체
 const trainerSchedule = require('../models/trainerSchedule');
 const { check } = require('express-validator');
+const memberBookings = require('../models/memberBookings');
 
 require('dotenv').config({ path: 'backend/.env' });
 
@@ -317,7 +318,6 @@ router.get('/trainer/members', verifyToken, checkRole(['trainer']), async (req, 
             },
             include: [{
                 model: User,
-                // as: 'managedMembers',
                 attributes: ['id', 'login_id', 'name', 'createdAt']
             }],
             // 회원 아이디와 시작 날짜, 남은 세션, 회원 상태(활성 비활성)
@@ -635,7 +635,7 @@ router.delete('/trainer/schedule/:scheduleId', verifyToken, checkRole(['trainer'
     }
 });
 
-// 유저가 트레이너 스케줄 조회
+// 회원이 트레이너 스케줄 조회
 router.get('/trainer/schedule/:trainerId', verifyToken, checkRole(['member']), async(req, res) => {
     try{
         const { trainerId } = req.params;
@@ -670,6 +670,61 @@ router.get('/trainer/schedule/:trainerId', verifyToken, checkRole(['member']), a
             schedule 
         });
 
+    }catch(error){
+        console.log(error);
+        return res.status(500).json({ message: "서버 오류가 발생했습니다"});
+    }
+});
+
+// 회원이 스케줄 예약
+router.post('/trainer/schedule/book', verifyToken, checkRole(['member']), async(req, res) => {
+    const member_id = req.user.id;
+    const { scheduleId } = req.body;
+
+    try{
+    //해당 스케줄의 트레이너 아이디를 조회
+    const checkTrainerSchedule = await TrainerSchedule.findOne({
+        where: {
+            id: scheduleId
+        },
+        attributes: ['id', 'trainer_id', 'date', 'start_time', 'end_time', 'isBooked']
+    });
+
+    if(!checkTrainerSchedule){
+        return res.status(404).json({ message: "존재하지 않는 스케줄입니다"});
+    }
+
+    if(checkTrainerSchedule.isBooked){
+        return res.status(400).json({ message: "이미 예약된 스케줄입니다."});
+    }
+
+    const trainer_id = checkTrainerSchedule.trainer_id;
+
+    const trainerMemberRelation = await TrainerMembers.findOne({
+        where:{
+            trainerId: trainer_id,
+            memberId: member_id,
+            status: 'active'
+        }
+    });
+
+    if(!trainerMemberRelation){
+        return res.status(403).json({ message: "해당 트레이너의 스케줄은 예약할 수 없습니다."});
+    }
+
+    const newSchedule = await MemberBookings.create({
+        trainer_id,
+        member_id,
+        schedule_id: scheduleId
+    });
+
+    // 트레이너 스케줄 상태 업데이트
+    await TrainerSchedule.update(
+        { isBooked: true },
+        { where: { id: scheduleId } }
+    );
+
+    return res.status(200).json({ message: "예약 성공"});
     }catch(error){
         console.log(error);
         return res.status(500).json({ message: "서버 오류가 발생했습니다"});
