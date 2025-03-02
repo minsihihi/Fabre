@@ -40,5 +40,10 @@ module.exports = (sequelize, DataTypes) => {
         timestamps: true,
     });
 
+    // MemberBookings 모델에서 관계 설정 예시
+    MemberBookings.belongsTo(sequelize.models.User, { foreignKey: 'trainer_id', as: 'Trainer' });
+    MemberBookings.belongsTo(sequelize.models.TrainerSchedule, { foreignKey: 'schedule_id', as: 'Schedule' });
+
+
     return MemberBookings;
 };
