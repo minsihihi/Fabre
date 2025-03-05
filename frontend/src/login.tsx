@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // next/router 대신 react-router-dom 사용
+import { useNavigate } from "react-router-dom"; // React Router 사용
 import "./Login.css"; // CSS 파일 import
 
 export default function Login() {
@@ -57,8 +57,17 @@ export default function Login() {
               required
             />
           </div>
-          <button type="submit" className="login-button">LOGIN</button>
+          <button type="submit" className="login-button">
+            LOGIN
+          </button>
         </form>
+        {/* 로그인 폼 하단에 회원가입 네비게이션 추가 */}
+        <p className="login-footer">
+          계정이 없으신가요? {" "}
+          <span className="register-link" onClick={() => navigate("/register")}>
+            회원가입
+          </span>
+        </p>
       </div>
     </div>
   );
