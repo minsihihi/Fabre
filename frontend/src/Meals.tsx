@@ -54,28 +54,28 @@ export default function Diet() {
   };
 
   return (
-    <div className="diet-container">
+    <div className="meal-container">
 
       {/* 📸 AI 분석 박스 */}
-      <div className="diet-box">
+      <div className="meal-box">
         <h2>📸 AI 식단 분석</h2>
         <input type="file" accept="image/*" onChange={handleImageUpload} />
         {selectedImage && (
           <img
             src={selectedImage}
             alt="분석할 음식"
-            className="diet-image"
+            className="meal-image"
           />
         )}
       </div>
 
       {/* 🍽️ 요일별 추천 식단 박스 */}
-      <div className="diet-box">
+      <div className="meal-box">
         <h2>🍽️ 요일별 추천 식단</h2>
         <select
           value={selectedDay}
           onChange={(e) => setSelectedDay(e.target.value)}
-          className="diet-select"
+          className="meal-select"
         >
           {Object.keys(mealPlan).map((day) => (
             <option key={day} value={day}>
@@ -88,7 +88,7 @@ export default function Diet() {
         <select
           value={selectedMealTime}
           onChange={(e) => setSelectedMealTime(e.target.value)}
-          className="diet-select"
+          className="meal-select"
         >
           <option value="아침">아침</option>
           <option value="점심">점심</option>
@@ -99,7 +99,7 @@ export default function Diet() {
         <select
           value={selectedMeal}
           onChange={(e) => setSelectedMeal(e.target.value)}
-          className="diet-select"
+          className="meal-select"
         >
           {mealPlan[selectedDay][selectedMealTime].map((meal, index) => (
             <option key={index} value={`Meal${index + 1}`}>
@@ -112,7 +112,7 @@ export default function Diet() {
       </div>
 
       {/* 🛒 건강식품 구매 박스 */}
-      <div className="diet-box">
+      <div className="meal-box">
         <h2>🛒 건강식품 구매</h2>
         <a
           href="https://example.com/health-foods"

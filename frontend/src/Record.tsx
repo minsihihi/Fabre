@@ -18,11 +18,11 @@ export default function Report() {
   };
 
   return (
-    <div className="report-container">
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">📝 R E P O R T</h1>
+    <div className="record-container">
+      <h1 className="text-2xl font-bold text-gray-900 mb-4">📝 R E C O R D</h1>
 
       {/* 상단 선택란 */}
-      <div className="report-selectors">
+      <div className="record-selectors">
         {/* 주/월 선택 - 위치 고정 */}
         <div className="view-selector">
           <label htmlFor="viewType">주차/월:</label>
@@ -58,11 +58,11 @@ export default function Report() {
       </div>
 
       {/* 리포트 내용 */}
-      <div className="report-content">
-        <h2 className="report-title">{`${selectedMonth}월 ${viewType} 리포트`}</h2>
-        <div className="report-box">
+      <div className="record-content">
+        <h2 className="record-title">{`${selectedMonth}월 ${viewType} 리포트`}</h2>
+        <div className="record-box">
           <p>선택한 기간에 대한 AI 분석 리포트가 여기에 표시됩니다.</p>
-          <div className="report-data">
+          <div className="record-data">
             <p>AI 분석 결과: {/* AI 분석 결과 데이터 */}</p>
           </div>
         </div>
