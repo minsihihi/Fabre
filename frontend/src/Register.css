@@ -1,5 +1,5 @@
-/* 전체 화면을 감싸는 컨테이너 */
-.login-container {
+/* 전체 컨테이너: 화면 중앙에 배치 */
+.join-container {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -7,8 +7,8 @@
     background-color: #ffffff;
   }
   
-  /* 로그인 박스 */
-  .login-box {
+  /* 회원가입 박스 스타일 */
+  .join-box {
     background: white;
     padding: 40px;
     border-radius: 12px;
@@ -17,14 +17,14 @@
     text-align: center;
   }
   
-  /* 로그인 제목 */
-  .login-title {
+  /* 제목 스타일 */
+  .join-title {
     font-size: 24px;
     font-weight: bold;
     margin-bottom: 20px;
   }
   
-  /* 입력 필드 그룹 */
+  /* 입력 그룹 */
   .input-group {
     display: flex;
     flex-direction: column;
@@ -32,14 +32,16 @@
     margin-bottom: 15px;
   }
   
-  /* 입력 필드 스타일 */
+  /* 레이블 스타일 */
   .input-group label {
     font-size: 14px;
     font-weight: 600;
     margin-bottom: 5px;
   }
   
-  .input-group input {
+  /* 입력 필드 스타일 */
+  .input-group input,
+  .input-group select {
     width: 100%;
     padding: 10px;
     border: 1px solid #ccc;
@@ -48,14 +50,15 @@
     transition: 0.3s ease-in-out;
   }
   
-  .input-group input:focus {
+  .input-group input:focus,
+  .input-group select:focus {
     border-color: #00462A;
     outline: none;
     box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
   }
   
-  /* 로그인 버튼 */
-  .login-button {
+  /* 회원가입 버튼 */
+  .join-button {
     width: 100%;
     padding: 12px;
     font-size: 16px;
@@ -68,7 +71,7 @@
     transition: background 0.3s ease-in-out;
   }
   
-  .login-button:hover {
+  .join-button:hover {
     background-color: #007747;
   }
   
