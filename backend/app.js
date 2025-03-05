@@ -5,6 +5,10 @@ const db = require('./models');
 const apiRoutes = require('./routes/api');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const { startScheduler } = require('./utils/scheduler');
+
+// 서버 실행 시 스케줄러 시작
+startScheduler();
 
 // 서버 인스턴스 생성
 const app = express();
