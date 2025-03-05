@@ -1,0 +1,146 @@
+/* Home 화면 스타일 */
+
+/* 화면을 100% 채우는 스타일 */
+#root {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  /* 로고 관련 스타일 */
+  .logo {
+    width: 10%; /* 부모 너비의 10%로 설정 */
+    height: auto;
+    display: block;
+    margin: 0 auto 2%; /* 아래 여백 2% */
+  }
+  
+  .logo-text {
+    font-family: 'East Sea Dokdo', cursive;
+    font-size: 5rem; /* 상대 단위이므로 그대로 둡니다 */
+    color: #ffffff;
+    font-weight: bold;
+  }
+  
+  .logo:hover {
+    filter: drop-shadow(0 0 2em #646cffaa);
+  }
+  
+  .logo.react:hover {
+    filter: drop-shadow(0 0 2em #80e3ffaa);
+  }
+  
+  /* 전체 컨테이너 */
+  .home-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2%; /* 전체 여백을 2%로 설정 */
+    height: 100vh; /* 화면 높이 100vh 유지 */
+    box-sizing: border-box;
+  }
+  
+/* 달력 컨테이너 */
+.calendar-container {
+    width: 100%;
+    height: 90vh; /* 화면 높이의 90% */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2%;
+    box-sizing: border-box;
+  }
+  
+  /* 달력 전체 스타일 */
+  .react-calendar {
+    width: 100% !important;
+    height: 70%; /* 전체 높이를 100%로 */
+    display: flex;
+    flex-direction: column;
+    font-size: 1.2rem;
+    border-radius: 2%;
+    box-shadow: 0 2% 4% rgba(0, 0, 0, 0.1);
+    background-color: #f9f9f9;
+  }
+  
+  /* 달력 셀(날짜) 스타일 */
+  .react-calendar__tile {
+    height: 100%; /* 날짜 셀 높이를 꽉 채우기 */
+    min-height: 7%; /* 최소 높이 지정 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 3%;
+  }  
+  
+  
+  /* 운동 선택 모달 스타일 */
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .modal-content {
+    background-color: white;
+    padding: 2%; /* 내부 여백 5% */
+    border-radius: 2%; /* 모서리 둥글게 2% */
+    text-align: center;
+    width: 40%; /* 화면 너비의 50% */
+  }
+
+    .workout-상체 { background-color: #ffadad; }
+    .workout-하체 { background-color: #b2ffb2; }
+    .workout-전신 { background-color: #bcd8ff; }
+    .workout-유산소 { background-color: #ffffb3; }
+  
+  .button-container button {
+    display: block;
+    margin: 2%; /* 버튼 간 여백 2% */
+    padding: 2%; /* 내부 여백 2% */
+    width: 100%;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  
+  /* 홈 화면에서 사용될 버튼 스타일 */
+  button {
+    padding: 2%;
+    margin: 1%;
+  }
+  
+  /* 스케줄 박스 스타일 */
+  .schedule-box {
+    width: 100%;
+    padding: 2%;
+    background-color: #fff;
+    border-radius: 4%;
+    box-shadow: 0 2% 3% rgba(0, 0, 0, 0.1);
+    text-align: center;
+    box-sizing: border-box;
+  }
+  
+  /* 모바일에서 사이드바 숨기기 */
+  @media (max-width: 768px) {
+    .left-sidebar {
+      width: 40%; /* 모바일에서는 왼쪽 사이드바 너비를 40%로 설정 */
+      transform: translateX(-100%);
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100vh;
+    }
+    
+    .left-sidebar.open {
+      transform: translateX(0);
+    }
+  }
+  
