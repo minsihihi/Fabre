@@ -8,7 +8,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');  
 const multerS3 = require('multer-s3');
 
-const { OpenAI } = require('openai');  
+const { OpenAI } = require('openai');
 
 const fs = require('fs');
 const path = require('path');
@@ -828,6 +828,10 @@ router.get('/member/bookings', verifyToken, checkRole(['member']), async (req, r
         return res.status(500).json({ message: "서버 오류가 발생했습니다" });
     }
 });
+
+
+// 운동 시간 설정
+
 
 
 // 주간 리포트
