@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'users',  // ✅ 테이블 명을 'users'로 변경 (소문자 + 복수형)
+                model: 'users',
                 key: 'id'
             }
         },
@@ -18,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'users',  // ✅ 테이블 명을 'users'로 변경 (소문자 + 복수형)
+                model: 'users',
                 key: 'id'
             }
         },
@@ -36,7 +36,7 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false
         }
     }, {
-        tableName: 'trainer_members',  // ✅ 테이블 이름을 명확히 지정
+        tableName: 'trainer_members',
         timestamps: true,
         underscored: true,
         createdAt: 'created_at',
