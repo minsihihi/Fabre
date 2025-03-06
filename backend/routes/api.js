@@ -33,7 +33,9 @@ AWS.config.update({
     region: process.env.AWS_REGION
 });
 
-const s3 = new AWS.S3();
+
+const s3 = new AWS.S3
+
 
 // ✅ multer와 s3 연동 설정
 const upload = multer({
@@ -42,59 +44,73 @@ const upload = multer({
         bucket: process.env.AWS_S3_BUCKET_NAME,
         acl: 'public-read',  // 퍼블릭 읽기 권한
         key: function (req, file, cb) {
-            cb(null, `meal-images/${Date.now()}_${file.originalname}`); // 파일 경로
+            const category = req.params.category || 'general'; // 기본값: 'general'
+            cb(null, `${category}/${Date.now()}_${file.originalname}`); // 파일 경로, 카테고리는 업로드 되는 사진에 따라 다르게 해야 함
         }
     })
 });
 
-// ✅ 이미지 저장 경로 설정 (로컬 스토리지)
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadPath = path.join(__dirname, '../uploads/');
-        if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });  
-        cb(null, uploadPath);
-    },
-    filename: (req, file, cb) => {
-        cb(null, `${Date.now()}_${file.originalname}`);
-    }
-});
-
-// s3 설정 부분 1
-/* ----------------------------------- */
-/* ✅ 1. 식단 사진 업로드 API */
-/* ----------------------------------- */
-router.post('/meals/upload', verifyToken, upload.single('mealImage'), async (req, res) => {
+// ✅ 범용적인 이미지 업로드 API
+router.post('/upload/:category', verifyToken, upload.single('image'), async (req, res) => {
     try {
+        console.log("🔍 업로드된 파일:", req.file);
+        console.log("🔍 업로드된 카테고리:", req.params.category);
+
         if (!req.file) return res.status(400).json({ message: '파일이 없습니다.' });
 
-        const imageUrl = `/uploads/${req.file.filename}`;
-        // const imageUrl = req.file.location;  // S3 URL
-        const userId = req.user.id;
+        const category = req.params.category;
+        if (!category || (category !== "meal" && category !== "profile" && category !== "workout")) {
+            return res.status(400).json({ message: '잘못된 카테고리입니다. (meal, profile, workout 중 하나를 사용하세요)' });
+        }
 
-        // 🔹 데이터베이스에 저장
-        const meal = await Meal.create({ userId, imageUrl });
+        const imageUrl = req.file.location;
+        const fileId = req.file.key.split('/')[1];  // 🔹 파일 ID 추출 (예: "1709876543210_food.jpg")
 
-        res.status(201).json({ message: '사진 업로드 성공', meal });
+        res.status(201).json({ message: `${category} 이미지 업로드 성공`, imageUrl, fileId });
     } catch (error) {
-        console.error("❌ 식단 업로드 오류:", error);
+        console.error("❌ 이미지 업로드 오류:", error);
         res.status(500).json({ message: '서버 오류', error: error.message });
     }
 });
 
+
+
+/* ----------------------------------- */
+/* ✅ 모든 업로드된 이미지 조회 API */
+/* ----------------------------------- */
+router.get('/uploads/:category', verifyToken, async (req, res) => {
+    try {
+        const category = req.params.category;
+        const params = {
+            Bucket: process.env.AWS_S3_BUCKET_NAME,
+            Prefix: `${category}/`
+        };
+
+        const data = await s3.listObjectsV2(params).promise();
+        const imageUrls = data.Contents.map(item => `${process.env.AWS_S3_BUCKET_URL}/${item.Key}`);
+
+        res.status(200).json({ message: `${category} 이미지 목록 조회 성공`, images: imageUrls });
+    } catch (error) {
+        console.error("❌ 이미지 목록 조회 오류:", error);
+        res.status(500).json({ message: '서버 오류', error: error.message });
+    }
+});
+
+module.exports = router;
+
 /* ----------------------------------- */
 /* ✅ 2. OpenAI API를 이용한 식단 분석 API */
 /* ----------------------------------- */
-router.post('/meals/analyze/:mealId', verifyToken, async (req, res) => {
+router.post('/meals/analyze', verifyToken, async (req, res) => {
     try {
-        const { mealId } = req.params;
-        const meal = await Meal.findByPk(mealId);
+        const { fileId } = req.query;  // 🔹 fileId를 Query Parameter로 받음
+        if (!fileId) return res.status(400).json({ message: "fileId가 필요합니다." });
 
-        if (!meal) return res.status(404).json({ message: '식단을 찾을 수 없습니다.' });
+        // 🔹 S3에서 해당 이미지 URL 생성
+        const imageUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/meal/${fileId}`;
 
-        const imageUrl = `http://localhost:3000${meal.imageUrl}`;
-        
-        // s3 설정 부분 2
-        // const imageUrl = req.file.location;  // S3 URL
+        console.log(`✅ 분석할 이미지 URL: ${imageUrl}`);
+
 
         // 🔹 OpenAI Vision API 요청 (🚀 수정된 부분)
         const response = await openai.chat.completions.create({
@@ -109,7 +125,7 @@ router.post('/meals/analyze/:mealId', verifyToken, async (req, res) => {
                 {
                     role: "user",
                     content: [
-                        { type: "text", text: "Analyze this meal and estimate the calorie count." },
+                        { type: "text", text: "Analyze this meal and estimate the calorie count. Please calculate the total amout of calories(unit : kcal), carbs(unit : gram), protein, fat. Also, give a name of a ingredient or menu that can resolve the imbalce amoung the nutrients. (e.g. 칼로리 : 1000kcal, 탄수화물 : 20g, 단백질 : 10g, 지방 : 30g, 추천식단 : 닭가슴살) Remember that you must not depict the ingredient of the menu. Just provide the 3 nutritions of the main dish itself. Please comply with the given e.g. Korean form strictly." },
                         { type: "image_url", image_url: { url: imageUrl } } // ✅ 수정된 부분
                     ]
                 }
@@ -117,37 +133,47 @@ router.post('/meals/analyze/:mealId', verifyToken, async (req, res) => {
             max_tokens: 300
         });
 
-        // 🔹 OpenAI 응답 데이터 저장
+        // 🔹 OpenAI 응답 데이터
         const analysisResult = response.choices[0].message.content;
-        await meal.update({ analysisResult });
+        console.log("🔍 AI 분석 결과:", analysisResult);
 
-        res.status(200).json({ message: '식단 분석 완료', analysisResult });
+        // 🔹 추천 식단 (ingredient) 추출
+        const match = analysisResult.match(/추천식단\s*:\s*(.+)/);
+        const recommendedFood = match ? match[1].trim() : null;
+
+        console.log("✅ 추천 식단:", recommendedFood);
+
+        res.status(200).json({ 
+            message: '식단 분석 완료', 
+            analysisResult, 
+            recommendedFood 
+        });
+
     } catch (error) {
         console.error("❌ OpenAI API 오류:", error);
         res.status(500).json({ message: '서버 오류', error: error.message });
     }
 });
 
-/* ----------------------------------- */
-/* ✅ 3. 회원의 식단 목록 조회 API */
-/* ----------------------------------- */
-router.get('/meals', verifyToken, async (req, res) => {
-    try {
-        const meals = await Meal.findAll({
-            where: { userId: req.user.id },
-            order: [['createdAt', 'DESC']]
-        });
 
-        res.status(200).json({ message: '식단 목록 조회 성공', meals });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: '서버 오류' });
-    }
-});
+
+// 로컬 업로드 식단 사진 조회 - 폐사한 기능...
+// router.get('/meal', verifyToken, async (req, res) => {
+//     try {
+//         const meals = await Meal.findAll({
+//             where: { userId: req.user.id },
+//             order: [['createdAt', 'DESC']]
+//         });
+
+//         res.status(200).json({ message: '식단 목록 조회 성공', meals });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ message: '서버 오류' });
+//     }
+// });
+
 
 module.exports = router;
-
-
 
 require('dotenv').config({ path: 'backend/.env' });
 
