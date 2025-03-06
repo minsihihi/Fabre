@@ -48,13 +48,13 @@ db.sequelize
 const PORT = process.env.PORT || 3000;
 
 // app.js 또는 db 연결 파일에서 실행
-db.sequelize.sync({ alter: true })
-    .then(() => {
-        console.log('Database synchronized successfully');
-    })
-    .catch((err) => {
-        console.error('Error syncing database:', err);
-    });
+// db.sequelize.sync({ alter: true })
+//     .then(() => {
+//         console.log('Database synchronized successfully');
+//     })
+//     .catch((err) => {
+//         console.error('Error syncing database:', err);
+//     });
 
 // 모델 동기화 및 서버 실행
 db.sequelize.sync({ force: false })  // force: false로 설정하면 기존 테이블을 덮어쓰지 않습니다.
