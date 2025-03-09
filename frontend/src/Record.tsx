@@ -17,6 +17,38 @@ export default function Report() {
     setViewType(event.target.value);
   };
 
+  // 알림 테스트 함수 수정
+  const testNotification = () => {
+    // Electron API가 있는 경우
+    if (window.electron && window.electron.showNotification) {
+      window.electron.showNotification('운동 알림 테스트', '알림 기능이 정상적으로 작동합니다!');
+    } 
+    // 브라우저 Web Notification API 사용
+    else if ('Notification' in window) {
+      // 알림 권한 요청
+      if (Notification.permission === 'granted') {
+        new Notification('운동 알림 테스트', {
+          body: '알림 기능이 정상적으로 작동합니다!',
+          icon: '/favicon.ico' // 아이콘 경로 (선택사항)
+        });
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            new Notification('운동 알림 테스트', {
+              body: '알림 기능이 정상적으로 작동합니다!',
+              icon: '/favicon.ico' // 아이콘 경로 (선택사항)
+            });
+          }
+        });
+      } else {
+        alert('알림 권한이 거부되었습니다. 브라우저 설정에서 알림 권한을 허용해주세요.');
+      }
+    } else {
+      // 알림 API를 지원하지 않는 브라우저
+      alert('이 브라우저는 알림 기능을 지원하지 않습니다.');
+    }
+  };
+
   return (
     <div className="record-container">
       <h1 className="text-2xl font-bold text-gray-900 mb-4">📝 R E C O R D</h1>
@@ -54,6 +86,16 @@ export default function Report() {
               </option>
             ))}
           </select>
+        </div>
+        
+        {/* 알림 테스트 버튼 추가 */}
+        <div className="notification-test">
+          <button 
+            onClick={testNotification}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-1 px-3 rounded"
+          >
+            알림 테스트
+          </button>
         </div>
       </div>
 
