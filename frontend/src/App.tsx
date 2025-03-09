@@ -16,15 +16,6 @@ const App: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [apiMessage, setApiMessage] = useState<string>('');
 
-  // 📌 Electron 운동 알림 수신 (추가된 부분)
-  useEffect(() => {
-    if (window.electron) {
-      window.electron.onWorkoutNotification((event, notificationData) => {
-        alert(`${notificationData.title}: ${notificationData.message}`);
-      });
-    }
-  }, []);
-
   // 화면 크기에 따라 모바일 여부 판단
   useEffect(() => {
     const handleResize = () => {
