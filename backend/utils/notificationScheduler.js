@@ -5,7 +5,15 @@ const eventEmitter = require("../utils/eventEmitter");
 // 현재 활성화된 스케줄 저장
 const activeJobs = {};
 
-// 🚀 운동 알림 스케줄링 함수
+let loggedInUserId = null;
+
+// 로그인한 유저를 설정하는 함수
+const setLoggedInUser = (userId) => {
+    console.log(`로그인된 사용자 설정됨: ${userId}`);
+    loggedInUserId = userId;
+};
+
+// 운동 알림 스케줄링 함수
 const scheduleWorkoutNotification = (schedule) => {
 
     try {
@@ -18,6 +26,11 @@ const scheduleWorkoutNotification = (schedule) => {
 
         if (!id || !workoutTime) {
             console.error(`잘못된 운동 스케줄 데이터 (ID: ${id || 'N/A'})`);
+            return;
+        }
+
+        if (loggedInUserId !== userId) {
+            console.log(`로그인한 사용자(${loggedInUserId})와 스케줄 사용자(${userId}) 불일치`);
             return;
         }
 
@@ -55,6 +68,12 @@ const scheduleWorkoutNotification = (schedule) => {
 const sendWorkoutNotification = (userId) => {
     try {
 
+        // 로그인한 사용자만 알림 받도록 설정
+        if (loggedInUserId !== userId) {
+            console.log(`로그인한 사용자(${loggedInUserId})와 알림 대상(${userId}) 불일치`);
+            return;
+        }
+
         // Electron이 실행 중이면 앱 내에서 알림 전송
         if (eventEmitter) {
             eventEmitter.emit("notification", {
@@ -72,7 +91,7 @@ const sendWorkoutNotification = (userId) => {
         });
 
     } catch (error) {
-        console.error("❌ 알림 전송 중 오류 발생:", error);
+        console.error("알림 전송 중 오류 발생:", error);
     }
 };
 
@@ -96,5 +115,6 @@ const initializeWorkoutNotifications = async () => {
 module.exports = {
     scheduleWorkoutNotification,
     sendWorkoutNotification,
-    initializeWorkoutNotifications
+    initializeWorkoutNotifications,
+    setLoggedInUser
 };
