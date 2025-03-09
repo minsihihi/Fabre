@@ -22,6 +22,7 @@ const { check } = require('express-validator');
 const memberBookings = require('../models/memberBookings');
 const { scheduleWorkoutNotification, sendWorkoutNotification  } = require('../utils/notificationScheduler');
 const { send } = require('vite');
+const { setLoggedInUser } = require("../utils/notificationScheduler");
 
 
 require('dotenv').config({ path: 'backend/.env' });
@@ -220,9 +221,12 @@ router.post('/login', async (req, res) => {
             { expiresIn: '1h' }
         );
 
+        setLoggedInUser(user.id);
+
         res.json({ 
             token, 
             user: {
+                id: user.id,
                 login_id: user.login_id,
                 name: user.name,
                 role: user.role
