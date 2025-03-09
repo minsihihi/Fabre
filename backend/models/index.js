@@ -21,6 +21,7 @@ db.Meal = require('./meal')(sequelize, Sequelize);  // ✅ Meal 모델 추가
 db.TrainerSchedule = require('./trainerSchedule')(sequelize, Sequelize);
 db.WeeklyReport = require('./weeklyReport')(sequelize, Sequelize);
 db.MemberBookings = require('./memberBookings')(sequelize, Sequelize);
+db.WorkoutSchedule = require('./workoutSchedule')(sequelize, Sequelize);
 
 // 모델 연관 관계 설정
 db.TrainerMembers.belongsTo(db.User, {
@@ -42,7 +43,6 @@ db.WorkoutDetail.belongsTo(db.Exercise, {
 db.Meal.belongsTo(db.User, {  // ✅ Meal 모델과 User 모델 연결
     foreignKey: 'userId',
 });
-
 
 
 db.sequelize = sequelize;

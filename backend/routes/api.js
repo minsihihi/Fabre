@@ -12,7 +12,7 @@ const { OpenAI } = require('openai');
 
 const fs = require('fs');
 const path = require('path');
-const { User, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise, Meal, WeeklyReport, TrainerSchedule, MemberBookings  } = require('../models'); 
+const { User, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise, Meal, WeeklyReport, TrainerSchedule, MemberBookings, WorkoutSchedule  } = require('../models'); 
 const { verifyToken, checkRole } = require('../middleware/auth');
 const saveWeeklyReport = require('../utils/saveWeeklyReport');  // AI 분석 결과 저장 함수
 
@@ -20,6 +20,9 @@ const { Op, Sequelize } = require('sequelize'); // 주간 리포트용 날짜 �
 const trainerSchedule = require('../models/trainerSchedule');
 const { check } = require('express-validator');
 const memberBookings = require('../models/memberBookings');
+const { scheduleWorkoutNotification, sendWorkoutNotification  } = require('../utils/notificationScheduler');
+const { send } = require('vite');
+
 
 require('dotenv').config({ path: 'backend/.env' });
 
@@ -831,7 +834,93 @@ router.get('/member/bookings', verifyToken, checkRole(['member']), async (req, r
 
 
 // 운동 시간 설정
+router.post('/workout-schedule', verifyToken, async(req, res) => {
+    try{
+        const { userId, workoutTime, days } = req.body;
 
+        const schedule = await WorkoutSchedule.create({
+            userId,
+            workoutTime,
+            days : days ? days.join(',') : null
+        });
+
+        scheduleWorkoutNotification(schedule);
+
+        res.status(201).json({
+            message: "운동시간이 설정되었습니다.",
+            schedule
+        })
+
+    } catch(error){
+        console.log(error);
+        return res.status(404).json({ message: '서버 오류가 발생했습니다'});
+    }
+});
+
+// 운동 시간 조회
+router.get('/workout-schedule/:userId', verifyToken, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        const schedules = await WorkoutSchedule.findAll({
+            where: { userId, isActive: true }
+        });
+        
+        res.status(200).json(schedules);
+    } catch (error) {
+        console.error('운동 시간 조회 오류:', error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message });
+    }
+});
+
+// 운동 시간 수정
+router.put('/workout-schedule/:id', verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { workoutTime, isActive, days } = req.body;
+        
+        const schedule = await WorkoutSchedule.findByPk(id);
+        if (!schedule) {
+            return res.status(404).json({ message: '운동 일정을 찾을 수 없습니다.' });
+        }
+        
+        await schedule.update({
+            workoutTime: workoutTime || schedule.workoutTime,
+            isActive: isActive !== undefined ? isActive : schedule.isActive,
+            days: days ? days.join(',') : schedule.days
+        });
+        
+        // 스케줄러 업데이트
+        scheduleWorkoutNotification(schedule);
+        
+        res.status(200).json({ 
+            message: '운동 시간이 성공적으로 수정되었습니다.',
+            schedule
+        });
+    } catch (error) {
+        console.error('운동 시간 수정 오류:', error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message });
+    }
+});
+
+// 운동 시간 삭제 API
+router.delete('/workout-schedule/:id', verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const schedule = await WorkoutSchedule.findByPk(id);
+        if (!schedule) {
+            return res.status(404).json({ message: '운동 일정을 찾을 수 없습니다.' });
+        }
+        
+        await schedule.destroy();
+        
+        res.status(200).json({ message: '운동 시간이 성공적으로 삭제되었습니다.' });
+    } catch (error) {
+        console.error('운동 시간 삭제 오류:', error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message });
+    }
+});
 
 
 // 주간 리포트
