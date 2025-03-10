@@ -1,6 +1,7 @@
 const { scheduleJob } = require("node-schedule");
 const notifier = require("node-notifier");
 const eventEmitter = require("../utils/eventEmitter");
+const { WorkoutSchedule } = require('../models');
 
 // 현재 활성화된 스케줄 저장
 const activeJobs = {};
@@ -9,7 +10,7 @@ let loggedInUserId = null;
 
 // 로그인한 유저를 설정하는 함수
 const setLoggedInUser = (userId) => {
-    console.log(`로그인된 사용자 설정됨: ${userId}`);
+    // console.log(`로그인된 사용자 설정됨: ${userId}`);
     loggedInUserId = userId;
 };
 
@@ -30,7 +31,7 @@ const scheduleWorkoutNotification = (schedule) => {
         }
 
         if (loggedInUserId !== userId) {
-            console.log(`로그인한 사용자(${loggedInUserId})와 스케줄 사용자(${userId}) 불일치`);
+            // console.log(`로그인한 사용자(${loggedInUserId})와 스케줄 사용자(${userId}) 불일치`);
             return;
         }
 
@@ -70,7 +71,7 @@ const sendWorkoutNotification = (userId) => {
 
         // 로그인한 사용자만 알림 받도록 설정
         if (loggedInUserId !== userId) {
-            console.log(`로그인한 사용자(${loggedInUserId})와 알림 대상(${userId}) 불일치`);
+            // console.log(`로그인한 사용자(${loggedInUserId})와 알림 대상(${userId}) 불일치`);
             return;
         }
 
@@ -108,7 +109,7 @@ const initializeWorkoutNotifications = async () => {
         }
         schedules.forEach(scheduleWorkoutNotification);
     } catch (error) {
-        console.error("❌ 운동 알림 초기화 오류:", error);
+        console.error("운동 알림 초기화 오류:", error);
     }
 };
 
