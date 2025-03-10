@@ -13,12 +13,20 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: false
         },
+        mealDate: {
+            type: DataTypes.DATEONLY, // YYYY-MM-DD 형식으로 저장
+            allowNull: true
+        },
+        mealType: {
+            type: DataTypes.ENUM('breakfast', 'lunch', 'dinner'),
+            allowNull: true
+        },
         analysisResult: {
             type: DataTypes.JSON,
             allowNull: true
         }
     }, {
-        tableName: 'meals', // 테이블 명 명시
+        tableName: 'meals', 
         timestamps: true
     });
 
