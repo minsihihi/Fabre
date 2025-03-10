@@ -36,6 +36,29 @@ db.MealAnalysis.belongsTo(db.User, { foreignKey: 'userId' });
 db.MealAnalysis.belongsTo(db.Meal, { foreignKey: 'mealId' });
 db.Profile.belongsTo(db.User, { foreignKey: 'userId' });
 db.Workout.belongsTo(db.User, { foreignKey: 'userId' });
+db.WorkoutSchedule = require('./workoutSchedule')(sequelize, Sequelize);
+
+// 모델 연관 관계 설정
+db.TrainerMembers.belongsTo(db.User, {
+    foreignKey: 'memberId',
+});
+
+db.WorkoutLog.hasMany(db.WorkoutDetail, { 
+    foreignKey: 'workout_log_id',
+});
+
+db.WorkoutDetail.belongsTo(db.WorkoutLog, { 
+    foreignKey: 'workout_log_id',
+});
+
+db.WorkoutDetail.belongsTo(db.Exercise, {
+    foreignKey: 'exercise_id',
+});
+
+db.Meal.belongsTo(db.User, {  // ✅ Meal 모델과 User 모델 연결
+    foreignKey: 'userId',
+});
+
 
 db.sequelize = sequelize;
 module.exports = db;
