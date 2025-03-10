@@ -12,41 +12,31 @@ const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, proces
 
 const db = {};
 
+// 모델 정의
 db.User = require('./user')(sequelize, Sequelize);
 db.TrainerMembers = require('./trainerMembers')(sequelize, Sequelize);
 db.Exercise = require('./exercise')(sequelize, Sequelize);
 db.WorkoutDetail = require('./workoutDetail')(sequelize, Sequelize);
 db.WorkoutLog = require('./workoutLog')(sequelize, Sequelize);
-db.Meal = require('./meal')(sequelize, Sequelize);  // ✅ Meal 모델 추가
+db.Meal = require('./meal')(sequelize, Sequelize);
 db.TrainerSchedule = require('./trainerSchedule')(sequelize, Sequelize);
 db.WeeklyReport = require('./weeklyReport')(sequelize, Sequelize);
 db.MemberBookings = require('./memberBookings')(sequelize, Sequelize);
+db.MealAnalysis = require('./mealAnalysis')(sequelize, Sequelize);
+db.Profile = require('./profile')(sequelize, Sequelize);
+db.Workout = require('./workout')(sequelize, Sequelize);
 
-// 모델 연관 관계 설정
-db.TrainerMembers.belongsTo(db.User, {
-    foreignKey: 'memberId',
-});
-
-db.WorkoutLog.hasMany(db.WorkoutDetail, { 
-    foreignKey: 'workout_log_id',
-});
-
-db.WorkoutDetail.belongsTo(db.WorkoutLog, { 
-    foreignKey: 'workout_log_id',
-});
-
-db.WorkoutDetail.belongsTo(db.Exercise, {
-    foreignKey: 'exercise_id',
-});
-
-db.Meal.belongsTo(db.User, {  // ✅ Meal 모델과 User 모델 연결
-    foreignKey: 'userId',
-});
-
-
+// 모델 관계 설정 (각 모델이 정의된 후 실행)
+db.TrainerMembers.belongsTo(db.User, { foreignKey: 'memberId' });
+db.WorkoutLog.hasMany(db.WorkoutDetail, { foreignKey: 'workout_log_id' });
+db.WorkoutDetail.belongsTo(db.WorkoutLog, { foreignKey: 'workout_log_id' });
+db.WorkoutDetail.belongsTo(db.Exercise, { foreignKey: 'exercise_id' });
+db.Meal.belongsTo(db.User, { foreignKey: 'userId' });
+db.MealAnalysis.belongsTo(db.User, { foreignKey: 'userId' });
+db.MealAnalysis.belongsTo(db.Meal, { foreignKey: 'mealId' });
+db.Profile.belongsTo(db.User, { foreignKey: 'userId' });
+db.Workout.belongsTo(db.User, { foreignKey: 'userId' });
 
 db.sequelize = sequelize;
-db.Sequelize = Sequelize;
-
-
 module.exports = db;
+
