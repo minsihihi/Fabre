@@ -1,5 +1,7 @@
 const AWS = require('aws-sdk');
 
+const axios = require('axios');
+
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt'); 
@@ -12,7 +14,7 @@ const { OpenAI } = require('openai');
 
 const fs = require('fs');
 const path = require('path');
-const { User, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise, Meal, WeeklyReport, TrainerSchedule, MemberBookings  } = require('../models'); 
+const { User, Profile, Workout, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise, Meal, WeeklyReport, TrainerSchedule, MemberBookings, MealAnalysis} = require('../models'); 
 const { verifyToken, checkRole } = require('../middleware/auth');
 const saveWeeklyReport = require('../utils/saveWeeklyReport');  // AI 분석 결과 저장 함수
 
@@ -23,81 +25,164 @@ const memberBookings = require('../models/memberBookings');
 
 require('dotenv').config({ path: 'backend/.env' });
 
+module.exports = router;
 
 // ✅ OpenAI API 설정
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
 
-// ✅ S3 설정
+// ✅ AWS SDK v2 방식으로 S3 객체 생성
 AWS.config.update({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     region: process.env.AWS_REGION
 });
 
+const s3 = new AWS.S3();
 
-const s3 = new AWS.S3
-
-
-// ✅ multer와 s3 연동 설정
+// ✅ multer 설정 (AWS SDK v2 방식)
 const upload = multer({
     storage: multerS3({
         s3: s3,
         bucket: process.env.AWS_S3_BUCKET_NAME,
-        acl: 'public-read',  // 퍼블릭 읽기 권한
+        acl: "public-read",
         key: function (req, file, cb) {
-            const category = req.params.category || 'general'; // 기본값: 'general'
-            cb(null, `${category}/${Date.now()}_${file.originalname}`); // 파일 경로, 카테고리는 업로드 되는 사진에 따라 다르게 해야 함
+            const category = req.params.category;
+            const userId = req.user.id;
+
+            console.log("🔹 [DEBUG] S3 저장 - category:", category);
+            console.log("🔹 [DEBUG] S3 저장 - userId:", userId);
+
+            if (!category || !["meal", "profile", "workout"].includes(category)) {
+                return cb(new Error("잘못된 카테고리"), false);
+            }
+
+            cb(null, `${category}/${userId}/${Date.now()}_${file.originalname}`);
         }
-    })
+    }),
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB 제한
 });
 
-// ✅ 범용적인 이미지 업로드 API
-router.post('/upload/:category', verifyToken, upload.single('image'), async (req, res) => {
+
+
+// ✅ 식단, 프로필, 운동 이미지 업로드 API (1개 파일만 허용)
+router.post("/upload/:category", verifyToken, upload.single("image"), async (req, res) => {
     try {
-        console.log("🔍 업로드된 파일:", req.file);
-        console.log("🔍 업로드된 카테고리:", req.params.category);
+        console.log("🔹 [DEBUG] 업로드 요청 - category:", req.params.category);
+        console.log("🔹 [DEBUG] req.file:", req.file);  // ✅ 파일이 제대로 받아졌는지 확인
+        console.log("🔹 [DEBUG] req.body:", req.body);
 
-        if (!req.file) return res.status(400).json({ message: '파일이 없습니다.' });
-
-        const category = req.params.category;
-        if (!category || (category !== "meal" && category !== "profile" && category !== "workout")) {
-            return res.status(400).json({ message: '잘못된 카테고리입니다. (meal, profile, workout 중 하나를 사용하세요)' });
+        if (!req.file) {
+            return res.status(400).json({ message: "파일이 없습니다. form-data의 Key가 'image'인지 확인하세요." });
         }
 
-        const imageUrl = req.file.location;
-        const fileId = req.file.key.split('/')[1];  // 🔹 파일 ID 추출 (예: "1709876543210_food.jpg")
+        const { category } = req.params;
+        if (!category || !["meal", "profile", "workout"].includes(category)) {
+            return res.status(400).json({ message: "잘못된 카테고리입니다." });
+        }
 
-        res.status(201).json({ message: `${category} 이미지 업로드 성공`, imageUrl, fileId });
+        const imageUrl = `${process.env.S3_BUCKET_URL}/${req.file.key}`;
+        let recordId = null;
+
+        if (category === "meal") {
+            const { mealType, mealDate } = req.body;
+            if (!["breakfast", "lunch", "snack", "dinner"].includes(mealType)) {
+                return res.status(400).json({ message: "mealType이 올바르지 않습니다." });
+            }
+            if (!mealDate) return res.status(400).json({ message: "mealDate가 필요합니다." });
+
+            const meal = await Meal.create({ userId: req.user.id, imageUrl, mealType, mealDate });
+            recordId = meal.id;
+
+        } else if (category === "profile") {
+            await Profile.destroy({ where: { userId: req.user.id } });
+            const profile = await Profile.create({ userId: req.user.id, imageUrl });
+            recordId = profile.id;
+
+        } else if (category === "workout") {
+            const workout = await Workout.create({ userId: req.user.id, imageUrl });
+            recordId = workout.id;
+        }
+
+        res.status(201).json({ message: `${category} 이미지 업로드 성공`, imageUrl, id: recordId });
+
     } catch (error) {
         console.error("❌ 이미지 업로드 오류:", error);
-        res.status(500).json({ message: '서버 오류', error: error.message });
+        res.status(500).json({ message: "서버 오류", error: error.message });
     }
 });
 
 
 
 /* ----------------------------------- */
-/* ✅ 모든 업로드된 이미지 조회 API */
+/* ✅ 업로드된 '식단' 이미지 조회 API (날짜 + 식사 유형 기반) */
 /* ----------------------------------- */
-router.get('/uploads/:category', verifyToken, async (req, res) => {
+router.get("/images/meal", async (req, res) => {
     try {
-        const category = req.params.category;
-        const params = {
-            Bucket: process.env.AWS_S3_BUCKET_NAME,
-            Prefix: `${category}/`
-        };
+        const { userId, mealDate } = req.query;
+        if (!userId || !mealDate) {
+            return res.status(400).json({ message: "userId와 mealDate가 필요합니다." });
+        }
 
-        const data = await s3.listObjectsV2(params).promise();
-        const imageUrls = data.Contents.map(item => `${process.env.AWS_S3_BUCKET_URL}/${item.Key}`);
+        const meals = await Meal.findAll({
+            where: { userId, mealDate },
+            attributes: ["id", "imageUrl", "mealType"]
+        });
 
-        res.status(200).json({ message: `${category} 이미지 목록 조회 성공`, images: imageUrls });
+        res.json({ meals });
+
     } catch (error) {
-        console.error("❌ 이미지 목록 조회 오류:", error);
-        res.status(500).json({ message: '서버 오류', error: error.message });
+        console.error("❌ 식단 조회 오류:", error);
+        res.status(500).json({ message: "서버 오류", error: error.message });
     }
 });
+
+
+
+/* ----------------------------------- */
+/* ✅ 업로드된 '오운완'이미지 조회 API */
+/* ----------------------------------- */
+router.get("/images/workout", async (req, res) => {
+    try {
+        const { userId, workoutDate } = req.query;
+        if (!userId || !workoutDate) {
+            return res.status(400).json({ message: "userId와 workoutDate가 필요합니다." });
+        }
+
+        const workouts = await Workout.findAll({
+            where: { userId, createdAt: workoutDate },
+            attributes: ["id", "imageUrl"]
+        });
+
+        res.json({ workouts });
+
+    } catch (error) {
+        console.error("❌ 운동 인증샷 조회 오류:", error);
+        res.status(500).json({ message: "서버 오류", error: error.message });
+    }
+});
+
+
+/* ----------------------------------- */
+/* ✅ 업로드된 '프로필'이미지 조회 API */
+/* ----------------------------------- */
+router.get("/images/profile", async (req, res) => {
+    try {
+        const { userId } = req.query;
+        if (!userId) return res.status(400).json({ message: "userId가 필요합니다." });
+
+        const profile = await Profile.findOne({ where: { userId }, attributes: ["imageUrl"] });
+        if (!profile) return res.status(404).json({ message: "프로필 사진이 없습니다." });
+
+        res.json({ imageUrl: profile.imageUrl });
+
+    } catch (error) {
+        console.error("❌ 프로필 조회 오류:", error);
+        res.status(500).json({ message: "서버 오류", error: error.message });
+    }
+});
+
 
 module.exports = router;
 
@@ -106,14 +191,20 @@ module.exports = router;
 /* ----------------------------------- */
 router.post('/meals/analyze', verifyToken, async (req, res) => {
     try {
-        const { fileId } = req.query;  // 🔹 fileId를 Query Parameter로 받음
-        if (!fileId) return res.status(400).json({ message: "fileId가 필요합니다." });
+        const { mealId } = req.query;
+        if (!mealId) return res.status(400).json({ message: "mealId가 필요합니다." });
 
-        // 🔹 S3에서 해당 이미지 URL 생성
+        // ✅ `mealId`를 기반으로 DB에서 해당 식단 찾기
+        const meal = await Meal.findByPk(mealId);
+        if (!meal) return res.status(404).json({ message: "해당 mealId의 식단을 찾을 수 없습니다." });
+
+        // ✅ DB에서 `fileId` 가져오기
+        const fileId = meal.fileId;  // 🔹 meal 테이블에 fileId 필드가 있어야 함
+        if (!fileId) return res.status(400).json({ message: "해당 mealId에 대한 파일 정보가 없습니다." });
+
+        // ✅ S3 이미지 URL 생성
         const imageUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/meal/${fileId}`;
-
         console.log(`✅ 분석할 이미지 URL: ${imageUrl}`);
-
 
         // 🔹 OpenAI Vision API 요청 (🚀 수정된 부분)
         const response = await openai.chat.completions.create({
@@ -136,20 +227,29 @@ router.post('/meals/analyze', verifyToken, async (req, res) => {
             max_tokens: 300
         });
 
-        // 🔹 OpenAI 응답 데이터
+        // ✅ OpenAI 응답 데이터 저장
         const analysisResult = response.choices[0].message.content;
         console.log("🔍 AI 분석 결과:", analysisResult);
 
-        // 🔹 추천 식단 (ingredient) 추출
+        // ✅ 추천 식단 추출
         const match = analysisResult.match(/추천식단\s*:\s*(.+)/);
         const recommendedFood = match ? match[1].trim() : null;
-
         console.log("✅ 추천 식단:", recommendedFood);
 
-        res.status(200).json({ 
-            message: '식단 분석 완료', 
-            analysisResult, 
-            recommendedFood 
+        // ✅ DB에 저장 (새로운 `MealAnalysis` 데이터 생성)
+        const mealAnalysis = await MealAnalysis.create({
+            userId: req.user.id,
+            mealId,
+            fileId,
+            analysisResult,
+            recommendedFood
+        });
+
+        res.status(200).json({
+            message: '식단 분석 완료',
+            analysisResult,
+            recommendedFood,
+            analysisId: mealAnalysis.id
         });
 
     } catch (error) {
@@ -159,26 +259,41 @@ router.post('/meals/analyze', verifyToken, async (req, res) => {
 });
 
 
+router.get('/meals/recommend', verifyToken, async (req, res) => {
+    try {
+        const { analysisId } = req.query;
+        if (!analysisId) return res.status(400).json({ message: "analysisId가 필요합니다." });
 
-// 로컬 업로드 식단 사진 조회 - 폐사한 기능...
-// router.get('/meal', verifyToken, async (req, res) => {
-//     try {
-//         const meals = await Meal.findAll({
-//             where: { userId: req.user.id },
-//             order: [['createdAt', 'DESC']]
-//         });
+        // ✅ DB에서 추천 식재료 조회
+        const mealAnalysis = await MealAnalysis.findByPk(analysisId);
+        if (!mealAnalysis) return res.status(404).json({ message: "해당 분석 결과를 찾을 수 없습니다." });
 
-//         res.status(200).json({ message: '식단 목록 조회 성공', meals });
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ message: '서버 오류' });
-//     }
-// });
+        const food = mealAnalysis.recommendedFood;
+        const encodedFood = encodeURIComponent(food); // URL 인코딩
+        const searchUrl = `https://search.shopping.naver.com/search/all?query=${encodedFood}`;
 
+        console.log(`🔍 크롤링 대상 URL: ${searchUrl}`);
 
-module.exports = router;
+        // ✅ 네이버 쇼핑 크롤링
+        const { data } = await axios.get(searchUrl);
+        const $ = cheerio.load(data);
 
-require('dotenv').config({ path: 'backend/.env' });
+        let products = [];
+        $('.basicList_info_area__17Xyo').each((i, el) => {
+            if (i >= 5) return false;  // 5개까지만 가져오기
+            let title = $(el).find('.basicList_title__3P9Q7 a').text();
+            let link = $(el).find('.basicList_title__3P9Q7 a').attr('href');
+            let price = $(el).find('.price_num__2WUXn').text();
+            products.push({ title, price, link });
+        });
+
+        res.status(200).json({ message: '추천 식재료 검색 완료', food, products });
+
+    } catch (error) {
+        console.error("❌ 크롤링 오류:", error);
+        res.status(500).json({ message: '서버 오류', error: error.message });
+    }
+});
 
 // 회원 가입
 router.post('/register', async (req, res) => {
