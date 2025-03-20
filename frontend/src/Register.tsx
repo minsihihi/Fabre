@@ -12,25 +12,31 @@ export default function Join() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const response = await fetch("/api/join", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ login_id: loginId, password, name, role }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        console.log("회원가입 성공:", data);
-        // 회원가입 성공 후 로그인 페이지로 이동
-        navigate("/login");
-      } else {
-        console.error("회원가입 실패");
-      }
+        const response = await fetch("http://localhost:3000/api/register", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ login_id: loginId, password, name, role }),
+        });
+
+        // 응답 상태 코드가 200 또는 201일 때만 JSON 처리
+        if (response.ok) {
+            const data = await response.json(); // 응답이 JSON이면 처리
+            console.log("회원가입 성공:", data);
+            navigate("/login");
+        } else {
+            const errorData = await response.text(); // 오류 메시지를 텍스트로 받아서 처리
+            console.error("회원가입 실패:", errorData);
+            alert(`회원가입 실패: ${errorData}`);
+        }
     } catch (error) {
-      console.error("회원가입 요청 중 오류 발생:", error);
+        console.error("회원가입 요청 중 오류 발생:", error);
+        alert("회원가입 요청 중 오류가 발생했습니다.");
     }
   };
+
+
 
   return (
     <div className="join-container">
