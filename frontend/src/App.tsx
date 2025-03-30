@@ -8,7 +8,7 @@ import Home from './Home';
 import Schedule from './Schedule';
 import Meals from './Meals';
 import Record from './Record';
-import logo from './assets/logo.png';
+import logo from './assets/Logo.png';
 import NotificationTest from './NotificationTest';
 
 const App: React.FC = () => {
