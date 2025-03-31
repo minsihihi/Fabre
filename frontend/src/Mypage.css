@@ -1,0 +1,78 @@
+.mypage-container {
+    max-width: 500px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .profile-upload-container {
+    margin-bottom: 20px;
+  }
+  
+  .profile-upload-label {
+    display: inline-block;
+    width: 150px;
+    height: 150px;
+    border: 2px dashed #ccc;
+    border-radius: 50%;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .profile-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #999;
+  }
+  
+  .trainer-info,
+  .member-registration,
+  .members-list,
+  .member-number,
+  .workout-records {
+    margin-bottom: 20px;
+  }
+  
+  .trainer-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .trainer-pic {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 10px;
+  }
+  
+  .member-card {
+    display: inline-block;
+    margin: 10px;
+    text-align: center;
+  }
+  
+  .member-photo {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
+  .logout-btn,
+  .workout-records-btn {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
