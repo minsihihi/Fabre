@@ -7,6 +7,7 @@ import Register from './Register';
 import Home from './Home';
 import Home_trainer from './Home_trainer'
 import Schedule from './Schedule';
+import Schedule_trainer from './Schedule_trainer'
 import Meals from './Meals';
 import Record from './Record';
 import Mypage from './Mypage';
@@ -47,6 +48,7 @@ const App: React.FC = () => {
             <Link to="/home" className="sidebar-link">🏠 H O M E</Link>
             <Link to="/home_trainer" className="sidebar-link">🏠 H O M E T</Link>
             <Link to="/schedule" className="sidebar-link">📅 S C H E D U L E</Link>
+            <Link to="/schedule_trainer" className="sidebar-link">📅 S C H E D U L E T</Link>
             <Link to="/meals" className="sidebar-link">🍽️ M E A L S</Link>
             <Link to="/record" className="sidebar-link">📝 R E C O R D</Link>
             <Link to="/mypage" className="sidebar-link">🙋 M Y P A G E</Link>
@@ -67,6 +69,7 @@ const App: React.FC = () => {
             <Route path="/mypage" element={<Mypage />} />
             <Route path="/mypage_trainer" element={<Mypage_trainer />} />
             <Route path="/home_trainer" element={<Home_trainer />} />
+            <Route path="/schedule_trainer" element={<Schedule_trainer />} />
           </Routes>
 
           {/* API 연결 확인 메시지 출력 */}

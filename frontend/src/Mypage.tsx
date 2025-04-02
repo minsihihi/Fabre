@@ -16,7 +16,7 @@ export default function MypageMember() {
   const fetchProfileImage = async () => {
     try {
       const userId = localStorage.getItem("userId");
-      const response = await axios.get(`/api/images/profile?userId=${userId}`);
+      const response = await axios.get(`http://localhost:3000/api/images/profile?userId=${userId}`);
       setProfileImage(response.data.imageUrl);
     } catch (error) {
       console.error("프로필 이미지 불러오기 실패:", error);
@@ -25,7 +25,7 @@ export default function MypageMember() {
 
   const fetchUserInfo = async () => {
     try {
-      const response = await axios.get("/api/users");
+      const response = await axios.get("http://localhost:3000/api/users");
       const user = response.data.find((u: any) => u.id === localStorage.getItem("userId"));
       if (user) {
         setTrainerInfo({ name: user.name, info: "피트니스 전문가" });
@@ -43,7 +43,7 @@ export default function MypageMember() {
       formData.append("image", file);
 
       try {
-        await axios.post("/api/images/profile", formData, {
+        await axios.post("http://localhost:3000/api/images/profile", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         fetchProfileImage();
@@ -55,7 +55,7 @@ export default function MypageMember() {
 
   const fetchWorkoutRecords = async () => {
     try {
-      const response = await axios.get("/api/record");
+      const response = await axios.get("http://localhost:3000/api/record");
       setWorkoutRecords(response.data.data);
     } catch (error) {
       console.error("운동 기록 불러오기 실패:", error);
@@ -64,7 +64,7 @@ export default function MypageMember() {
 
   const handleLogout = async () => {
     try {
-      await axios.post("/api/logout");
+      await axios.post("http://localhost:3000/api/logout");
       localStorage.removeItem("userId");
       window.location.href = "/login";
     } catch (error) {
