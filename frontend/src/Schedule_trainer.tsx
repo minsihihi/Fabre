@@ -1,118 +1,102 @@
-import { useState } from "react";
-import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css";
-import "./App.css"; // 스타일 추가
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import './App.css';
 
-// 로컬 날짜를 "yyyy-MM-dd" 형식으로 포맷팅하는 함수
-function formatLocalDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+const hours = Array.from({ length: 10 }, (_, i) => i + 9);
+const days = ['월', '화', '수', '목', '금', '토', '일'];
+
+function formatTimeSlot(day: string, hour: number): string {
+  return `${day} ${hour}:00`;
 }
 
-export default function SchedulePage() {
-  const [date, setDate] = useState(new Date());
-  const [workouts, setWorkouts] = useState<{ [key: string]: string }>({});
-  const [image, setImage] = useState<{ [key: string]: string | null }>({});
-  const [feedback, setFeedback] = useState<{ [key: string]: string }>({});
-  const [modalOpen, setModalOpen] = useState(false); // 모달 열기 상태
-  const [selectedWorkout, setSelectedWorkout] = useState(""); // 선택된 운동
+const TrainerSchedule: React.FC = () => {
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [scheduleData, setScheduleData] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+  const [selectedMember, setSelectedMember] = useState<string | null>(null);
 
-  // 운동 선택 팝업을 여는 함수
-  const handleDateClick = (value: Date) => {
-    setDate(value); // 선택한 날짜 저장
-    setModalOpen(true); // 모달 열기
+  const trainerId = '1';
+
+  useEffect(() => {
+    axios
+      .get(`http://localhost:3000/api/trainer/schedule/${trainerId}`)
+      .then((response) => {
+        setScheduleData(response.data.schedule);
+      })
+      .catch((error) => console.error('스케줄 조회 오류:', error));
+
+    axios
+      .get('http://localhost:3000/api/members')
+      .then((response) => {
+        setMembers(response.data.members);
+      })
+      .catch((error) => console.error('회원 조회 오류:', error));
+  }, [trainerId]);
+
+  const handleCellClick = (day: string, hour: number) => {
+    const timeSlot = formatTimeSlot(day, hour);
+    setSelectedTime(timeSlot);
   };
 
-  // 운동 버튼 클릭 시 선택된 운동 저장
-  const handleWorkoutSelect = (workout: string) => {
-    const selectedDate = formatLocalDate(date);
-    setWorkouts((prev) => ({ ...prev, [selectedDate]: workout }));
-    setSelectedWorkout(workout);
-    setModalOpen(false); // 모달 닫기
-  };
-
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0];
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImage((prev) => ({
-          ...prev,
-          [formatLocalDate(date)]: reader.result as string,
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleFeedbackChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setFeedback((prev) => ({
-      ...prev,
-      [formatLocalDate(date)]: event.target.value,
-    }));
+  const handleOpenReservation = () => {
+    if (!selectedTime) return;
+    alert(`${selectedTime} 시간대를 예약 가능하도록 열었습니다.`);
+    setSelectedTime(null);
   };
 
   return (
     <div className="schedule-container">
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">📅 S C H E D U L E</h1>
-
+      <h1>📅 S C H E D U L E</h1>
       <div className="schedule-main">
-        {/* 왼쪽: 달력 */}
         <div className="left-calendar">
-          <Calendar
-            onChange={setDate}
-            value={date}
-            onClickDay={handleDateClick}
-            tileContent={({ date }) => {
-              const selectedDate = formatLocalDate(date);
-              return workouts[selectedDate] ? (
-                <p className="text-blue-500 text-sm">{workouts[selectedDate]}</p>
-              ) : null;
-            }}
-          />
+          <div className="schedule-grid">
+            <div className="empty-cell" />
+            {days.map((day) => (
+              <div key={day} className="day-header">{day}</div>
+            ))}
+            {hours.map((hour) => (
+              <React.Fragment key={hour}>
+                <div className="hour-label">{hour}:00</div>
+                {days.map((day) => (
+                  <div
+                    key={`${day}-${hour}`}
+                    className="schedule-cell"
+                    onClick={() => handleCellClick(day, hour)}
+                  />
+                ))}
+              </React.Fragment>
+            ))}
+          </div>
         </div>
 
-        {/* 오른쪽: 오운완 사진 업로드 & 운동 일지 */}
         <div className="right-content">
           <div className="schedule-box">
-            <h2>📸 오운완 사진</h2>
-            <input type="file" accept="image/*" onChange={handleImageUpload} />
-            {image[formatLocalDate(date)] && (
-              <img
-                src={image[formatLocalDate(date)]!}
-                alt="운동 사진"
-              />
-            )}
+            <h2>💁 회원 선택</h2>
+            <select onChange={(e) => setSelectedMember(e.target.value)}>
+              <option value="">회원 선택</option>
+              {members.map((member) => (
+                <option key={member.id} value={member.name}>{member.name}</option>
+              ))}
+            </select>
           </div>
-
           <div className="schedule-box">
-            <h2>📝 운동 일지</h2>
-            <textarea
-              rows={3}
-              placeholder="고통 부위, 정도 등을 입력하세요."
-              value={feedback[formatLocalDate(date)] || ""}
-              onChange={handleFeedbackChange}
-            />
+            <h2>운동 일지 📝</h2>
+            <textarea placeholder="운동 내용을 입력하세요..." rows={5}></textarea>
           </div>
         </div>
       </div>
 
-      {/* 운동 선택 모달 */}
-      {modalOpen && (
+      {selectedTime && (
         <div className="modal">
           <div className="modal-content">
-            <h2>운동을 선택하세요</h2>
-            <div className="button-container">
-              <button onClick={() => handleWorkoutSelect("상체")}>상체</button>
-              <button onClick={() => handleWorkoutSelect("하체")}>하체</button>
-              <button onClick={() => handleWorkoutSelect("전신")}>전신</button>
-              <button onClick={() => handleWorkoutSelect("유산소")}>유산소</button>
-            </div>
+            <p>{selectedTime} 시간대를 예약 가능하도록 열어놓을까요?</p>
+            <button onClick={handleOpenReservation}>네</button>
+            <button onClick={() => setSelectedTime(null)}>아니오</button>
           </div>
         </div>
       )}
     </div>
   );
-}
+};
+
+export default TrainerSchedule;

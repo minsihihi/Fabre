@@ -14,7 +14,7 @@ export default function MypageTrainer() {
 
   const fetchProfileImage = async () => {
     try {
-      const { data } = await axios.get("/images/profile", { params: { userId: "trainer123" } });
+      const { data } = await axios.get("http://localhost:3000/api/images/profile", { params: { userId: "trainer123" } });
       setProfileImage(data.imageUrl);
     } catch (error) {
       console.error("프로필 이미지 로드 실패", error);
@@ -23,7 +23,7 @@ export default function MypageTrainer() {
 
   const fetchMyMembers = async () => {
     try {
-      const { data } = await axios.get("/trainer/members");
+      const { data } = await axios.get("http://localhost:3000/api/trainer/members");
       setMyMembers(data.data.map((member: any) => ({ id: member.id, name: member.User.name })));
     } catch (error) {
       console.error("회원 목록 불러오기 실패", error);
@@ -36,7 +36,7 @@ export default function MypageTrainer() {
       const formData = new FormData();
       formData.append("profileImage", file);
       try {
-        await axios.post("/images/profile/upload", formData, { headers: { "Content-Type": "multipart/form-data" } });
+        await axios.post("http://localhost:3000/api/images/profile/upload", formData, { headers: { "Content-Type": "multipart/form-data" } });
         fetchProfileImage();
       } catch (error) {
         console.error("프로필 업로드 실패", error);
@@ -47,7 +47,7 @@ export default function MypageTrainer() {
   const handleAddMember = async () => {
     if (!newMemberId.trim()) return;
     try {
-      const { data } = await axios.post("/trainer/members", { memberId: newMemberId, sessionsLeft: 10 });
+      const { data } = await axios.post("http://localhost:3000/api/trainer/members", { memberId: newMemberId, sessionsLeft: 10 });
       setMyMembers([...myMembers, { id: data.data.memberId, name: `회원 ${data.data.memberId}` }]);
       setNewMemberId("");
     } catch (error) {
@@ -57,7 +57,7 @@ export default function MypageTrainer() {
 
   const handleDeleteMember = async (memberId: string) => {
     try {
-      await axios.put(`/trainer/members/${memberId}`);
+      await axios.put(`http://localhost:3000/api/trainer/members/${memberId}`);
       setMyMembers(myMembers.filter((member) => member.id !== memberId));
     } catch (error) {
       console.error("회원 삭제 실패", error);
@@ -66,7 +66,7 @@ export default function MypageTrainer() {
 
   const handleLogout = async () => {
     try {
-      await axios.post("/logout");
+      await axios.post("http://localhost:3000/api/logout");
       alert("로그아웃 되었습니다.");
       window.location.href = "/login";
     } catch (error) {
