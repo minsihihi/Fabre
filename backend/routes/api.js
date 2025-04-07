@@ -531,6 +531,33 @@ router.get('/trainer/members', verifyToken, checkRole(['trainer']), async (req, 
     }
 });
 
+// 회원이 자신의 트레이너 정보 조회
+router.get('/member/trainer', verifyToken, checkRole(['member']), async (req, res) => {
+    try {
+        const memberId = req.user.id;
+
+        const trainerMember = await TrainerMembers.findOne({
+            where: { memberId, status: 'active' },
+            include: [
+                {
+                    model: User,
+                    as: 'trainer',
+                    attributes: ['id', 'login_id', 'name']
+                }
+            ]
+        });
+
+        if (!trainerMember || !trainerMember.trainer) {
+            return res.status(404).json({ message: '트레이너 정보가 없습니다.' });
+        }
+
+        res.status(200).json({ trainer: trainerMember.trainer });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+});
+
 // 회원 삭제 (또는 비활성화)
 router.put('/trainer/members/:memberId', verifyToken, checkRole(['trainer']), async (req, res) => {
     try {
