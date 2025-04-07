@@ -15,6 +15,9 @@ const workoutScheduleRoutes = require('./workoutSchedule');
 router.use('/', workoutScheduleRoutes);
 const recordRoutes = require('./workout');
 router.use('/', recordRoutes);
+// streak 라우터 import
+const streakRoutes = require('./streak');  // 실제 경로는 streak.js가 위치한 상대 경로로 수정
+router.use('/', streakRoutes);
 
 const fs = require('fs');
 const path = require('path');
