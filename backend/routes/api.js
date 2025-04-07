@@ -11,10 +11,14 @@ const multer = require('multer');
 const multerS3 = require('multer-s3');
 
 const { OpenAI } = require('openai');  
+const workoutScheduleRoutes = require('./workoutSchedule');
+router.use('/', workoutScheduleRoutes);
+const recordRoutes = require('./workout');
+router.use('/', recordRoutes);
 
 const fs = require('fs');
 const path = require('path');
-const { User, Profile, Workout, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise, Meal, WeeklyReport, TrainerSchedule, MemberBookings, MealAnalysis} = require('../models'); 
+const { User, Profile, Workout, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise, Meal, WeeklyReport, TrainerSchedule, MemberBookings, MealAnalysis, WorkoutSchedule} = require('../models'); 
 const { verifyToken, checkRole } = require('../middleware/auth');
 const saveWeeklyReport = require('../utils/saveWeeklyReport');  // AI 분석 결과 저장 함수
 
@@ -101,7 +105,42 @@ router.post("/upload/:category", verifyToken, upload.single("image"), async (req
             recordId = profile.id;
 
         } else if (category === "workout") {
-            const workout = await Workout.create({ userId: req.user.id, imageUrl });
+            const now = new Date();
+            const userId = req.user.id;
+            const today = now.toLocaleDateString("en-US", { weekday: 'long' }); // 'Monday', 'Tuesday', ...
+
+            // 사용자 스케줄 중 오늘 요일(active) 스케줄 찾기
+            const schedules = await WorkoutSchedule.findAll({
+                where: {
+                    userId,
+                    isActive: true,
+                    days: {
+                        [Op.like]: `%${today}%`
+                    }
+                }
+            });
+
+            if (!schedules || schedules.length === 0) {
+                return res.status(403).json({ message: "오늘 등록된 운동 스케줄이 없습니다." });
+            }
+
+            // 현재 시간이 해당 스케줄의 운동 시간 ±1시간 이내인지 확인
+            const isWithinTime = schedules.some(schedule => {
+                const workoutHour = parseInt(schedule.workoutTime.split(":")[0], 10);
+                const workoutStart = new Date(now);
+                workoutStart.setHours(workoutHour, 0, 0, 0);
+                const workoutEnd = new Date(workoutStart);
+                workoutEnd.setHours(workoutStart.getHours() + 1);
+
+                return now >= workoutStart && now <= workoutEnd;
+            });
+
+            if (!isWithinTime) {
+                return res.status(403).json({ message: "운동 인증 가능한 시간이 아닙니다." });
+            }
+
+            // 통과하면 업로드
+            const workout = await Workout.create({ userId, imageUrl });
             recordId = workout.id;
         }
 
@@ -150,8 +189,16 @@ router.get("/images/workout", async (req, res) => {
             return res.status(400).json({ message: "userId와 workoutDate가 필요합니다." });
         }
 
+        const startOfDay = new Date(`${workoutDate}T00:00:00`);
+        const endOfDay = new Date(`${workoutDate}T23:59:59`);
+
         const workouts = await Workout.findAll({
-            where: { userId, createdAt: workoutDate },
+            where: {
+                userId,
+                createdAt: {
+                    [Op.between]: [startOfDay, endOfDay]
+                }
+            },
             attributes: ["id", "imageUrl"]
         });
 
