@@ -68,6 +68,14 @@
     border-radius: 50%;
     object-fit: cover;
   }
+
+  .image-preview {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
   
   .logout-btn,
   .workout-records-btn {

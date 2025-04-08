@@ -1,4 +1,5 @@
 import React, { useState, useEffect, ChangeEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./Mypage.css";
 
@@ -6,33 +7,48 @@ export default function MypageMember() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [trainerInfo, setTrainerInfo] = useState<any>(null);
   const [memberNumber, setMemberNumber] = useState<string>("");
-  const [workoutRecords, setWorkoutRecords] = useState<any[]>([]);
+  const navigate = useNavigate();
 
+  // 🔐 공통 axios 설정: 인증 토큰 포함
   useEffect(() => {
-    fetchProfileImage();
+    const token = localStorage.getItem("token");
+    if (token) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    }
     fetchUserInfo();
   }, []);
 
-  const fetchProfileImage = async () => {
-    try {
-      const userId = localStorage.getItem("userId");
-      const response = await axios.get(`http://localhost:3000/api/images/profile?userId=${userId}`);
-      setProfileImage(response.data.imageUrl);
-    } catch (error) {
-      console.error("프로필 이미지 불러오기 실패:", error);
-    }
-  };
-
   const fetchUserInfo = async () => {
     try {
-      const response = await axios.get("http://localhost:3000/api/users");
-      const user = response.data.find((u: any) => u.id === localStorage.getItem("userId"));
+      const response = await axios.get("http://localhost:3000/api/users/me");
+      const user = response.data;
+
       if (user) {
-        setTrainerInfo({ name: user.name, info: "피트니스 전문가" });
-        setMemberNumber(user.login_id);
+        setTrainerInfo({ name: user.name });
+        setMemberNumber(user.id.toString());
+
+        // localStorage에 사용자 ID 저장 (user.id를 사용)
+        localStorage.setItem("id", user.id.toString());
+        localStorage.setItem("userId", user.id.toString());
+        console.log("🔥 userId in localStorage:", localStorage.getItem("userId"));
+
+        fetchProfileImage(user.id.toString());
+      } else {
+        console.error("유저 정보를 찾을 수 없습니다.");
       }
     } catch (error) {
       console.error("유저 정보 불러오기 실패:", error);
+    }
+  };
+
+  const fetchProfileImage = async (userId: string) => {
+    try {
+      const response = await axios.get("http://localhost:3000/api/images/profile", {
+        params: { userId }, // 쿼리로 userId 전달
+      });
+      setProfileImage(response.data.imageUrl);
+    } catch (error) {
+      console.error("프로필 이미지 불러오기 실패:", error);
     }
   };
 
@@ -40,36 +56,41 @@ export default function MypageMember() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const formData = new FormData();
-      formData.append("image", file);
+      formData.append("image", file); // form-data의 key는 "image"여야 함
 
       try {
-        await axios.post("http://localhost:3000/api/images/profile", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
+        const response = await axios.post("http://localhost:3000/api/upload/profile", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         });
-        fetchProfileImage();
-      } catch (error) {
-        console.error("프로필 업로드 실패:", error);
-      }
-    }
-  };
 
-  const fetchWorkoutRecords = async () => {
-    try {
-      const response = await axios.get("http://localhost:3000/api/record");
-      setWorkoutRecords(response.data.data);
-    } catch (error) {
-      console.error("운동 기록 불러오기 실패:", error);
+        console.log("✅ 업로드 성공:", response.data);
+
+        // 업로드 성공 후 다시 이미지 불러오기
+        const userId = localStorage.getItem("userId");
+        if (userId) fetchProfileImage(userId);
+      } catch (error) {
+        console.error("❌ 프로필 업로드 실패:", error);
+      }
     }
   };
 
   const handleLogout = async () => {
     try {
       await axios.post("http://localhost:3000/api/logout");
+      localStorage.removeItem("token");
+      localStorage.removeItem("id");
       localStorage.removeItem("userId");
       window.location.href = "/login";
     } catch (error) {
       console.error("로그아웃 실패:", error);
     }
+  };
+
+  const goToRecordPage = () => {
+    navigate("/record");
   };
 
   return (
@@ -106,19 +127,14 @@ export default function MypageMember() {
       </div>
 
       <div className="workout-records">
-        <button className="workout-records-btn" onClick={fetchWorkoutRecords}>
+        <button className="workout-records-btn" onClick={goToRecordPage}>
           나의 운동기록 확인하기
         </button>
-        {workoutRecords.length > 0 && (
-          <ul>
-            {workoutRecords.map((record, index) => (
-              <li key={index}>{record.workout_date} - {record.exercise_name}</li>
-            ))}
-          </ul>
-        )}
       </div>
 
-      <button className="logout-btn" onClick={handleLogout}>로그아웃</button>
+      <button className="logout-btn" onClick={handleLogout}>
+        로그아웃
+      </button>
     </div>
   );
-}
+};
