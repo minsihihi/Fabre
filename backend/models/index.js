@@ -59,6 +59,8 @@ db.Meal.belongsTo(db.User, {  // ✅ Meal 모델과 User 모델 연결
     foreignKey: 'userId',
 });
 
+
+
 Object.keys(db).forEach(modelName => {
     if (db[modelName].associate) {
         db[modelName].associate(db);
