@@ -45,7 +45,7 @@ router.get('/streak', verifyToken, checkRole('member'), async (req, res) => {
     }
 });
 
-// ✅ 트레이너가 특정 회원의 스트릭 조회
+// 트레이너가 특정 회원의 스트릭 조회
 router.get('/trainer/streak/:memberId', verifyToken, checkRole('trainer'), async (req, res) => {
     try {
         const trainerId = req.user.id;
@@ -94,7 +94,7 @@ router.get('/trainer/streak/:memberId', verifyToken, checkRole('trainer'), async
     }
 });
 
-// ✅ 트레이너가 자신의 전체 회원 스트릭 조회
+// 트레이너가 자신의 전체 회원 스트릭 조회
 router.get('/trainer/streak', verifyToken, checkRole('trainer'), async (req, res) => {
     try {
         const trainerId = req.user.id;
