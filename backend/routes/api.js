@@ -19,6 +19,9 @@ router.use('/', recordRoutes);
 const streakRoutes = require('./streak');  // 실제 경로는 streak.js가 위치한 상대 경로로 수정
 router.use('/', streakRoutes);
 
+const booking = require('./booking');
+router.use('/', booking);
+
 const fs = require('fs');
 const path = require('path');
 const { User, Profile, Workout, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise, Meal, WeeklyReport, TrainerSchedule, MemberBookings, MealAnalysis, WorkoutSchedule} = require('../models'); 
