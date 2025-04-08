@@ -1,233 +1,210 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import './App.css';
 
-const hours = Array.from({ length: 10 }, (_, i) => i + 9); // 9시~18시
 const days = ['월', '화', '수', '목', '금', '토', '일'];
+const hours = Array.from({ length: (22 - 9 + 1) * 2 }, (_, i) => {
+  const hour = Math.floor(i / 2) + 9;
+  const minute = i % 2 === 0 ? '00' : '30';
+  return `${hour}:${minute}`;
+});
 
-function getTrainerIdFromToken(): string | null {
-  const token = localStorage.getItem('token');
-  if (!token) return null;
+const timeToMinutes = (time: string) => {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+};
 
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.userId || payload.id || null;
-  } catch {
-    return null;
-  }
-}
+const minutesToTime = (minutes: number) => {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h}:${m === 0 ? '00' : m}`;
+};
 
-const TrainerSchedule: React.FC = () => {
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+const getDayIndex = (korDay: string) => {
+  const map = { '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6 };
+  return map[korDay as keyof typeof map];
+};
+
+const getNearestDateForDay = (dayKor: string) => {
+  const today = new Date();
+  const todayDay = today.getDay();
+  const targetDay = getDayIndex(dayKor);
+  const diff = (targetDay + 7 - todayDay) % 7;
+  const resultDate = new Date(today);
+  resultDate.setDate(today.getDate() + diff);
+  return resultDate;
+};
+
+const getDateOnly = (date: Date) => {
+  return date.toISOString().split('T')[0];
+};
+
+const formatToTimeWithSeconds = (time: string) => {
+  return `${time}:00`;
+};
+
+const TrainerScheduleGrid: React.FC = () => {
+  const [selectedRange, setSelectedRange] = useState<{ day: string; start: string; end: string } | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [dragStart, setDragStart] = useState<{ day: string; time: string } | null>(null);
+  const [hoverRange, setHoverRange] = useState<{ day: string; start: string; end: string } | null>(null);
   const [scheduleData, setScheduleData] = useState<any[]>([]);
-  const [members, setMembers] = useState<any[]>([]);
-  const [selectedMember, setSelectedMember] = useState<string | null>(null);
-  const trainerId = getTrainerIdFromToken();
-  const [openSlots, setOpenSlots] = useState<{ [key: string]: boolean }>({});
-  const [note, setNote] = useState<string>("");
 
-  useEffect(() => {
-    if (!trainerId) return;
+  const token = localStorage.getItem('token');
 
-    const token = localStorage.getItem('token');
-
-        // 스케줄 조회
-    axios
-    .get(`http://localhost:3000/api/trainer/schedule/${trainerId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    .then((res) => {
-      const fetchedSchedule = res.data.schedule || res.data;
-      
-      const now = new Date();
-      // 현재 시점 이후의 스케줄만 필터링
-      const upcomingSchedule = fetchedSchedule.filter((item: any) => {
-        const endDateTime = new Date(`${item.date}T${item.end_time}`);
-        console.log('fetchedSchedule:', fetchedSchedule);
-        return endDateTime > now;
-      });
-      
-      setScheduleData(upcomingSchedule);
-      
-      const slots: { [key: string]: boolean } = {};
-      upcomingSchedule.forEach((item: any) => {
-        // item.date와 item.start_time 필드가 정상적으로 존재해야 함
-        if (!item.date || !item.start_time) return;
-        const date = new Date(item.date);
-        const dayIndex = date.getDay(); // 0(일)~6(토)
-        const day = days[(dayIndex + 6) % 7]; // 월요일 기준 변환
-        const hour = parseInt(item.start_time.split(':')[0], 10);
-        slots[`${day}-${hour}`] = true;
-      });
-      
-      setOpenSlots(slots);
-    })
-    .catch((err) => console.error('스케줄 조회 오류:', err));
-    
-
-    // 회원 조회
-    axios
-      .get('http://localhost:3000/api/trainer/members', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        setMembers(
-          res.data.data.map((m: any) => ({
-            id: m.User.id,
-            name: m.User.name,
-          }))
-        );
-      })
-      .catch((err) => console.error('회원 조회 오류:', err));
-  }, [trainerId]);
-
-  const handleCellClick = (day: string, hour: number) => {
-    const key = `${day}-${hour}`;
-    const matched = scheduleData.find((item) => {
-      const date = new Date(item.date);
-      const scheduleDay = days[(date.getDay() + 6) % 7];
-      const scheduleHour = parseInt(item.start_time.split(':')[0], 10);
-      return scheduleDay === day && scheduleHour === hour;
-    });
-
-    if (matched) {
-      const confirmed = window.confirm(`${day} ${hour}:00 시간대를 닫으시겠습니까?`);
-      if (confirmed) {
-        axios
-          .delete(`http://localhost:3000/api/trainer/schedule/${matched.id}`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          })
-          .then(() => {
-            setOpenSlots((prev) => {
-              const updated = { ...prev };
-              delete updated[key];
-              return updated;
-            });
-            setScheduleData((prev) => prev.filter((item) => item.id !== matched.id));
-            alert(`${day} ${hour}:00 시간대가 삭제되었습니다.`);
-          })
-          .catch((err) => {
-            alert(err?.response?.data?.message || '삭제 실패');
-            console.error('삭제 오류:', err);
-          });
-      }
-    } else {
-      setSelectedTime(`${day} ${hour}:00`);
-    }
+  const computeRange = (start: string, end: string) => {
+    const times = [start, end].sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
+    return { start: times[0], end: times[1] };
   };
 
-  const handleOpenReservation = async () => {
-    if (!selectedTime) return;
+  const handleStart = (day: string, time: string) => {
+    setDragging(true);
+    setDragStart({ day, time });
+    setHoverRange(null);
+  };
 
-    const [day, time] = selectedTime.split(' ');
-    const hour = parseInt(time.split(':')[0], 10);
+  const handleMove = (day: string, time: string) => {
+    if (!dragging || !dragStart || dragStart.day !== day) return;
+    const range = computeRange(dragStart.time, time);
+    setHoverRange({ day, ...range });
+  };
 
-    const today = new Date();
-    const todayIndex = (today.getDay() + 6) % 7;
-    const targetIndex = days.indexOf(day);
-    const diff = (targetIndex - todayIndex + 7) % 7;
-    const targetDate = new Date(today);
-    targetDate.setDate(today.getDate() + diff);
-    const dateStr = targetDate.toISOString().split('T')[0];
-
-    const body = {
-      date: dateStr,
-      start_time: `${hour.toString().padStart(2, '0')}:00:00`,
-      end_time: `${(hour + 1).toString().padStart(2, '0')}:00:00`,
-    };
-
-    try {
-      const res = await axios.post('http://localhost:3000/api/trainer/schedule', body, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      setOpenSlots((prev) => ({
-        ...prev,
-        [`${day}-${hour}`]: true,
-      }));
-
-      setScheduleData((prev) => [
-        ...prev,
-        {
-          date: dateStr,
-          start_time: body.start_time,
-          end_time: body.end_time,
-          id: Date.now(), // 임시 ID
-        },
-      ]);
-
-      alert(`${selectedTime} 시간대를 예약 가능하도록 열었습니다.`);
-      setSelectedTime(null);
-    } catch (error: any) {
-      alert(error?.response?.data?.message || '등록 실패');
-      console.error('등록 오류:', error);
+  const handleEnd = (day: string, time: string) => {
+    if (!dragStart || dragStart.day !== day) {
+      setDragging(false);
+      setDragStart(null);
+      setHoverRange(null);
+      return;
     }
+
+    const range = computeRange(dragStart.time, time);
+    if (range.start === range.end) {
+      const startMin = timeToMinutes(range.start);
+      range.end = minutesToTime(startMin + 30);
+    }
+
+    setSelectedRange({ day, ...range });
+    setDragging(false);
+    setDragStart(null);
+    setHoverRange(null);
+  };
+
+  const handleRegisterSchedule = () => {
+    if (!selectedRange) return;
+
+    const startMin = timeToMinutes(selectedRange.start);
+    const endMin = timeToMinutes(selectedRange.end);
+
+    // ❗️종료 시간이 시작 시간보다 같거나 이전이면 등록 안 함
+    if (endMin <= startMin) {
+      alert('종료 시간은 시작 시간보다 이후여야 합니다.');
+      return;
+    }
+
+    const targetDate = getNearestDateForDay(selectedRange.day);
+    const dateOnly = getDateOnly(targetDate);
+    const formattedStart = formatToTimeWithSeconds(selectedRange.start);
+    const formattedEnd = formatToTimeWithSeconds(selectedRange.end);
+
+    axios
+      .post(
+        'http://localhost:3000/api/trainer/schedule',
+        {
+          date: dateOnly,
+          start_time: formattedStart,
+          end_time: formattedEnd,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+      .then((res) => {
+        alert('스케줄 등록 완료!');
+        setScheduleData((prev) => [...prev, {
+          date: dateOnly,
+          start_time: formattedStart,
+          end_time: formattedEnd,
+        }]);
+        setSelectedRange(null);
+      })
+      .catch((err) => {
+        console.error('스케줄 등록 오류:', err.response?.data || err);
+        alert(err.response?.data?.message || '스케줄 등록 실패!');
+      });
+  };
+
+  const isRegistered = (day: string, time: string) => {
+    const targetDate = getNearestDateForDay(day);
+    const dateOnly = getDateOnly(targetDate);
+    const currentTime = formatToTimeWithSeconds(time);
+
+    return scheduleData.some(
+      (item) =>
+        item.date === dateOnly &&
+        currentTime >= item.start_time &&
+        currentTime < item.end_time
+    );
   };
 
   return (
     <div className="schedule-container">
-      <h1>📅 S C H E D U L E</h1>
-      <div className="schedule-main">
-        <div className="left-calendar">
-          <div className="schedule-grid">
-            <div className="empty-cell" />
-            {days.map((day) => (
-              <div key={day} className="day-header">{day}</div>
-            ))}
-            {hours.map((hour) => (
-              <React.Fragment key={hour}>
-                <div className="hour-label">{hour}:00</div>
-                {days.map((day) => {
-                  const key = `${day}-${hour}`;
-                  const isOpen = openSlots[key];
-                  return (
-                    <div
-                      key={key}
-                      className={`schedule-cell ${isOpen ? 'open-slot' : ''}`}
-                      onClick={() => handleCellClick(day, hour)}
-                    />
-                  );
-                })}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
+      <h1>📅 T R A I N E R - S C H E D U L E</h1>
 
-        <div className="right-content">
-          <div className="schedule-box">
-            <h2>💁 회원 선택</h2>
-            <select onChange={(e) => setSelectedMember(e.target.value)} value={selectedMember || ''}>
-              <option value="">회원 선택</option>
-              {members.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.name}
-                </option>
+      <div className="scroll-wrapper">
+        <div className="schedule-main">
+          <div className="left-calendar">
+            <div className="schedule-grid">
+              <div className="empty-cell" />
+              {days.map((day) => (
+                <div key={day} className="day-header">{day}</div>
               ))}
-            </select>
-          </div>
 
-          <div className="schedule-box">
-            <h2>운동 일지 📝</h2>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="운동 내용을 입력하세요..."
-              rows={5}
-            />
+              {hours.map((time) => (
+                <React.Fragment key={time}>
+                  <div className="hour-label">{time}</div>
+                  {days.map((day) => {
+                    const isSelected =
+                      selectedRange &&
+                      selectedRange.day === day &&
+                      time >= selectedRange.start &&
+                      time < selectedRange.end;
+
+                    const isHovering =
+                      hoverRange &&
+                      hoverRange.day === day &&
+                      time >= hoverRange.start &&
+                      time < hoverRange.end;
+
+                    const isAlreadyRegistered = isRegistered(day, time);
+
+                    return (
+                      <div
+                        key={`${day}-${time}`}
+                        className={`schedule-cell ${isSelected ? 'selected' : ''} ${isHovering ? 'hovering' : ''} ${isAlreadyRegistered ? 'registered' : ''}`}
+                        onMouseDown={() => handleStart(day, time)}
+                        onMouseEnter={() => handleMove(day, time)}
+                        onMouseUp={() => handleEnd(day, time)}
+                        onTouchStart={() => handleStart(day, time)}
+                        onTouchMove={() => handleMove(day, time)}
+                        onTouchEnd={() => handleEnd(day, time)}
+                      />
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {selectedTime && (
+      {selectedRange && (
         <div className="modal">
           <div className="modal-content">
-            <p>{selectedTime} 시간대를 예약 가능하도록 열어놓을까요?</p>
-            <button onClick={handleOpenReservation}>네</button>
-            <button onClick={() => setSelectedTime(null)}>아니오</button>
+            <p>
+              {selectedRange.day} {selectedRange.start} ~ {selectedRange.end} 시간에 스케줄 등록할까요?
+            </p>
+            <button onClick={handleRegisterSchedule}>네</button>
+            <button onClick={() => setSelectedRange(null)}>취소</button>
           </div>
         </div>
       )}
@@ -235,4 +212,5 @@ const TrainerSchedule: React.FC = () => {
   );
 };
 
-export default TrainerSchedule;
+export default TrainerScheduleGrid;
+
