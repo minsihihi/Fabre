@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import axios from 'axios';
 import './App.css';
 
 const hours = Array.from({ length: 10 }, (_, i) => i + 9);
 const days = ['월', '화', '수', '목', '금', '토', '일'];
 
-// 예시: "월 9:00" 형식의 시간 문자열 생성 함수
 function formatTimeSlot(day: string, hour: number): string {
   return `${day} ${hour}:00`;
 }
@@ -14,49 +13,94 @@ const ReservationGrid: React.FC = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [scheduleData, setScheduleData] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
-  // 오운완 인증 이미지를 저장하는 상태
   const [workoutImage, setWorkoutImage] = useState<string | null>(null);
+  const [trainerInfo, setTrainerInfo] = useState<any>(null);
+  const [openSlots, setOpenSlots] = useState<{ [key: string]: boolean }>({});
 
-  // 예시: trainerId와 userId를 상수로 사용 (실제 사용시 로그인 정보 등에서 가져오기)
-  const trainerId = '1';
-  const userId = '1';
-
-  // 백엔드에서 스케줄 데이터를 가져옵니다.
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('토큰이 없습니다!');
+      return;
+    }
+  
+    // 1. 로그인한 사용자 정보 가져오기
     axios
-      .get(`http://localhost:3000/api/trainer/schedule/${trainerId}`, {
-        headers: {
-          // Authorization: `Bearer ${token}`,
-        },
+      .get('http://localhost:3000/api/users/me', {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .then((response) => {
-        // response.data.schedule를 스케줄 데이터로 가정
-        setScheduleData(response.data.schedule);
+      .then((res) => {
+        const userData = res.data;
+        console.log('로그인 사용자 정보:', userData);
+  
+        // 2. 트레이너 정보 조회
+        axios
+          .get('http://localhost:3000/api/member/trainer', {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          .then((trainerRes) => {
+            setTrainerInfo(trainerRes.data.trainer);
+            console.log('트레이너 정보:', trainerRes.data.trainer);
+  
+            // 3. 트레이너 스케줄 가져오기
+            const trainerId = trainerRes.data.trainer.id;
+            axios
+              .get(`http://localhost:3000/api/trainer/schedule/${trainerId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              })
+              .then((scheduleRes) => {
+                console.log("✅ 트레이너 스케줄 연동 성공:", scheduleRes.data);
+                const fetchedSchedule = scheduleRes.data.schedule || scheduleRes.data;
+                const now = new Date();
+  
+                const upcomingSchedule = fetchedSchedule.filter((item: any) => {
+                  const endDateTime = new Date(`${item.date}T${item.end_time}`);
+                  return endDateTime > now;
+                });
+                setScheduleData(upcomingSchedule);
+  
+                const slots: { [key: string]: boolean } = {};
+                upcomingSchedule.forEach((item: any) => {
+                  if (!item.date || !item.start_time) return;
+                  const date = new Date(item.date);
+                  const dayIndex = date.getDay();
+                  const day = days[(dayIndex + 6) % 7];
+                  const hour = parseInt(item.start_time.split(':')[0], 10);
+                  slots[`${day}-${hour}`] = true;
+                });
+                setOpenSlots(slots);
+              })
+              .catch((err) => console.error('스케줄 조회 오류:', err));
+          })
+          .catch((err) => console.error('트레이너 정보 조회 오류:', err));
       })
-      .catch((error) => {
-        console.error('스케줄 조회 오류:', error);
+      .catch((err) => {
+        console.error('사용자 정보 조회 오류:', err);
       });
-      
-    // 회원의 예약 데이터도 조회 (필요한 경우)
+  
+    // 4. 예약 조회
     axios
       .get('http://localhost:3000/api/member/bookings', {
-        headers: {
-          // Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       })
       .then((response) => {
-        // response.data.upcomingBookings를 예약 데이터로 가정
         setBookings(response.data.upcomingBookings);
       })
       .catch((error) => {
         console.error('예약 조회 오류:', error);
       });
-      
-    // 현재 날짜(또는 원하는 날짜)를 기준으로 오운완 인증 이미지를 조회합니다.
-    const workoutDate = new Date().toISOString().slice(0,10); // yyyy-MM-dd
+  
+    // 5. 오운완 이미지 조회
+    const workoutDate = new Date().toISOString().slice(0, 10);
+    const userId = localStorage.getItem("userId"); // userId를 쿼리로 전달
+    if (!userId) {
+      console.warn("❗ userId가 없습니다.");
+      return;
+    }
     axios
-      .get("http://localhost:3000/api/images/workout", {
-        params: { userId, workoutDate }
+      .get('http://localhost:3000/api/images/workout', {
+        params: { userId, workoutDate },
+        headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
         if (res.data.workouts && res.data.workouts.length > 0) {
@@ -66,40 +110,36 @@ const ReservationGrid: React.FC = () => {
         }
       })
       .catch((error) => {
-        console.error("오운완 이미지 조회 오류:", error);
+        console.error('오운완 이미지 조회 오류:', error);
         setWorkoutImage(null);
       });
-  }, [trainerId, userId]);
-
-  // 셀 클릭 시, 예약을 위한 시간대를 선택합니다.
+  }, []);
+  
   const handleCellClick = (day: string, hour: number) => {
     const timeSlot = formatTimeSlot(day, hour);
     setSelectedTime(timeSlot);
   };
-
-  // 예약 처리: 선택한 시간과 일치하는 스케줄 데이터를 찾아 예약 요청
+  
   const handleReservation = () => {
     if (!selectedTime) return;
-    
-    // 선택한 시간에 해당하는 스케줄 슬롯을 찾습니다.
+  
     const selectedSchedule = scheduleData.find((slot) => {
-      const slotTime = `${slot.date} ${slot.start_time}`; // 실제 데이터 형식에 맞게 수정 필요
+      const slotTime = `${slot.date} ${slot.start_time.split(':')[0]}:00`;
       return slotTime === selectedTime;
     });
-
+  
     if (!selectedSchedule) {
       alert("해당 시간의 예약 가능한 스케줄이 없습니다.");
       return;
     }
-
+  
+    const token = localStorage.getItem('token');
     axios
       .post(
         'http://localhost:3000/api/trainer/schedule/book',
         { scheduleId: selectedSchedule.id },
         {
-          headers: {
-            // Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       )
       .then((response) => {
@@ -111,22 +151,35 @@ const ReservationGrid: React.FC = () => {
         alert("예약 실패");
       });
   };
-
-  // 파일 업로드 핸들러 (오운완 인증 이미지 업로드)
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  
+  // ★ 여기가 변경된 부분: 오운완 이미지 업로드 (서버 API 호출)
+  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
-      // 파일 업로드 API가 없다면, 우선 로컬 미리보기 처리
-      const reader = new FileReader();
-      reader.onload = () => {
-        const uploadedImage = reader.result as string;
-        setWorkoutImage(uploadedImage);
-        // 실제 환경에서는 업로드 API 호출 후, 반환된 이미지 URL로 setWorkoutImage 처리
-      };
-      reader.readAsDataURL(file);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert("로그인이 필요합니다.");
+        return;
+      }
+      const formData = new FormData();
+      formData.append("image", file);
+      try {
+        const res = await axios.post("http://localhost:3000/api/upload/workout", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        console.log("✅ 이미지 업로드 성공:", res.data);
+        // 서버에서 반환된 imageUrl을 반영함
+        setWorkoutImage(res.data.imageUrl);
+      } catch (error) {
+        console.error("❌ 이미지 업로드 실패:", error);
+        alert("이미지 업로드에 실패했습니다.");
+      }
     }
   };
-
+  
   return (
     <div className="schedule-container">
       <h1>📅 S C H E D U L E</h1>
@@ -135,9 +188,7 @@ const ReservationGrid: React.FC = () => {
           <div className="schedule-grid">
             <div className="empty-cell" />
             {days.map((day) => (
-              <div key={day} className="day-header">
-                {day}
-              </div>
+              <div key={day} className="day-header">{day}</div>
             ))}
             {hours.map((hour) => (
               <React.Fragment key={hour}>
@@ -153,16 +204,12 @@ const ReservationGrid: React.FC = () => {
             ))}
           </div>
         </div>
-
+  
         <div className="right-content">
           <div className="schedule-box">
             <h2>오운완 인증 📸</h2>
             {workoutImage ? (
-              <img
-                src={workoutImage}
-                alt="오운완 인증 사진"
-                className="image-preview"
-              />
+              <img src={workoutImage} alt="오운완 인증" className="image-preview" />
             ) : (
               <div>
                 <input type="file" accept="image/*" onChange={handleFileUpload} />
@@ -171,14 +218,11 @@ const ReservationGrid: React.FC = () => {
           </div>
           <div className="schedule-box">
             <h2>운동 일지 📝</h2>
-            <textarea
-              placeholder="오늘의 운동 내용을 적어보세요..."
-              rows={5}
-            ></textarea>
+            <textarea placeholder="오늘의 운동 내용을 입력하세요..." rows={5}></textarea>
           </div>
         </div>
       </div>
-
+  
       {selectedTime && (
         <div className="modal">
           <div className="modal-content">
@@ -191,5 +235,5 @@ const ReservationGrid: React.FC = () => {
     </div>
   );
 };
-
+  
 export default ReservationGrid;

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./Mypage.css";
 
-export default function MypageMember() {
+function MypageMember() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [trainerInfo, setTrainerInfo] = useState<any>(null);
   const [memberNumber, setMemberNumber] = useState<string>("");
@@ -24,15 +24,28 @@ export default function MypageMember() {
       const user = response.data;
 
       if (user) {
-        setTrainerInfo({ name: user.name });
         setMemberNumber(user.id.toString());
 
-        // localStorage에 사용자 ID 저장 (user.id를 사용)
         localStorage.setItem("id", user.id.toString());
         localStorage.setItem("userId", user.id.toString());
         console.log("🔥 userId in localStorage:", localStorage.getItem("userId"));
 
         fetchProfileImage(user.id.toString());
+
+        const token = localStorage.getItem("token");
+        axios
+          .get("http://localhost:3000/api/member/trainer", {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          .then((trainerRes) => {
+            if (trainerRes.data.trainer) {
+              setTrainerInfo(trainerRes.data.trainer);
+              console.log("✅ 트레이너 정보 조회 성공:", trainerRes.data.trainer);
+            } else {
+              console.warn("트레이너 정보가 없습니다.");
+            }
+          })
+          .catch((err) => console.error("트레이너 정보 조회 오류:", err));
       } else {
         console.error("유저 정보를 찾을 수 없습니다.");
       }
@@ -44,7 +57,7 @@ export default function MypageMember() {
   const fetchProfileImage = async (userId: string) => {
     try {
       const response = await axios.get("http://localhost:3000/api/images/profile", {
-        params: { userId }, // 쿼리로 userId 전달
+        params: { userId },
       });
       setProfileImage(response.data.imageUrl);
     } catch (error) {
@@ -56,7 +69,7 @@ export default function MypageMember() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const formData = new FormData();
-      formData.append("image", file); // form-data의 key는 "image"여야 함
+      formData.append("image", file);
 
       try {
         const response = await axios.post("http://localhost:3000/api/upload/profile", formData, {
@@ -68,7 +81,6 @@ export default function MypageMember() {
 
         console.log("✅ 업로드 성공:", response.data);
 
-        // 업로드 성공 후 다시 이미지 불러오기
         const userId = localStorage.getItem("userId");
         if (userId) fetchProfileImage(userId);
       } catch (error) {
@@ -95,6 +107,7 @@ export default function MypageMember() {
 
   return (
     <div className="mypage-container">
+      {/* 회원 프로필 이미지 업로드 영역 */}
       <div className="profile-upload-container">
         <label htmlFor="profileUpload" className="profile-upload-label">
           {profileImage ? (
@@ -112,29 +125,38 @@ export default function MypageMember() {
         />
       </div>
 
-      {trainerInfo && (
-        <div className="trainer-info">
-          <img src="https://via.placeholder.com/50" alt="트레이너" className="trainer-pic" />
-          <div className="trainer-details">
-            <p className="trainer-name">{trainerInfo.name}</p>
-            <p className="trainer-description">{trainerInfo.info}</p>
-          </div>
-        </div>
-      )}
-
+      {/* 회원 정보 영역 */}
       <div className="member-number">
         <strong>나의 회원 번호:</strong> {memberNumber}
       </div>
 
+      {/* 트레이너 정보 영역 */}
+      {trainerInfo && (
+        <div className="trainer-info">
+          <img
+            src={trainerInfo.imageUrl ? trainerInfo.imageUrl : "https://via.placeholder.com/50"}
+            alt="트레이너"
+            className="trainer-pic"
+          />
+          <div className="trainer-details">
+            <p className="trainer-name">나의 트레이너 : {trainerInfo.name}</p>
+          </div>
+        </div>
+      )}
+
+      {/* 운동 기록 페이지 이동 */}
       <div className="workout-records">
         <button className="workout-records-btn" onClick={goToRecordPage}>
           나의 운동기록 확인하기
         </button>
       </div>
 
+      {/* 로그아웃 버튼 */}
       <button className="logout-btn" onClick={handleLogout}>
         로그아웃
       </button>
     </div>
   );
-};
+}
+
+export default MypageMember;
