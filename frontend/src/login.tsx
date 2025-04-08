@@ -51,6 +51,7 @@ export default function Login() {
       // 토큰 및 사용자 정보 저장
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("userId", data.user.id);
       
       // 리디렉션
       navigate("/home");
