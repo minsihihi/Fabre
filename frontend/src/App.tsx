@@ -12,6 +12,7 @@ import Meals from './Meals';
 import Record from './Record';
 import Mypage from './Mypage';
 import Mypage_trainer from './Mypage_trainer'
+import Workout from './Workout';
 import logo from './assets/Logo.png';
 import NotificationTest from './NotificationTest';
 
@@ -49,6 +50,7 @@ const App: React.FC = () => {
             <Link to="/home_trainer" className="sidebar-link">🏠 H O M E T</Link>
             <Link to="/schedule" className="sidebar-link">📅 S C H E D U L E</Link>
             <Link to="/schedule_trainer" className="sidebar-link">📅 S C H E D U L E T</Link>
+            <Link to ="/workout" className ="sidebar-link">W O R K O U T</Link>
             <Link to="/meals" className="sidebar-link">🍽️ M E A L S</Link>
             <Link to="/record" className="sidebar-link">📝 R E C O R D</Link>
             <Link to="/mypage" className="sidebar-link">🙋 M Y P A G E</Link>
@@ -64,6 +66,7 @@ const App: React.FC = () => {
             <Route path="/register" element={<Register />} />
             <Route path="/home" element={<Home />} />
             <Route path="/schedule" element={<Schedule />} />
+            <Route path="/workout" element={<Workout />} />
             <Route path="/meals" element={<Meals />} />
             <Route path="/record" element={<Record />} />
             <Route path="/mypage" element={<Mypage />} />

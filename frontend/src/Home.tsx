@@ -87,7 +87,7 @@ export default function Home() {
             ) : (
               <div>
                 <h2>{formatLocalDate(date)}에 오운완 사진이 없습니다!</h2>
-                <button onClick={() => navigate("/schedule")}>
+                <button onClick={() => navigate("/workout")}>
                   운동하러 가기 💪
                 </button>
                 <button onClick={() => setModalOpen(false)}>닫기</button>
