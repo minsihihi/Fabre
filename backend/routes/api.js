@@ -25,7 +25,6 @@ const memberBookings = require('../models/memberBookings');
 
 require('dotenv').config({ path: 'backend/.env' });
 
-module.exports = router;
 
 // ✅ OpenAI API 설정
 const openai = new OpenAI({
@@ -183,8 +182,6 @@ router.get("/images/profile", async (req, res) => {
     }
 });
 
-
-module.exports = router;
 
 /* ----------------------------------- */
 /* ✅ 2. OpenAI API를 이용한 식단 분석 API */
@@ -387,6 +384,21 @@ router.post('/logout', async (req, res) => {
         return res.status(500).json({ message: '서버 오류가 발생했습니다.' });
     }
 });
+
+// 로그인한 사용자 정보 조회 (장다연이 추가함.)
+router.get('/users/me', verifyToken, async (req, res) => {
+    try {
+        const user = await User.findByPk(req.user.id, {
+            attributes: ['id', 'login_id', 'name', 'role']
+        });
+        if (!user) return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+        res.json(user);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+});
+
 
 // 유저 정보 가져오기(트레이너)
 router.get('/users', verifyToken, checkRole(['trainer']), async(req, res) => {
@@ -1125,5 +1137,3 @@ router.get('/', (req, res) => {
 });
 
 module.exports = router;
-
-
