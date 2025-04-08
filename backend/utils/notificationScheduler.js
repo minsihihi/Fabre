@@ -24,6 +24,7 @@ const scheduleWorkoutNotification = (schedule) => {
         }
 
         const { id, userId, workoutTime, days } = schedule;
+        
 
         if (!id || !workoutTime) {
             console.error(`잘못된 운동 스케줄 데이터 (ID: ${id || 'N/A'})`);
@@ -35,7 +36,21 @@ const scheduleWorkoutNotification = (schedule) => {
             return;
         }
 
-        const dayList = (days || "").split(",").map(Number).filter(day => !isNaN(day));
+        const weekdayToCronIndex = {
+            Sunday: 0,
+            Monday: 1,
+            Tuesday: 2,
+            Wednesday: 3,
+            Thursday: 4,
+            Friday: 5,
+            Saturday: 6
+        };
+        
+        const dayList = (days || "")
+            .split(",")
+            .map(day => weekdayToCronIndex[day.trim()])
+            .filter(day => day !== undefined);
+        
         const [hour, minute] = workoutTime.split(":").map(Number);
 
         if (dayList.length === 0) {
