@@ -2,19 +2,44 @@ import React, { useState, useEffect, ChangeEvent } from "react";
 import axios from "axios";
 import "./Mypage.css";
 
+interface Member {
+  id: string;
+  name: string;
+  photo?: string;
+}
+
 export default function MypageTrainer() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [newMemberId, setNewMemberId] = useState("");
-  const [myMembers, setMyMembers] = useState<{ id: string; name: string; photo?: string }[]>([]);
+  const [myMembers, setMyMembers] = useState<Member[]>([]);
+  const [userId, setUserId] = useState<string>("");
 
   useEffect(() => {
-    fetchProfileImage();
-    fetchMyMembers();
+    // 🔐 로컬스토리지에서 토큰 가져와서 axios 기본 헤더 설정
+    const token = localStorage.getItem("token");
+    if (token) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    }
+    fetchUserInfo();
   }, []);
 
-  const fetchProfileImage = async () => {
+  const fetchUserInfo = async () => {
     try {
-      const { data } = await axios.get("http://localhost:3000/api/images/profile", { params: { userId: "trainer123" } });
+      const { data } = await axios.get("http://localhost:3000/api/users/me");
+      setUserId(data.id);
+      localStorage.setItem("userId", data.id); // 💾 다른 곳에서도 쓸 수 있도록 저장
+      fetchProfileImage(data.id);
+      fetchMyMembers();
+    } catch (error) {
+      console.error("유저 정보 조회 실패", error);
+    }
+  };
+
+  const fetchProfileImage = async (id: string) => {
+    try {
+      const { data } = await axios.get("http://localhost:3000/api/images/profile", {
+        params: { userId: id },
+      });
       setProfileImage(data.imageUrl);
     } catch (error) {
       console.error("프로필 이미지 로드 실패", error);
@@ -24,7 +49,12 @@ export default function MypageTrainer() {
   const fetchMyMembers = async () => {
     try {
       const { data } = await axios.get("http://localhost:3000/api/trainer/members");
-      setMyMembers(data.data.map((member: any) => ({ id: member.id, name: member.User.name })));
+      const members = data.data.map((member: any) => ({
+        id: member.User.id,
+        name: member.User.name,
+        photo: member.User.photo || "", // 사진이 있으면 포함
+      }));
+      setMyMembers(members);
     } catch (error) {
       console.error("회원 목록 불러오기 실패", error);
     }
@@ -34,10 +64,16 @@ export default function MypageTrainer() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const formData = new FormData();
-      formData.append("profileImage", file);
+      formData.append("image", file); // ✅ key는 image!
+
       try {
-        await axios.post("http://localhost:3000/api/images/profile/upload", formData, { headers: { "Content-Type": "multipart/form-data" } });
-        fetchProfileImage();
+        await axios.post("http://localhost:3000/api/upload/profile", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${localStorage.getItem("token")}`, // ✅ 토큰 직접 삽입
+          },
+        });
+        fetchProfileImage(userId);
       } catch (error) {
         console.error("프로필 업로드 실패", error);
       }
@@ -47,11 +83,17 @@ export default function MypageTrainer() {
   const handleAddMember = async () => {
     if (!newMemberId.trim()) return;
     try {
-      const { data } = await axios.post("http://localhost:3000/api/trainer/members", { memberId: newMemberId, sessionsLeft: 10 });
-      setMyMembers([...myMembers, { id: data.data.memberId, name: `회원 ${data.data.memberId}` }]);
+      const { data } = await axios.post("http://localhost:3000/api/trainer/members", {
+        memberId: newMemberId,
+        sessionsLeft: 10,
+      });
+
+      const memberName = `회원 ${newMemberId}`;
+      setMyMembers([...myMembers, { id: data.data.memberId, name: memberName }]);
       setNewMemberId("");
-    } catch (error) {
+    } catch (error: any) {
       console.error("회원 추가 실패", error);
+      alert(error?.response?.data?.message || "회원 추가 실패");
     }
   };
 
@@ -67,7 +109,9 @@ export default function MypageTrainer() {
   const handleLogout = async () => {
     try {
       await axios.post("http://localhost:3000/api/logout");
-      alert("로그아웃 되었습니다.");
+      localStorage.removeItem("token");
+      localStorage.removeItem("id");
+      localStorage.removeItem("userId");
       window.location.href = "/login";
     } catch (error) {
       console.error("로그아웃 실패", error);
@@ -89,7 +133,12 @@ export default function MypageTrainer() {
 
       <div className="member-registration">
         <h3>회원 등록</h3>
-        <input type="text" placeholder="회원 번호 입력" value={newMemberId} onChange={(e) => setNewMemberId(e.target.value)} />
+        <input
+          type="text"
+          placeholder="회원 번호 입력"
+          value={newMemberId}
+          onChange={(e) => setNewMemberId(e.target.value)}
+        />
         <button onClick={handleAddMember}>등록</button>
       </div>
 
@@ -110,7 +159,9 @@ export default function MypageTrainer() {
         </div>
       </div>
 
-      <button className="logout-btn" onClick={handleLogout}>로그아웃</button>
+      <button className="logout-btn" onClick={handleLogout}>
+        로그아웃
+      </button>
     </div>
   );
 }

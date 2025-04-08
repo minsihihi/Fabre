@@ -264,6 +264,12 @@
   margin: 0 auto;   /* 가운데 정렬 */
 }
 
+.schedule-cell.open-slot {
+  background-color: #87cefa; /* 하늘색 */
+  border: 1px solid #4682b4;
+}
+
+
 /* ------------------------------------------------------------------------------------ Meals 페이지 스타일 */
 
 .meal-container {
