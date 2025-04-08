@@ -1,0 +1,176 @@
+.record-page-container {
+    max-width: 1024px;
+    margin: 0 auto;
+    padding: 1.5rem;
+  }
+  
+  .page-title {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  
+  .form-layout {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .calendar-section {
+    flex: 1;
+    min-width: 300px;
+  }
+  
+  .custom-calendar {
+    width: 100% !important;
+    max-width: 340px;
+    font-size: 14px;
+  }
+  
+  .calendar-wrapper {
+    /* 달력 높이 조정 (너무 길지 않게) */
+    max-height: 300px;
+    overflow: hidden;
+  }
+  
+  .time-inputs {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .time-inputs input {
+    width: 120px;
+  }
+  
+  .exercise-section {
+    flex: 1;
+    min-width: 300px;
+    background-color: #f5f5f5;
+    padding: 1rem;
+    border-radius: 12px;
+  }
+  
+  .exercise-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 1rem;
+  }
+  
+  .exercise-box {
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    background-color: white;
+    padding: 0.75rem;
+    border-radius: 8px;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.05);
+  }
+  
+  .exercise-box input,
+  .exercise-box select {
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+  }
+  
+  .add-btn {
+    margin-top: 1rem;
+    background-color: #e0e0e0;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  .submit-btn {
+    margin-top: 2rem;
+    background-color: #00462A;
+    color: white;
+    font-weight: bold;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: block;
+    margin: 0 auto;
+  }
+  
+  /* 팝업 모달 스타일 */
+  .popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .popup-box {
+    background-color: #fff;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    position: relative;
+  }
+  
+  /* 카메라 모달 스타일 */
+  .camera-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0,0,0,0.6);
+    z-index: 1100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .camera-content {
+    background-color: #fff;
+    padding: 1.5rem;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 600px;
+    width: 90%;
+  }
+
+  .time-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 1rem;
+    background-color: #f9f9f9;
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 0 6px rgba(0,0,0,0.1);
+  }
+  
+  .time-input-group label {
+    font-weight: 500;
+  }
+  
+  .calendar-wrapper .react-calendar {
+    width: 100% !important;
+    max-width: 400px;
+  }
+  
+  .weight-select {
+    width: 100%;
+    padding: 0.5rem;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+  }
+  
