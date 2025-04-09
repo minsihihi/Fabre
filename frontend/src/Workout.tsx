@@ -37,7 +37,11 @@ const WorkoutPage = () => {
     { name: '', category: '', sets: 0, reps: 0, weight: 0 },
   ]);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
+  
+  // 카메라/앨범 관련 상태
   const [showCameraModal, setShowCameraModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showChoicePopup, setShowChoicePopup] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -128,12 +132,70 @@ const WorkoutPage = () => {
     }
   };
 
+  // 기존 choice popup에서, 'camera' 선택 시 카메라 모달, 'upload' 선택 시 파일업로드 모달을 보여줌
   const handlePopupChoice = (choice: 'camera' | 'upload') => {
     setShowChoicePopup(false);
     if (choice === 'camera') {
       setShowCameraModal(true);
+    } else if (choice === 'upload') {
+      setShowUploadModal(true);
     }
-    // 업로드 기능은 추후 구현
+  };
+
+  // 사진 찍기: video 스트림 캡처 후 캔버스로 변환하여 blob 생성, API 업로드
+  const capturePhoto = async () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    // 캔버스 생성
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          const file = new File([blob], 'workout.jpg', { type: 'image/jpeg' });
+          await uploadImage(file);
+          setShowCameraModal(false);
+        }
+      }, 'image/jpeg');
+    }
+  };
+
+  // 파일 업로드 (앨범 선택) 처리
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFile) {
+      alert('업로드할 파일을 선택해주세요.');
+      return;
+    }
+    await uploadImage(selectedFile);
+    setShowUploadModal(false);
+  };
+
+  // 이미지 업로드 API 호출 (카테고리는 "workout")
+  const uploadImage = async (file: File) => {
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('image', file);
+      const response = await axios.post('http://localhost:3000/api/upload/workout', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      alert(response.data.message);
+    } catch (error: any) {
+      console.error('업로드 오류:', error);
+      alert(error.response?.data?.message || '업로드 실패');
+    }
   };
 
   return (
@@ -142,7 +204,6 @@ const WorkoutPage = () => {
 
       <div className="form-layout">
         <div className="calendar-section">
-          <label>운동 날짜</label>
           <div className="calendar-wrapper">
             <Calendar
               onClickDay={handleDateClick}
@@ -152,30 +213,30 @@ const WorkoutPage = () => {
           </div>
           <div className="time-input-group">
             <div>
-                <label>시작 시간 *</label>
-                <input
+              <label>시작 시간 *</label>
+              <input
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                />
+              />
             </div>
             <div>
-                <label>종료 시간 *</label>
-                <input
+              <label>종료 시간 *</label>
+              <input
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                />
+              />
             </div>
             <div>
-                <label>총 운동 시간 (분)</label>
-                <input
+              <label>총 운동 시간 (분)</label>
+              <input
                 type="number"
                 value={totalDuration}
                 readOnly
-                />
+              />
             </div>
-            </div>
+          </div>
         </div>
 
         <div className="exercise-section">
@@ -229,7 +290,7 @@ const WorkoutPage = () => {
               ))}
             </select>
             <div className={`category-tag ${getCategoryClass(exercises[currentExerciseIndex].category)}`}>
-              {exercises[currentExerciseIndex].category || '카테고리'}
+              {exercises[currentExerciseIndex].category}
             </div>
             <label>세트 수</label>
             <input
@@ -255,14 +316,14 @@ const WorkoutPage = () => {
                 handleExerciseChange(currentExerciseIndex, 'weight', Number(e.target.value))
               }
             >
-                {[...Array(41)].map((_, i) => {
+              {[...Array(41)].map((_, i) => {
                 const weight = i * 5;
                 return (
-                <option key={weight} value={weight}>
+                  <option key={weight} value={weight}>
                     {weight} kg
-                </option>
+                  </option>
                 );
-            })}
+              })}
             </select>
 
             <input
@@ -290,6 +351,7 @@ const WorkoutPage = () => {
         </div>
       </div>
 
+      {/* 사진 촬영/업로드 선택 팝업 */}
       {showChoicePopup && (
         <div className="popup-overlay">
           <div className="popup-box">
@@ -301,12 +363,30 @@ const WorkoutPage = () => {
         </div>
       )}
 
+      {/* 카메라 모달 */}
       {showCameraModal && (
         <div className="camera-modal">
           <div className="camera-content">
             <h3>오늘의 운동 완료 사진 📸</h3>
             <video ref={videoRef} autoPlay playsInline id="camera-feed" />
-            <button onClick={() => setShowCameraModal(false)}>닫기</button>
+            <div className="camera-buttons">
+              <button onClick={capturePhoto}>사진 찍기</button>
+              <button onClick={() => setShowCameraModal(false)}>닫기</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 업로드 모달 */}
+      {showUploadModal && (
+        <div className="upload-modal">
+          <div className="upload-content">
+            <h3>갤러리에서 사진 선택</h3>
+            <input type="file" accept="image/*" onChange={handleFileChange} />
+            <div className="upload-buttons">
+              <button onClick={handleFileUpload}>사진 업로드</button>
+              <button onClick={() => setShowUploadModal(false)}>닫기</button>
+            </div>
           </div>
         </div>
       )}

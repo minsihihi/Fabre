@@ -19,9 +19,6 @@ router.use('/', recordRoutes);
 const streakRoutes = require('./streak');  // 실제 경로는 streak.js가 위치한 상대 경로로 수정
 router.use('/', streakRoutes);
 
-const booking = require('./booking');
-router.use('/', booking);
-
 const fs = require('fs');
 const path = require('path');
 const { User, Profile, Workout, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise, Meal, WeeklyReport, TrainerSchedule, MemberBookings, MealAnalysis, WorkoutSchedule} = require('../models'); 
@@ -913,6 +910,72 @@ router.get('/trainer/schedule/:trainerId', verifyToken, checkRole(['member']), a
         return res.status(500).json({ message: "서버 오류가 발생했습니다"});
     }
 });
+
+// 트레이너가 트레이너 스케줄 불러오기
+router.get('/trainer/schedule', verifyToken, checkRole(['trainer']), async (req, res) => {
+    try {
+        const trainerId = req.user.id;
+
+        const schedules = await TrainerSchedule.findAll({
+            where: { trainer_id: trainerId },
+            order: [['date', 'ASC'], ['start_time', 'ASC']]
+        });
+
+        res.status(200).json({
+            message: '스케줄 조회 성공',
+            schedules
+        });
+    } catch (error) {
+        console.error('스케줄 조회 오류:', error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+});
+
+
+// 트레이너가 예약한 회원 조회하기
+router.get('/trainer/bookings', verifyToken, checkRole(['trainer']), async (req, res) => {
+    try {
+        const trainerId = req.user.id;
+
+        const bookings = await MemberBookings.findAll({
+            where: { trainer_id: trainerId },
+            include: [
+                { model: User, as: 'Member', attributes: ['id', 'name'] },
+                { model: TrainerSchedule, as: 'Schedule', attributes: ['id', 'date', 'start_time', 'end_time'] }
+            ],
+            order: [
+                [{ model: TrainerSchedule, as: 'Schedule' }, 'date', 'ASC'],
+                [{ model: TrainerSchedule, as: 'Schedule' }, 'start_time', 'ASC']
+            ]
+        });
+
+        const results = bookings.map(b => ({
+            id: b.id,
+            status: b.status,
+            createdAt: b.createdAt,
+            member: {
+                id: b.Member.id,
+                name: b.Member.name,
+                profileImage: b.Member.profile_image || null
+            },
+            schedule: {
+                id: b.Schedule.id,
+                date: b.Schedule.date,
+                startTime: b.Schedule.start_time,
+                endTime: b.Schedule.end_time
+            }
+        }));
+
+        res.status(200).json({
+            message: '예약된 회원 조회 성공',
+            bookings: results
+        });
+    } catch (error) {
+        console.error('트레이너 예약 조회 오류:', error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+});
+
 
 // 회원이 스케줄 예약
 router.post('/trainer/schedule/book', verifyToken, checkRole(['member']), async(req, res) => {
