@@ -1,0 +1,147 @@
+/* 전체 컨테이너 */
+.schedule-container {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Pretendard', sans-serif;
+  }
+  
+  /* 제목 */
+  .schedule-container h1 {
+    font-size: 2.2rem;
+    margin-bottom: 3rem;
+    color: #00462A;
+  }
+  
+  /* 메인 레이아웃 */
+  .schedule-main {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+  
+  /* 왼쪽: 바둑판 시간표 */
+  .left-calendar {
+    width: 40vw;
+    min-width: 360px;
+  }
+  
+  /* 바둑판 형태 그리드 */
+  .schedule-grid {
+    display: grid;
+    grid-template-columns: 60px repeat(7, 1fr);
+    grid-auto-rows: 50px;
+    gap: 8px;
+  }
+  
+  /* 요일 헤더 및 시간 라벨 */
+  .day-header,
+  .hour-label {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    background-color: #f7f7f7;
+    border-radius: 6px;
+    color: #333;
+  }
+  
+  /* 셀 기본 스타일 */
+  .schedule-cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #eee;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    border: 1px solid transparent;
+  }
+  
+  /* 등록된 스케줄 (트레이너가 열어놓은 슬롯) */
+  .schedule-cell.registered {
+    background-color: #8bc0d3;
+  }
+  
+  /* 회원이 예약한 슬롯 */
+  .schedule-cell.booked {
+    background-color: #ffa947; /* 빨간색으로 표시 */
+    cursor: not-allowed;
+  }
+  
+  /* 마우스 올리면 효과 */
+  .schedule-cell.hovering {
+    background-color: #80bdff;
+  }
+  
+  /* 내가 선택한 슬롯 */
+  .schedule-cell.selected {
+    background-color: #81c784;
+  }
+  
+  /* 스크롤 박스 */
+  .scroll-wrapper {
+    max-height: 600px;
+    overflow-y: scroll;
+    border: 1px solid #ffffff;
+    border-radius: 8px;
+  }
+  
+  /* 모달 스타일 */
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+  }
+  
+  .modal-content {
+    background-color: #ffffff;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    width: 90%;
+    max-width: 400px;
+  }
+  
+  .modal-content p {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+  }
+  
+  .modal-content button {
+    margin: 0 10px;
+    padding: 0.8rem 1.5rem;
+    border: none;
+    background-color: #00A676;
+    color: white;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .modal-content button:hover {
+    background-color: #007f5f;
+  }
+  
+  /* 반응형 */
+  @media (max-width: 768px) {
+    .schedule-grid {
+      grid-template-columns: 40px repeat(7, 1fr);
+      grid-auto-rows: 40px;
+    }
+    .modal-content {
+      padding: 1.5rem;
+    }
+  }
+  
+  

@@ -1,0 +1,96 @@
+.schedule-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .scroll-wrapper {
+    overflow-x: auto;
+  }
+  
+  .schedule-main {
+    display: flex;
+  }
+  
+  .left-calendar {
+    flex: 1;
+  }
+  
+  .schedule-grid {
+    display: grid;
+    grid-template-columns: 80px repeat(7, 1fr);
+    gap: 2px;
+    background-color: #f0f0f0;
+    padding: 2px;
+  }
+  
+  .empty-cell {
+    background-color: #fff;
+  }
+  
+  .day-header {
+    background-color: #e0e0e0;
+    text-align: center;
+    padding: 10px;
+    font-weight: bold;
+  }
+  
+  .hour-label {
+    background-color: #fff;
+    padding: 5px;
+    text-align: right;
+    font-size: 14px;
+  }
+  
+  .schedule-cell {
+    height: 30px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    cursor: not-allowed;
+  }
+  
+  .schedule-cell.available {
+    background-color: #909bee; /* Green for available slots */
+    cursor: pointer;
+  }
+  
+  .schedule-cell.booked {
+    background-color: #ffa291; /* Red for booked slots */
+    cursor: not-allowed;
+  }
+  
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  
+  .modal-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    text-align: center;
+  }
+  
+  .modal-content p {
+    margin-bottom: 20px;
+  }
+  
+  .modal-content button {
+    margin: 0 10px;
+    padding: 8px 16px;
+    cursor: pointer;
+  }
+  
+  h1,
+  h2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
