@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import './App.css';
+import './Schedule.css';
 
 const days = ['월', '화', '수', '목', '금', '토', '일'];
 const hours = Array.from({ length: (22 - 9 + 1) * 2 }, (_, i) => {
@@ -9,183 +9,195 @@ const hours = Array.from({ length: (22 - 9 + 1) * 2 }, (_, i) => {
   return `${hour}:${minute}`;
 });
 
-const timeToMinutes = (time: string) => {
-  const [h, m] = time.split(':').map(Number);
+const timeToMinutes = (time: string): number => {
+  const [h, m] = time.slice(0, 5).split(':').map(Number);
   return h * 60 + m;
 };
 
-const minutesToTime = (minutes: number) => {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return `${h}:${m === 0 ? '00' : m}`;
+const getDayIndex = (korDay: string): number => {
+  const map: Record<string, number> = { '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6 };
+  return map[korDay];
 };
 
-const getDayIndex = (korDay: string) => {
-  const map = { '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6 };
-  return map[korDay as keyof typeof map];
-};
+interface Trainer {
+  id: number;
+  name: string;
+}
 
-const getNearestDateForDay = (dayKor: string) => {
-  const today = new Date();
-  const todayDay = today.getDay();
-  const targetDay = getDayIndex(dayKor);
-  const diff = (targetDay + 7 - todayDay) % 7;
-  const resultDate = new Date(today);
-  resultDate.setDate(today.getDate() + diff);
-  return resultDate;
-};
+interface ScheduleItem {
+  id: number;
+  date: string;
+  start_time: string;
+  end_time: string;
+  isBooked: boolean;
+}
 
-const getDateOnly = (date: Date) => date.toISOString().split('T')[0];
+interface Booking {
+  schedule: {
+    id: number;
+    date: string;
+    startTime: string;
+    endTime: string;
+  };
+}
 
-const Schedule: React.FC = () => {
-  const [scheduleData, setScheduleData] = useState<any[]>([]);
-  const [openSlots, setOpenSlots] = useState<{ [key: string]: boolean }>({});
-  const [mySlots, setMySlots] = useState<{ [key: string]: boolean }>({});
-  const [selectedTime, setSelectedTime] = useState<{ day: string; time: string; scheduleId: string } | null>(null);
-  const [trainerInfo, setTrainerInfo] = useState<any>(null);
+const MemberScheduleGrid: React.FC = () => {
+  const [trainer, setTrainer] = useState<Trainer | null>(null);
+  const [scheduleData, setScheduleData] = useState<ScheduleItem[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState<ScheduleItem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.error('토큰이 없습니다!');
-      return;
-    }
-
-    axios
-      .get('http://localhost:3000/api/users/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then(() => {
-        axios
-          .get('http://localhost:3000/api/member/trainer', {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          .then((trainerRes) => {
-            setTrainerInfo(trainerRes.data.trainer);
-            const trainerId = trainerRes.data.trainer.id;
-            axios
-              .get(`http://localhost:3000/api/trainer/schedule/${trainerId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              })
-              .then((scheduleRes) => {
-                const fetchedSchedule = scheduleRes.data.schedule || scheduleRes.data;
-                const now = new Date();
-
-                const upcomingSchedule = fetchedSchedule.filter((item: any) => {
-                  const endDateTime = new Date(`${item.date}T${item.end_time}`);
-                  return endDateTime > now;
-                });
-
-                setScheduleData(upcomingSchedule);
-
-                const slots: { [key: string]: boolean } = {};
-                upcomingSchedule.forEach((item: any) => {
-                  const date = new Date(item.date);
-                  const dayIndex = date.getDay();
-                  const day = days[(dayIndex + 6) % 7];
-                  const hour = parseInt(item.start_time.split(':')[0], 10);
-                  slots[`${day}-${hour}`] = true;
-                });
-                setOpenSlots(slots);
-              });
-          });
-      });
-
-    axios
-      .get('http://localhost:3000/api/member/bookings', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((response) => {
-        const bookingList = response.data.upcomingBookings || [];
-        const my: { [key: string]: boolean } = {};
-        bookingList.forEach((item: any) => {
-          const date = new Date(item.schedule?.date);
-          const dayIndex = date.getDay();
-          const day = days[(dayIndex + 6) % 7];
-          const hour = parseInt(item.schedule?.start_time.split(':')[0], 10);
-          my[`${day}-${hour}`] = true;
+    const fetchData = async () => {
+      try {
+        const trainerRes = await axios.get('http://localhost:3000/api/member/trainer', {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        setMySlots(my);
-      });
-  }, []);
+        setTrainer(trainerRes.data.trainer);
 
-  const handleBook = () => {
-    const token = localStorage.getItem('token');
-    if (!token || !selectedTime) return;
+        if (trainerRes.data.trainer?.id) {
+          const scheduleRes = await axios.get(
+            `http://localhost:3000/api/trainer/schedule/${trainerRes.data.trainer.id}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          setScheduleData(scheduleRes.data.schedule);
 
-    axios
-      .post(
+          const bookingsRes = await axios.get('http://localhost:3000/api/member/bookings', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setBookings(bookingsRes.data.upcomingBookings);
+        }
+        setLoading(false);
+      } catch (err) {
+        console.error('데이터 조회 오류:', err);
+        alert('데이터를 불러오는데 실패했습니다.');
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [token]);
+
+  const handleBookSchedule = async () => {
+    if (!selectedSlot) return;
+
+    try {
+      const res = await axios.post(
         'http://localhost:3000/api/trainer/schedule/book',
-        { scheduleId: selectedTime.scheduleId },
+        { scheduleId: selectedSlot.id },
         { headers: { Authorization: `Bearer ${token}` } }
-      )
-      .then(() => {
-        alert("예약 성공!");
-        setSelectedTime(null);
-        window.location.reload();
-      })
-      .catch((error) => {
-        console.error("예약 오류:", error);
-        alert("예약 실패");
-      });
+      );
+      alert('예약 성공!');
+      setScheduleData((prev) =>
+        prev.map((item) =>
+          item.id === selectedSlot.id ? { ...item, isBooked: true } : item
+        )
+      );
+      setBookings((prev) => [
+        ...prev,
+        {
+          schedule: {
+            id: selectedSlot.id,
+            date: selectedSlot.date,
+            startTime: selectedSlot.start_time,
+            endTime: selectedSlot.end_time,
+          },
+        },
+      ]);
+      setSelectedSlot(null);
+    } catch (err: any) {
+      console.error('예약 오류:', err);
+      alert(err.response?.data?.message || '예약 실패!');
+    }
   };
 
-  const isBookable = (day: string, time: string) => {
-    const hour = parseInt(time.split(':')[0], 10);
-    return openSlots[`${day}-${hour}`] && !mySlots[`${day}-${hour}`];
+  const isScheduled = (day: string, time: string): { isBooked: boolean; scheduleId?: number; isStart?: boolean } => {
+    const cellMinutes = timeToMinutes(time);
+    for (const item of scheduleData) {
+      const scheduleDate = new Date(item.date);
+      const koreanDay = ['일', '월', '화', '수', '목', '금', '토'][scheduleDate.getDay()];
+      const startMinutes = timeToMinutes(item.start_time);
+      const endMinutes = timeToMinutes(item.end_time);
+      if (
+        koreanDay === day &&
+        cellMinutes >= startMinutes &&
+        cellMinutes < endMinutes
+      ) {
+        const isStart = cellMinutes === startMinutes; // 🔥 클릭한 시간이 시작 시간일 때만 예약 가능
+        return { isBooked: item.isBooked, scheduleId: item.id, isStart };
+      }
+    }
+    return { isBooked: false };
   };
 
-  const findScheduleId = (day: string, time: string) => {
-    const date = getDateOnly(getNearestDateForDay(day));
-    return scheduleData.find((item) => item.date === date && item.start_time.startsWith(time))?.id;
+  const handleCellClick = (day: string, time: string) => {
+    const { isBooked, scheduleId, isStart } = isScheduled(day, time);
+    if (!isBooked && scheduleId && isStart) {
+      const slot = scheduleData.find((item) => item.id === scheduleId);
+      if (slot) {
+        setSelectedSlot(slot);
+      }
+    }
   };
 
   return (
     <div className="schedule-container">
-      <h1>📅 S C H E D U L E</h1>
-      <div className="scroll-wrapper">
-        <div className="schedule-main">
-          <div className="left-calendar">
-            <div className="schedule-grid">
-              <div className="empty-cell" />
-              {days.map((day) => (
-                <div key={day} className="day-header">{day}</div>
-              ))}
-
-              {hours.map((time) => (
-                <React.Fragment key={time}>
-                  <div className="hour-label">{time}</div>
-                  {days.map((day) => {
-                    const bookable = isBookable(day, time);
-                    const booked = mySlots[`${day}-${parseInt(time.split(':')[0], 10)}`];
-                    return (
-                      <div
-                        key={`${day}-${time}`}
-                        className={`schedule-cell ${bookable ? 'hovering' : ''} ${booked ? 'selected' : ''}`}
-                        onClick={() => {
-                          if (bookable) {
-                            const id = findScheduleId(day, time);
-                            if (id) setSelectedTime({ day, time, scheduleId: id });
-                          }
-                        }}
-                      />
-                    );
-                  })}
-                </React.Fragment>
-              ))}
+      <h1>📅 M E M B E R - S C H E D U L E</h1>
+      {loading ? (
+        <p>스케줄을 불러오는 중...</p>
+      ) : !trainer ? (
+        <p>등록된 트레이너가 없습니다.</p>
+      ) : (
+        <>
+          <h2>트레이너: {trainer.name}</h2>
+          <div className="scroll-wrapper">
+            <div className="schedule-main">
+              <div className="left-calendar">
+                <div className="schedule-grid">
+                  <div className="empty-cell" />
+                  {days.map((day) => (
+                    <div key={day} className="day-header">
+                      {day}
+                    </div>
+                  ))}
+                  {hours.map((time) => (
+                    <React.Fragment key={time}>
+                      <div className="hour-label">{time}</div>
+                      {days.map((day) => {
+                        const { isBooked, scheduleId, isStart } = isScheduled(day, time);
+                        return (
+                          <div
+                            key={`${day}-${time}`}
+                            className={`schedule-cell ${
+                              isBooked
+                                ? 'booked'
+                                : isStart && scheduleId
+                                ? 'available'
+                                : ''
+                            }`}
+                            onClick={() => handleCellClick(day, time)}
+                          />
+                        );
+                      })}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
-      {selectedTime && (
+      {selectedSlot && (
         <div className="modal">
           <div className="modal-content">
             <p>
-              {selectedTime.day} {selectedTime.time} 시간에 예약할까요?
+              {selectedSlot.start_time.slice(0, 5)} ~{' '}
+              {selectedSlot.end_time.slice(0, 5)} 시간에 예약하시겠습니까?
             </p>
-            <button onClick={handleBook}>네</button>
-            <button onClick={() => setSelectedTime(null)}>취소</button>
+            <button onClick={handleBookSchedule}>예약</button>
+            <button onClick={() => setSelectedSlot(null)}>취소</button>
           </div>
         </div>
       )}
@@ -193,4 +205,4 @@ const Schedule: React.FC = () => {
   );
 };
 
-export default Schedule;
+export default MemberScheduleGrid;
