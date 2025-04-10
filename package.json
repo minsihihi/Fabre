@@ -1,8 +1,8 @@
 {
   "name": "capstone_project",
-  "version": "1.0.0",
-  "main": "frontend/main.js", 
-  "type": "commonjs", 
+  "version": "1.0.1",
+  "main": "frontend/main.js",
+  "type": "commonjs",
   "scripts": {
     "start": "concurrently \"npm run frontend\" \"npm run electron\"",
     "frontend": "vite --config frontend/vite.config.js",
@@ -10,16 +10,18 @@
     "backend": "node backend/app.js",
     "dev": "vite --host",
     "build": "vite build --config frontend/vite.config.js",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "deploy": "npm run build && npm run dist -- --publish always"
   },
   "build": {
-    "appId": "com.minsihihi.chaejjikpt",
+    "appId": "com.chaejjikpt",
     "productName": "채찍피티",
+    "asar": false,
     "files": [
-      "frontend/main.js",            
-      "frontend/preload.js",         
-      "frontend/dist/**",            
-      "backend/**",                  
+      "frontend/main.js",
+      "frontend/preload.js",
+      "frontend/dist/**",
+      "backend/**",
       "node_modules/**",
       "package.json"
     ],
@@ -28,11 +30,7 @@
       "output": "dist"
     },
     "mac": {
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "target": [
-        "dmg"
-  ]
+      "target": "dmg"
     },
     "publish": {
       "provider": "github",
@@ -81,6 +79,8 @@
     "@types/jwt-decode": "^2.2.1",
     "@types/react": "^19.0.8",
     "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^25.8.4",
+    "electron-builder": "^26.0.12",
     "typescript": "^5.7.3",
     "vite": "^6.1.0"
   }
