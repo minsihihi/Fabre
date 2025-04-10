@@ -4,7 +4,7 @@
   "main": "frontend/main.js",
   "scripts": {
     "start": "concurrently \"npm run frontend\" \"npm run electron\"",
-    "frontend": "vite",
+    "frontend": "vite --config frontend/vite.config.js",
     "electron": "wait-on http://localhost:5173 && electron .",
     "backend": "node backend/app.js",
     "dev": "vite --host"
@@ -22,6 +22,7 @@
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
     "electron": "^34.0.0",
+    "electron-is-dev": "^3.0.1",
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
     "express-validator": "^7.2.1",
@@ -48,6 +49,7 @@
   "devDependencies": {
     "@types/jwt-decode": "^2.2.1",
     "@types/react": "^19.0.8",
+    "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.7.3",
     "vite": "^6.1.0"
   }
