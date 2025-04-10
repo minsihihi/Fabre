@@ -1,6 +1,6 @@
 {
   "name": "capstone_project",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "frontend/main.js",
   "type": "commonjs",
   "scripts": {
