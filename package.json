@@ -1,13 +1,19 @@
 {
   "name": "capstone_project",
+<<<<<<< HEAD
   "version": "1.0.2",
   "main": "frontend/main.js",
   "type": "commonjs",
+=======
+  "version": "1.0.0",
+  "main": "frontend/main.js",
+>>>>>>> main/main
   "scripts": {
     "start": "concurrently \"npm run frontend\" \"npm run electron\"",
     "frontend": "vite --config frontend/vite.config.js",
     "electron": "wait-on http://localhost:5173 && electron .",
     "backend": "node backend/app.js",
+<<<<<<< HEAD
     "dev": "vite --host",
     "build": "vite build --config frontend/vite.config.js",
     "dist": "electron-builder",
@@ -38,6 +44,10 @@
       "repo": "Fabre"
     }
   },
+=======
+    "dev": "vite --host"
+  },
+>>>>>>> main/main
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -50,8 +60,13 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
+<<<<<<< HEAD
     "electron-is-dev": "^3.0.1",
     "electron-updater": "^6.6.2",
+=======
+    "electron": "^34.0.0",
+    "electron-is-dev": "^3.0.1",
+>>>>>>> main/main
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
     "express-validator": "^7.2.1",
@@ -79,8 +94,11 @@
     "@types/jwt-decode": "^2.2.1",
     "@types/react": "^19.0.8",
     "@vitejs/plugin-react": "^4.3.4",
+<<<<<<< HEAD
     "electron": "^25.8.4",
     "electron-builder": "^26.0.12",
+=======
+>>>>>>> main/main
     "typescript": "^5.7.3",
     "vite": "^6.1.0"
   }
