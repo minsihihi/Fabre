@@ -1132,6 +1132,44 @@ router.get('/member/bookings', verifyToken, checkRole(['member']), async (req, r
     }
 });
 
+// 회원이 예약 취소 (24시간 이전만 가능)
+router.delete('/member/bookings/:bookingId', verifyToken, checkRole(['member']), async (req, res) => {
+    try {
+        const memberId = req.user.id;
+        const bookingId = req.params.bookingId;
+
+        const booking = await MemberBookings.findOne({
+            where: { id: bookingId, member_id: memberId },
+            include: [{ model: TrainerSchedule, as: 'Schedule' }]
+        });
+
+        if (!booking) {
+            return res.status(404).json({ message: '예약 내역을 찾을 수 없습니다.' });
+        }
+
+        // 예약 시작 시간까지 24시간 이상 남았는지 확인
+        const scheduleDate = new Date(`${booking.Schedule.date}T${booking.Schedule.start_time}`);
+        const now = new Date();
+        const diffHours = (scheduleDate - now) / (1000 * 60 * 60);
+
+        if (diffHours < 24) {
+            return res.status(400).json({ message: '예약 시작 24시간 이전까지만 취소할 수 있습니다.' });
+        }
+
+        // 상태 업데이트 및 스케줄 다시 예약 가능 상태로 변경
+        await booking.update({ status: 'cancelled' });
+        await booking.Schedule.update({ isBooked: false });
+
+        // 예약 성공 시 반환에 bookingId 포함 필요
+        res.status(200).json({
+            message: '예약에 성공하였습니다.',
+        });
+  
+    } catch (error) {
+        console.error('예약 취소 오류:', error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+});
 
 // 주간 리포트
 router.post('/workouts/analyze-weekly', verifyToken, async (req, res) => {
