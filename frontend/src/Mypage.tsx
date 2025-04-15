@@ -133,11 +133,6 @@ function MypageMember() {
       {/* 트레이너 정보 영역 */}
       {trainerInfo && (
         <div className="trainer-info">
-          <img
-            src={trainerInfo.imageUrl ? trainerInfo.imageUrl : "https://via.placeholder.com/50"}
-            alt="트레이너"
-            className="trainer-pic"
-          />
           <div className="trainer-details">
             <p className="trainer-name">나의 트레이너 : {trainerInfo.name}</p>
           </div>

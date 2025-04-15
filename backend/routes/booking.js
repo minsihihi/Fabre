@@ -177,7 +177,11 @@ router.delete('/member/bookings/:bookingId', verifyToken, checkRole(['member']),
         await booking.update({ status: 'cancelled' });
         await booking.Schedule.update({ isBooked: false });
 
-        res.status(200).json({ message: '예약이 성공적으로 취소되었습니다.' });
+        // 예약 성공 시 반환에 bookingId 포함 필요
+        res.status(200).json({
+            message: '예약에 성공하였습니다.',
+        });
+  
     } catch (error) {
         console.error('예약 취소 오류:', error);
         res.status(500).json({ message: '서버 오류가 발생했습니다.' });

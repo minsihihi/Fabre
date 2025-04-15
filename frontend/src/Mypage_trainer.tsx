@@ -148,7 +148,6 @@ export default function MypageTrainer() {
           {myMembers.length > 0 ? (
             myMembers.map((member) => (
               <div key={member.id} className="member-card">
-                <img src={member.photo || "https://via.placeholder.com/50"} alt={member.name} className="member-photo" />
                 <p className="member-name">{member.name}</p>
                 <button onClick={() => handleDeleteMember(member.id)}>삭제</button>
               </div>
