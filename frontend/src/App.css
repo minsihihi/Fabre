@@ -1,26 +1,19 @@
 /* 기존 스타일 */
 #root {
-  width: 100%; /* 화면의 너비를 100%로 설정 */
-  height: 100%; /* 화면의 높이를 100%로 설정 */
-  margin: 0; /* 공백 제거 */
-  padding: 0; /* 공백 제거 */
-  box-sizing: border-box; /* 크기를 정확하게 맞추기 위해 box-sizing 설정 */
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 /* 로고 관련 스타일 */
 .logo {
-  width: 70px;  /* 로고 크기 조정 */
-  height: auto; /* 비율 유지 */
-  display: block; /* 정렬을 위해 block 요소로 변경 */
-  margin: 0 auto 10px; /* 가운데 정렬 + 아래 여백 */
-}
-
-
-.logo-text {
-  font-family: 'East Sea Dokdo', cursive;
-  font-size: 5rem; /* 크기 조정 */
-  color: #ffffff; /* 글자 색상 */
-  font-weight: bold; /* 글자 굵기 */
+  width: 70px;
+  height: auto;
+  display: block;
+  margin: 0 auto 10px;
+  transition: filter 0.3s ease;
 }
 
 .logo:hover {
@@ -31,30 +24,30 @@
   filter: drop-shadow(0 0 2em #80e3ffaa);
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
+/* 로고 텍스트 (채찍피티 글씨체 변경) */
+.logo-text {
+  font-family: 'Montserrat', sans-serif; /* 변경된 글씨체 */
+  font-size: 3rem;
+  color: #ffffff;
+  font-weight: bold;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
+/* 기본 카드 스타일 */
 .card {
   padding: 2em;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+/* 문서 읽기 텍스트 */
 .read-the-docs {
   color: #888;
 }
 
-/* 새로운 레이아웃 추가 */
+/* 새로운 레이아웃 */
 .container {
   display: flex;
   width: 100vw;
@@ -63,20 +56,21 @@
   padding: 0;
 }
 
+/* 사이드바 영역 */
 .left-sidebar {
   width: 16.6667%;
-  background-color: #00462A;
+  background: linear-gradient(135deg, #00462A, #006a4e);
   padding: 1rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;  /* 가운데 정렬로 변경 */
   transition: transform 0.3s ease-in-out;
 }
 
 .main-content {
   flex: 1;
-  background-color: white;
+  background-color: #f4f4f4;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -101,7 +95,7 @@
   width: 250px;
 }
 
-/* 모바일에서만 보이는 메뉴 버튼 */
+/* 모바일 메뉴 버튼 */
 .menu-button {
   position: absolute;
   top: 1rem;
@@ -111,6 +105,7 @@
   font-size: 2rem;
   cursor: pointer;
   z-index: 10;
+  color: #00462A;
 }
 
 /* 사이드바 링크 스타일 */
@@ -120,15 +115,18 @@
   border-radius: 8px;
   text-decoration: none;
   color: white;
-  background-color: #00462A;
+  background: transparent;
   text-align: center;
-  transition: background-color 0.3s;
+  padding: 10px;
+  transition: background-color 0.3s, transform 0.3s;
 }
 
 .sidebar-link:hover {
-  background-color: #00462A;
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
 }
 
+/* 반응형 */
 @media (max-width: 768px) {
   .left-sidebar {
     width: 250px;
@@ -142,6 +140,27 @@
   .left-sidebar.open {
     transform: translateX(0);
   }
+}
+
+/* 제목 스타일 */
+h1,
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* 링크 스타일 */
+a {
+  display: block;
+  text-align: center;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  text-decoration: none;
+  transition: background-color 0.3s, opacity 0.3s;
+}
+
+a:hover {
+  opacity: 0.9;
 }
 
 /* ------------------------------------------------------------------------------------ Meals 페이지 스타일 */
@@ -256,23 +275,4 @@
 
 .record-data {
   margin-top: 20px;
-}
-
-/*----------------------------------------------------------------------------------------*/
-
-h1 {
-  margin-bottom: 1rem;
-}
-
-a {
-  display: block;
-  text-align: center;
-  padding: 0.75rem;
-  border-radius: 0.375rem;
-  text-decoration: none;
-  transition: background-color 0.3s;
-}
-
-a:hover {
-  opacity: 0.8;
 }

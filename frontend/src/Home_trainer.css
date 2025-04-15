@@ -1,0 +1,196 @@
+/* Home_trainer.css */
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+  }
+  
+  .home-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; /* 수직 중앙 정렬 */
+    padding: 30px;
+    background-color: #f4f4f4;
+    min-height: 100vh;
+  }
+  
+  .calendar-container {
+    width: 90%;
+    max-width: 500px; /* 기본 앱용: 최대 500px */
+    margin-bottom: 20px;
+  }
+  
+  /* 웹 화면을 위한 스타일 (화면 너비가 1024px 이상) */
+  @media (min-width: 1024px) {
+    .calendar-container {
+      max-width: 700px; /* 웹에서는 좀 더 크게 */
+      margin-top: 40px;
+    }
+  }
+  
+  /* react-calendar 기본 스타일 재정의 */
+  .react-calendar {
+    width: 100%;
+    max-width: 100%;
+    background: white;
+    border: 1px solid #bdeaff;
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.125em;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .react-calendar__navigation {
+    display: flex;
+    height: 44px;
+    margin-bottom: 1em;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px;
+    background-color: #e0e0e0;
+  }
+  
+  .react-calendar__navigation button {
+    background: none;
+    border: none;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    outline: none;
+  }
+  
+  .react-calendar__navigation button:enabled:hover,
+  .react-calendar__navigation button:enabled:focus {
+    color: #007bff;
+  }
+  
+  .react-calendar__month-view__weekdays {
+    text-align: center;
+    text-transform: uppercase;
+    font-weight: bold;
+    font-size: 0.75em;
+    background-color: #e0e0e0;
+    padding: 5px 0;
+    border-bottom: 1px solid #d0d0d0;
+  }
+  
+  .react-calendar__month-view__days {
+    text-align: center;
+  }
+  
+  .react-calendar__month-view__days__day,
+  .react-calendar__month-view__days__day--neighboringMonth {
+    min-width: 14.2%;
+    height: 70px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  
+  .react-calendar__month-view__days__day--weekend {
+    color: #d10000;
+  }
+  
+  .react-calendar__tile {
+    max-width: initial !important;
+    background: #fff;
+    border: none;
+    border-bottom: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+    transition: background 0.3s;
+  }
+  
+  .react-calendar__tile:enabled:hover,
+  .react-calendar__tile:enabled:focus {
+    background: #f0f8ff;
+  }
+  
+  /* Modal 스타일 */
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  
+  .modal-content {
+    background-color: #fff;
+    padding: 20px 30px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 600px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  .modal-content p {
+    margin-bottom: 20px;
+    font-size: 18px;
+  }
+  
+  .modal-content button {
+    margin: 0 10px;
+    padding: 8px 16px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
+  /* 운동 시간 설정 테이블 스타일 (Home.tsx용) */
+  .table-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+  }
+  
+  .workout-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .workout-table th,
+  .workout-table td {
+    border: 1px solid #fffcfc;
+    padding: 10px;
+    text-align: center;
+  }
+  
+  .workout-table th {
+    background-color: #f0f0f0;
+    font-weight: bold;
+  }
+  
+  /* Action buttons */
+  .action-buttons {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  
+  .action-buttons button {
+    margin: 0 10px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
+  /* 반응형 처리 */
+  @media (max-width: 600px) {
+    .calendar-container {
+      width: 100%;
+      padding: 0 10px;
+    }
+  }
+  
