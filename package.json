@@ -79,7 +79,7 @@
     "@types/jwt-decode": "^2.2.1",
     "@types/react": "^19.0.8",
     "@vitejs/plugin-react": "^4.3.4",
-    "electron": "^25.8.4",
+    "electron": "^25.9.8",
     "electron-builder": "^26.0.12",
     "typescript": "^5.7.3",
     "vite": "^6.1.0"
