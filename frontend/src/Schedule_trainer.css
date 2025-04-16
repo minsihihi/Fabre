@@ -132,6 +132,25 @@
   .modal-content button:hover {
     background-color: #007f5f;
   }
+
+  /* Schedule_trainer.css */
+.week-navigation {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.week-navigation button {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.week-navigation button:hover {
+  background-color: #e0e0e0;
+}
   
   /* 반응형 */
   @media (max-width: 768px) {

@@ -1,7 +1,17 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
 .record-page-container {
   max-width: 1024px;
   margin: 0 auto;
   padding: 1.5rem;
+  padding-top: 3rem; /* 상단 여백 증가 */
+  box-sizing: border-box;
 }
 
 .page-title {
@@ -16,23 +26,19 @@
   gap: 2rem;
   flex-wrap: wrap;
   justify-content: center;
+  margin-top: 1rem; /* 상단 여백 추가 */
 }
 
 .calendar-section {
   flex: 1;
   min-width: 300px;
+  margin-top: 1rem; /* 캘린더 섹션 상단 여백 */
 }
 
 .custom-calendar {
   width: 100% !important;
   max-width: 340px;
   font-size: 14px;
-}
-
-.calendar-wrapper {
-  /* 달력 높이 조정 (너무 길지 않게) */
-  max-height: 300px;
-  overflow: hidden;
 }
 
 .time-inputs {
@@ -87,7 +93,6 @@
 }
 
 .submit-btn {
-  margin-top: 2rem;
   background-color: #00462A;
   color: white;
   font-weight: bold;
@@ -96,90 +101,45 @@
   border-radius: 8px;
   cursor: pointer;
   display: block;
-  margin: 0 auto;
+  margin: 2rem auto 0 auto;
 }
 
 /* 팝업 모달 스타일 */
-.popup-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.popup-box {
-  background-color: #fff;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-  position: relative;
-}
-
-/* 카메라 모달 스타일 */
-.camera-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0,0,0,0.6);
-  z-index: 1100;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.camera-content {
-  background-color: #fff;
-  padding: 1.5rem;
-  border-radius: 12px;
-  text-align: center;
-  max-width: 600px;
-  width: 90%;
-}
-
-.camera-buttons button {
-  margin: 0.5rem;
-  padding: 0.6rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  background-color: #00A676;
-  color: white;
-}
-
-/* 업로드 모달 스타일 */
+.popup-overlay,
+.camera-modal,
 .upload-modal {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0,0,0,0.6);
-  z-index: 1100;
+  overflow-y: auto;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
+  padding: 2rem 1rem;
+  box-sizing: border-box;
 }
 
+.popup-box,
+.camera-content,
 .upload-content {
   background-color: #fff;
-  padding: 1.5rem;
+  padding: 2rem;
   border-radius: 12px;
-  text-align: center;
-  max-width: 600px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
   width: 90%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  text-align: center;
+  position: relative;
+  margin-top: 1rem;
 }
 
+.camera-buttons button,
 .upload-buttons button {
   margin: 0.5rem;
   padding: 0.6rem 1rem;
@@ -208,6 +168,7 @@
 .calendar-wrapper .react-calendar {
   width: 100% !important;
   max-width: 400px;
+  margin-top: 1rem; /* 캘린더 자체 여백 추가 */
 }
 
 .weight-select {
@@ -215,4 +176,60 @@
   padding: 0.5rem;
   border-radius: 8px;
   border: 1px solid #ccc;
+}
+
+/* ====== 모바일 대응 (수직 정렬) ====== */
+@media (max-width: 768px) {
+  .record-page-container {
+    padding-top: 5rem; /* 모바일에서 상단 여백 크게 */
+  }
+
+  .form-layout {
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .calendar-section {
+    min-width: unset;
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .calendar-wrapper .react-calendar {
+    margin-top: 0.5rem;
+  }
+
+  .exercise-section {
+    min-width: unset;
+    width: 100%;
+  }
+
+  .calendar-wrapper {
+    max-height: unset;
+  }
+
+  .time-inputs {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .time-inputs input {
+    width: 100%;
+  }
+
+  /* 모바일 모달 최적화 */
+  .popup-overlay,
+  .camera-modal,
+  .upload-modal {
+    padding-top: 4rem;
+    align-items: flex-start;
+  }
+
+  .popup-box,
+  .camera-content,
+  .upload-content {
+    max-height: 85vh;
+    margin-top: 0.5rem;
+  }
 }
