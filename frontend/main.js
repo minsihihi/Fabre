@@ -6,10 +6,15 @@ const eventEmitter = require(eventEmitterPath);
 
 let mainWindow;
 let isDev;
+let autoUpdater; // 전역 선언
 
 // 동적 import
-import('electron-is-dev').then((module) => {
+import("electron-is-dev").then(async (module) => {
     isDev = module.default;
+
+    // autoUpdater import
+    const { autoUpdater: importedAutoUpdater } = await import("electron-updater");
+    autoUpdater = importedAutoUpdater;
 
     // WebSocket 연결
     const ws = new WebSocket("ws://localhost:3000");
@@ -49,15 +54,25 @@ import('electron-is-dev').then((module) => {
         mainWindow.loadFile(path.join(__dirname, "dist/index.html"));
         }
 
-        autoUpdater.checkForUpdatesAndNotify();
+        // autoUpdater 실행 (정의된 경우만)
+        if (autoUpdater) {
+        autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+            console.error("업데이트 오류:", err);
+        });
+        } else {
+        console.warn("autoUpdater가 정의되지 않았습니다.");
+        }
+
         mainWindow.webContents.on("did-fail-load", (event, errorCode, errorDescription) => {
-            console.log("로딩 실패:", errorCode, errorDescription);
+        console.log("로딩 실패:", errorCode, errorDescription);
         });
     }
 
+    // 앱 준비되면 창 생성
     app.whenReady().then(() => {
         createWindow();
 
+        // 내부 이벤트 알림 핸들러
         eventEmitter.on("notification", (notificationData) => {
         if (!mainWindow) return;
         const notification = new Notification({
@@ -69,7 +84,9 @@ import('electron-is-dev').then((module) => {
         });
     });
 
+    // macOS 외에서 창 모두 닫히면 앱 종료
     app.on("window-all-closed", () => {
         if (process.platform !== "darwin") app.quit();
     });
+
 });

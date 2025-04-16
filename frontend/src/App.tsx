@@ -15,6 +15,7 @@ import Mypage from './Mypage';
 import Mypage_trainer from './Mypage_trainer';
 import Workout from './Workout';
 import logo from './assets/CGPT.png';
+import { Navigate } from 'react-router-dom';
 
 const App: React.FC = () => {
   // 로컬스토리지에 저장된 role 값을 초기 상태로 읽어옴 (로그인 전이면 null)
