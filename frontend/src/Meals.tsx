@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./Meals.css";
 
 export default function Diet() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);

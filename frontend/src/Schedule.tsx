@@ -44,6 +44,7 @@ interface Booking {
     startTime: string;
     endTime: string;
   };
+  isPast: boolean; // 과거 예약 여부
 }
 
 interface DayHeader {
@@ -108,7 +109,16 @@ const MemberScheduleGrid: React.FC = () => {
           const bookingsRes = await axios.get('http://localhost:3000/api/member/bookings', {
             headers: { Authorization: `Bearer ${token}` },
           });
-          setBookings(bookingsRes.data.upcomingBookings);
+          // upcomingBookings와 pastBookings를 모두 bookings 상태에 저장
+          const upcoming = bookingsRes.data.upcomingBookings.map((b: any) => ({
+            ...b,
+            isPast: false,
+          }));
+          const past = bookingsRes.data.pastBookings.map((b: any) => ({
+            ...b,
+            isPast: true,
+          }));
+          setBookings([...upcoming, ...past]);
         }
         setLoading(false);
       } catch (err) {
@@ -159,8 +169,8 @@ const MemberScheduleGrid: React.FC = () => {
     const myBooking = findBookingByDayAndTime(dayHeader, time);
 
     if (schedule.isBooked) {
-      if (myBooking) {
-        // User's own booking: allow cancellation
+      if (myBooking && !myBooking.isPast) {
+        // User's own booking (future only): allow cancellation
         setSelectedSlot({
           scheduleId: schedule.id,
           date: schedule.date,
@@ -169,6 +179,10 @@ const MemberScheduleGrid: React.FC = () => {
           isBooked: true,
         });
         setIsCancelMode(true);
+      } else if (myBooking && myBooking.isPast) {
+        // Past booking: no interaction, just display
+        setSelectedSlot(null);
+        setIsCancelMode(false);
       } else {
         // Another user's booking
         alert('이미 예약된 스케줄입니다.');
@@ -213,6 +227,7 @@ const MemberScheduleGrid: React.FC = () => {
             startTime: selectedSlot.start_time,
             endTime: selectedSlot.end_time,
           },
+          isPast: false,
         },
       ]);
       setSelectedSlot(null);
@@ -251,6 +266,7 @@ const MemberScheduleGrid: React.FC = () => {
 
   return (
     <div className="schedule-container">
+      <h1>📅 M E M B E R - S C H E D U L E</h1>
       {loading ? (
         <p>스케줄을 불러오는 중...</p>
       ) : !trainer ? (
@@ -258,7 +274,6 @@ const MemberScheduleGrid: React.FC = () => {
       ) : (
         <>
           <h2>트레이너: {trainer.name}</h2>
-          {/* 주 이동 버튼 추가 */}
           <div className="week-navigation">
             <button onClick={() => setWeekOffset(prev => prev - 1)}>이전 주</button>
             <button onClick={() => setWeekOffset(prev => prev + 1)}>다음 주</button>
@@ -288,7 +303,9 @@ const MemberScheduleGrid: React.FC = () => {
                         } else {
                           cellClass = schedule.isBooked
                             ? myBooking
-                              ? 'my-booking'
+                              ? myBooking.isPast
+                                ? 'my-booking-past'
+                                : 'my-booking'
                               : 'booked'
                             : 'available';
                         }
@@ -297,7 +314,7 @@ const MemberScheduleGrid: React.FC = () => {
                           <div
                             key={`${header.day}-${time}`}
                             className={`schedule-cell ${cellClass}`}
-                            onClick={() => !isPast && handleCellClick(header, time)} // 지난 시간 클릭 비활성화
+                            onClick={() => !isPast && handleCellClick(header, time)}
                           />
                         );
                       })}
