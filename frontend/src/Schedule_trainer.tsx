@@ -4,7 +4,6 @@ import './Schedule_trainer.css';
 
 // --- 헬퍼 함수들 ---
 
-// 이번 주 월요일(월~일)을 반환 (달력에 실제 날짜를 표시하기 위해)
 const getMonday = (d: Date): Date => {
   const date = new Date(d);
   const day = date.getDay();
@@ -36,7 +35,7 @@ const minutesToTime = (minutes: number): string => {
 // --- 타입 정의 ---
 
 interface DayHeader {
-  day: string; // 예: "월"
+  day: string;
   date: Date;
 }
 
@@ -49,7 +48,7 @@ interface ScheduleItem {
 
 interface BookingItem {
   id: number;
-  status: string; // 예: 'active' 또는 'cancelled'
+  status: string;
   createdAt: string;
   member: {
     id: number;
@@ -73,9 +72,10 @@ interface SelectedRange {
 // --- 메인 컴포넌트 ---
 
 const TrainerScheduleGrid: React.FC = () => {
-  // 오늘 날짜, 이번 주 월요일부터 일요일까지 동적 생성
+  // 주 이동 상태
+  const [weekOffset, setWeekOffset] = useState(0);
   const today = new Date();
-  const monday = getMonday(today);
+  const monday = getMonday(new Date(today.getTime() + weekOffset * 7 * 24 * 60 * 60 * 1000));
   const dayHeaders: DayHeader[] = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
@@ -100,12 +100,11 @@ const TrainerScheduleGrid: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [deleteRange, setDeleteRange] = useState<{ day: DayHeader; time: string } | null>(null);
-  // 예약 모달 상태: 예약된 셀 클릭 시 해당 예약 정보를 저장
   const [bookingModal, setBookingModal] = useState<BookingItem | null>(null);
 
   const token = localStorage.getItem('token');
 
-  // 데이터 가져오기 함수 (재조회에 사용)
+  // 데이터 가져오기 함수
   const fetchData = async () => {
     try {
       const scheduleRes = await axios.get('http://localhost:3000/api/trainer/schedule', {
@@ -116,7 +115,6 @@ const TrainerScheduleGrid: React.FC = () => {
       const bookingsRes = await axios.get('http://localhost:3000/api/trainer/bookings', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // 백엔드에서 반환한 bookings 중 status가 'cancelled'인 항목은 제외
       setBookingsData(
         bookingsRes.data.bookings.filter((booking: BookingItem) => booking.status !== 'cancelled')
       );
@@ -128,7 +126,7 @@ const TrainerScheduleGrid: React.FC = () => {
     }
   };
 
-  // 최초 데이터 조회 및 주기적 재조회 (예: 30초마다)
+  // 최초 데이터 조회 및 주기적 재조회
   useEffect(() => {
     fetchData();
     const interval = setInterval(() => {
@@ -137,17 +135,16 @@ const TrainerScheduleGrid: React.FC = () => {
     return () => clearInterval(interval);
   }, [token]);
 
-  // 선택 영역(시간 범위) 계산
+  // 선택 영역 계산
   const computeRange = (start: string, end: string) => {
     const times = [start, end].sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
     return { start: times[0], end: times[1] };
   };
 
-  // 예약 정보 찾기 (예약된 셀에 해당하는 BookingItem 반환)
+  // 예약 정보 찾기
   const findBookingByDayAndTime = (day: DayHeader, time: string): BookingItem | undefined => {
     const cellMinutes = timeToMinutes(time);
     return bookingsData.find((booking) => {
-      // 필터: status가 'cancelled'이면 무시
       if (booking.status === 'cancelled') return false;
       const bookingDateOnly = booking.schedule.date.split('T')[0] || booking.schedule.date;
       const dayDateOnly = getDateOnly(day.date);
@@ -158,7 +155,7 @@ const TrainerScheduleGrid: React.FC = () => {
     });
   };
 
-  // 특정 셀에 이미 등록된 스케줄 찾기 (ScheduleItem)
+  // 스케줄 찾기
   const findScheduleByDayAndTime = (day: DayHeader, time: string): ScheduleItem | undefined => {
     const cellMinutes = timeToMinutes(time);
     return scheduleData.find((item) => {
@@ -175,7 +172,6 @@ const TrainerScheduleGrid: React.FC = () => {
     !!findScheduleByDayAndTime(day, time);
 
   const isBookedByMember = (day: DayHeader, time: string): boolean => {
-    // bookingsData에서 status가 'cancelled'가 아닌 예약만 고려합니다.
     const cellMinutes = timeToMinutes(time);
     return bookingsData.some((booking) => {
       if (booking.status === 'cancelled') return false;
@@ -190,20 +186,17 @@ const TrainerScheduleGrid: React.FC = () => {
 
   // 마우스 또는 터치 시작
   const handleStart = (day: DayHeader, time: string) => {
-    // 먼저 예약된 셀 체크 → 예약된 경우 예약 모달 띄움
     const booking = findBookingByDayAndTime(day, time);
     if (booking) {
       setBookingModal(booking);
       return;
     }
-    // 스케줄 등록된 셀 체크 (삭제 모달)
     const existing = findScheduleByDayAndTime(day, time);
     if (existing) {
       setDeleteTargetId(existing.id);
       setDeleteRange({ day, time });
       return;
     }
-    // 지난 날짜의 경우에는 동작하지 않음
     const cellDateOnly = getDateOnly(day.date);
     const todayOnly = getDateOnly(new Date());
     if (cellDateOnly < todayOnly) {
@@ -240,7 +233,7 @@ const TrainerScheduleGrid: React.FC = () => {
     setHoverRange(null);
   };
 
-  // 스케줄 등록 요청
+  // 스케줄 등록
   const handleRegisterSchedule = () => {
     if (!selectedRange) return;
     const startMin = timeToMinutes(selectedRange.start);
@@ -249,7 +242,6 @@ const TrainerScheduleGrid: React.FC = () => {
       alert('종료 시간은 시작 시간보다 이후여야 합니다.');
       return;
     }
-    // 지난 날짜면 등록 불가
     const cellDateOnly = getDateOnly(selectedRange.day.date);
     const todayOnly = getDateOnly(new Date());
     if (cellDateOnly < todayOnly) {
@@ -291,7 +283,7 @@ const TrainerScheduleGrid: React.FC = () => {
       });
   };
 
-  // 스케줄 삭제 요청
+  // 스케줄 삭제
   const handleDeleteSchedule = () => {
     if (!deleteTargetId) return;
     axios
@@ -316,58 +308,65 @@ const TrainerScheduleGrid: React.FC = () => {
       {loading ? (
         <p>스케줄을 불러오는 중...</p>
       ) : (
-        <div className="scroll-wrapper">
-          <div className="schedule-main">
-            <div className="left-calendar">
-              <div className="schedule-grid">
-                <div className="empty-cell" />
-                {dayHeaders.map((dayHeader) => (
-                  <div key={dayHeader.day} className="day-header">
-                    {dayHeader.day} {getDateOnly(dayHeader.date)}
-                  </div>
-                ))}
-                {hours.map((time) => (
-                  <React.Fragment key={time}>
-                    <div className="hour-label">{time}</div>
-                    {dayHeaders.map((dayHeader) => {
-                      const dayDateOnly = getDateOnly(dayHeader.date);
-                      const todayOnly = getDateOnly(new Date());
-                      const isPast = dayDateOnly < todayOnly;
-                      const isSelected =
-                        selectedRange &&
-                        selectedRange.day.day === dayHeader.day &&
-                        time >= selectedRange.start &&
-                        time < selectedRange.end;
-                      const isHovering =
-                        hoverRange &&
-                        hoverRange.day.day === dayHeader.day &&
-                        time >= hoverRange.start &&
-                        time < hoverRange.end;
-                      const isAlreadyRegistered = isRegistered(dayHeader, time);
-                      const isBooked = isBookedByMember(dayHeader, time);
-                      return (
-                        <div
-                          key={`${dayHeader.day}-${time}`}
-                          className={`schedule-cell 
-                            ${isSelected ? 'selected' : ''} 
-                            ${isHovering ? 'hovering' : ''} 
-                            ${isBooked ? 'booked' : isAlreadyRegistered ? 'registered' : ''} 
-                            ${isPast ? 'past' : ''}`}
-                          onMouseDown={() => handleStart(dayHeader, time)}
-                          onMouseEnter={() => handleMove(dayHeader, time)}
-                          onMouseUp={() => handleEnd(dayHeader, time)}
-                          onTouchStart={() => handleStart(dayHeader, time)}
-                          onTouchMove={() => handleMove(dayHeader, time)}
-                          onTouchEnd={() => handleEnd(dayHeader, time)}
-                        />
-                      );
-                    })}
-                  </React.Fragment>
-                ))}
+        <>
+          {/* 주 이동 버튼 추가 */}
+          <div className="week-navigation">
+            <button onClick={() => setWeekOffset(prev => prev - 1)}>이전 주</button>
+            <button onClick={() => setWeekOffset(prev => prev + 1)}>다음 주</button>
+          </div>
+          <div className="scroll-wrapper">
+            <div className="schedule-main">
+              <div className="left-calendar">
+                <div className="schedule-grid">
+                  <div className="empty-cell" />
+                  {dayHeaders.map((dayHeader) => (
+                    <div key={dayHeader.day} className="day-header">
+                      {dayHeader.day} ({getDateOnly(dayHeader.date)})
+                    </div>
+                  ))}
+                  {hours.map((time) => (
+                    <React.Fragment key={time}>
+                      <div className="hour-label">{time}</div>
+                      {dayHeaders.map((dayHeader) => {
+                        const dayDateOnly = getDateOnly(dayHeader.date);
+                        const todayOnly = getDateOnly(new Date());
+                        const isPast = dayDateOnly < todayOnly;
+                        const isSelected =
+                          selectedRange &&
+                          selectedRange.day.day === dayHeader.day &&
+                          time >= selectedRange.start &&
+                          time < selectedRange.end;
+                        const isHovering =
+                          hoverRange &&
+                          hoverRange.day.day === dayHeader.day &&
+                          time >= hoverRange.start &&
+                          time < hoverRange.end;
+                        const isAlreadyRegistered = isRegistered(dayHeader, time);
+                        const isBooked = isBookedByMember(dayHeader, time);
+                        return (
+                          <div
+                            key={`${dayHeader.day}-${time}`}
+                            className={`schedule-cell 
+                              ${isSelected ? 'selected' : ''} 
+                              ${isHovering ? 'hovering' : ''} 
+                              ${isBooked ? 'booked' : isAlreadyRegistered ? 'registered' : ''} 
+                              ${isPast ? 'past' : ''}`}
+                            onMouseDown={() => handleStart(dayHeader, time)}
+                            onMouseEnter={() => handleMove(dayHeader, time)}
+                            onMouseUp={() => handleEnd(dayHeader, time)}
+                            onTouchStart={() => handleStart(dayHeader, time)}
+                            onTouchMove={() => handleMove(dayHeader, time)}
+                            onTouchEnd={() => handleEnd(dayHeader, time)}
+                          />
+                        );
+                      })}
+                    </React.Fragment>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* 스케줄 등록 모달 */}
@@ -403,7 +402,7 @@ const TrainerScheduleGrid: React.FC = () => {
         </div>
       )}
 
-      {/* 예약된 셀 모달: 예약된 셀 클릭 시 해당 예약 회원 정보를 보여줌 */}
+      {/* 예약된 셀 모달 */}
       {bookingModal && (
         <div className="modal">
           <div className="modal-content">

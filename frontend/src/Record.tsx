@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import "./Record.css";
 
 export default function Report() {
   const [selectedMonth, setSelectedMonth] = useState<number>(1);
