@@ -10,10 +10,13 @@ import Home_trainer from './Home_trainer';
 import Schedule from './Schedule';
 import Schedule_trainer from './Schedule_trainer';
 import Meals from './Meals';
+import Meals_trainer from './Meals_trainer'
 import Record from './Record';
+import Record_trainer from './Record_trainer'
 import Mypage from './Mypage';
 import Mypage_trainer from './Mypage_trainer';
 import Workout from './Workout';
+import Workout_trainer from './Workout_trainer'
 import logo from './assets/CGPT.png';
 import { Navigate } from 'react-router-dom';
 
@@ -47,11 +50,12 @@ const App: React.FC = () => {
     } else if (role === 'trainer') {
       return (
         <>
-          <Link to="/home_trainer" className="sidebar-link">🏠 H O M E T</Link>
-          <Link to="/schedule_trainer" className="sidebar-link">📅 S C H E D U L E T</Link>
-          <Link to="/meals" className="sidebar-link">🍽️ M E A L S</Link>
-          <Link to="/record" className="sidebar-link">📝 R E C O R D</Link>
-          <Link to="/mypage_trainer" className="sidebar-link">🙋 M Y P A G E T</Link>
+          <Link to="/home_trainer" className="sidebar-link">🏠 H O M E</Link>
+          <Link to="/schedule_trainer" className="sidebar-link">📅 S C H E D U L E</Link>
+          <Link to="/workout_trainer" className="sidebar-link">🏋️ W O R K O U T</Link>
+          <Link to="/meals_trainer" className="sidebar-link">🍽️ M E A L S</Link>
+          <Link to="/record_trainer" className="sidebar-link">📝 R E C O R D</Link>
+          <Link to="/mypage_trainer" className="sidebar-link">🙋 M Y P A G E</Link>
         </>
       );
     }
@@ -76,8 +80,9 @@ const App: React.FC = () => {
         <>
           <Route path="/home_trainer" element={<Home_trainer />} />
           <Route path="/schedule_trainer" element={<Schedule_trainer />} />
-          <Route path="/meals" element={<Meals />} />
-          <Route path="/record" element={<Record />} />
+          <Route path="/workout_trainer" element={<Workout_trainer />} />
+          <Route path="/meals_trainer" element={<Meals_trainer />} />
+          <Route path="/record_trainer" element={<Record_trainer />} />
           <Route path="/mypage_trainer" element={<Mypage_trainer />} />
         </>
       );

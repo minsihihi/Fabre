@@ -12,7 +12,7 @@ interface UserInfo {
 interface WorkoutSchedule {
   id: number;
   workoutTime: string;
-  days: string; // 요일이 문자열로 저장됨 (예: "Monday,Wednesday,Friday")
+  days: string; // 예: "Monday,Wednesday,Friday"
 }
 
 const dayMap: { [key: number]: string } = {
@@ -27,8 +27,11 @@ const dayMap: { [key: number]: string } = {
 
 export default function WorkoutTable() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  // 요일별 운동 시간을 저장 (예: { 1: "09:00", 3: "09:30", ... })
   const [workoutTimes, setWorkoutTimes] = useState<{ [key: number]: string }>({});
+  // 중복 없이, 각 요일마다 하나의 운동 스케줄 정보를 저장 (키: 요일 number)
   const [schedules, setSchedules] = useState<{ [key: number]: WorkoutSchedule }>({});
+  // 선택된 요일 배열 (체크된 요일 번호)
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const token = localStorage.getItem("token");
 
@@ -38,6 +41,7 @@ export default function WorkoutTable() {
       alert("로그인이 필요합니다.");
       return;
     }
+
     axios
       .get("http://localhost:3000/api/users/me", {
         headers: { Authorization: `Bearer ${token}` },
@@ -54,9 +58,10 @@ export default function WorkoutTable() {
       });
   }, [token]);
 
-  // 운동 스케줄 조회
+  // 운동 스케줄 조회 (userInfo가 있을 때)
   useEffect(() => {
     if (!userInfo) return;
+
     axios
       .get(`http://localhost:3000/api/workout-schedule/${userInfo.id}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -68,36 +73,40 @@ export default function WorkoutTable() {
         const daysWithSchedules: number[] = [];
 
         fetchedSchedules.forEach((schedule) => {
+          // schedule.days가 "Monday,Wednesday,Friday"와 같이 전달된다고 가정
           const dayNums = schedule.days
             .split(",")
             .map((day) => {
-              const found = Object.entries(dayMap).find(([, v]) => {
-                const enDay =
-                  v === "일"
-                    ? "Sunday"
-                    : v === "월"
-                    ? "Monday"
-                    : v === "화"
-                    ? "Tuesday"
-                    : v === "수"
-                    ? "Wednesday"
-                    : v === "목"
-                    ? "Thursday"
-                    : v === "금"
-                    ? "Friday"
-                    : v === "토"
-                    ? "Saturday"
-                    : "";
-                return enDay === day.trim();
-              });
+              // dayMap의 값(한글 요일)과 비교하여 해당 숫자 키를 반환
+              const found = Object.entries(dayMap).find(
+                ([, v]) => v === 
+                  (day.trim() === "Sunday"
+                    ? "일"
+                    : day.trim() === "Monday"
+                    ? "월"
+                    : day.trim() === "Tuesday"
+                    ? "화"
+                    : day.trim() === "Wednesday"
+                    ? "수"
+                    : day.trim() === "Thursday"
+                    ? "목"
+                    : day.trim() === "Friday"
+                    ? "금"
+                    : day.trim() === "Saturday"
+                    ? "토"
+                    : "")
+              );
               return found ? Number(found[0]) : null;
             })
             .filter((num): num is number => num !== null);
 
+          // **중복 제거**: 해당 요일에 스케줄이 아직 등록되지 않은 경우만 추가합니다.
           dayNums.forEach((dayNum) => {
-            dayScheduleMap[dayNum] = schedule;
-            times[dayNum] = schedule.workoutTime;
-            daysWithSchedules.push(dayNum);
+            if (dayScheduleMap[dayNum] === undefined) {
+              dayScheduleMap[dayNum] = schedule;
+              times[dayNum] = schedule.workoutTime;
+              daysWithSchedules.push(dayNum);
+            }
           });
         });
 
@@ -131,24 +140,23 @@ export default function WorkoutTable() {
       return;
     }
 
-    // 선택된 요일에 대해 유효한 시간 입력 확인
-    const invalidDays = selectedDays.filter((day) => !workoutTimes[day]);
-    if (invalidDays.length > 0) {
-      alert("모든 선택된 요일에 운동 시간을 입력해 주세요.");
-      return;
-    }
-
     try {
-      // 각 요일에 대해 개별적으로 API 호출
+      // 각 선택된 요일에 대해 개별적으로 API 호출 (중복 없이 등록됨)
       for (const day of selectedDays) {
+        // workoutTimes 객체에서 해당 요일의 시간을 가져옴
         const workoutTime = workoutTimes[day];
+        if (!workoutTime) {
+          alert("모든 선택된 요일에 운동 시간을 입력해 주세요.");
+          return;
+        }
+
         const payload = {
           userId: userInfo.id,
-          workoutTime, // 해당 요일의 시간
-          days: [day], // 단일 요일 배열
+          workoutTime,
+          days: [day], // 단일 요일 배열로 전송
         };
 
-        await axios.post("http://localhost:3000/api/workout-schedule", payload, {
+        await axios.post(`http://localhost:3000/api/workout-schedule`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log(`${dayMap[day]}요일 등록 성공`);
@@ -163,27 +171,18 @@ export default function WorkoutTable() {
   };
 
   const handleUpdate = () => {
-    if (selectedDays.length === 0) {
-      alert("수정할 요일을 선택해 주세요.");
-      return;
-    }
-
     selectedDays.forEach((day) => {
       const schedule = schedules[day];
       const workoutTime = workoutTimes[day];
 
       if (schedule && workoutTime) {
         axios
-          .put(
-            `http://localhost:3000/api/workout-schedule/${schedule.id}`,
-            {
-              workoutTime,
-              days: [day], // 숫자 배열로 전송
-            },
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          )
+          .put(`http://localhost:3000/api/workout-schedule/${schedule.id}`, {
+            workoutTime,
+            days: [day],
+          }, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
           .then(() => {
             console.log(`${dayMap[day]}요일 수정 완료`);
           })
@@ -198,13 +197,9 @@ export default function WorkoutTable() {
   };
 
   const handleDelete = () => {
-    if (selectedDays.length === 0) {
-      alert("삭제할 요일을 선택해 주세요.");
-      return;
-    }
-
     selectedDays.forEach((day) => {
       const schedule = schedules[day];
+
       if (schedule) {
         axios
           .delete(`http://localhost:3000/api/workout-schedule/${schedule.id}`, {
