@@ -84,7 +84,7 @@
 .day-header {
   background-color: #e0e0e0;
   text-align: center;
-  padding: 8px 5px;  /* 패딩을 줄여서 공간 활용 */
+  padding: 8px 5px; /* 패딩을 줄여서 공간 활용 */
   font-weight: bold;
   font-size: 0.8rem; /* 글씨 크기를 줄여서 한 눈에 보임 */
 }
@@ -121,6 +121,13 @@
 .schedule-cell.my-booking {
   background-color: #a3d39c;
   cursor: pointer;
+}
+
+/* 과거 예약 셀: booked와 동일한 색상으로 "예약된 셀"처럼 보이게 */
+.schedule-cell.my-booking-past {
+  background-color: #ffa291; /* booked와 동일 */
+  opacity: 0.7; /* 약간 투명하여 구분 */
+  cursor: not-allowed;
 }
 
 /* 지난 시간 셀 (회색, 클릭 불가) */

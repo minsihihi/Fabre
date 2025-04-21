@@ -227,7 +227,7 @@ const MemberScheduleGrid: React.FC = () => {
             startTime: selectedSlot.start_time,
             endTime: selectedSlot.end_time,
           },
-          isPast: false,
+          isPast: true,
         },
       ]);
       setSelectedSlot(null);
@@ -297,24 +297,23 @@ const MemberScheduleGrid: React.FC = () => {
                         const isPast = cellDateOnly < todayOnly;
                         const schedule = findScheduleByDayAndTime(header, time);
                         const myBooking = findBookingByDayAndTime(header, time);
+
                         let cellClass = '';
                         if (!schedule) {
                           cellClass = 'empty';
+                        } else if (myBooking) {
+                          cellClass = myBooking.isPast ? 'my-booking-past' : 'my-booking';
+                        } else if (schedule.isBooked) {
+                          cellClass = 'booked';
                         } else {
-                          cellClass = schedule.isBooked
-                            ? myBooking
-                              ? myBooking.isPast
-                                ? 'my-booking-past'
-                                : 'my-booking'
-                              : 'booked'
-                            : 'available';
+                          cellClass = 'available';
                         }
-                        if (isPast) cellClass += ' past';
+
                         return (
                           <div
                             key={`${header.day}-${time}`}
                             className={`schedule-cell ${cellClass}`}
-                            onClick={() => !isPast && handleCellClick(header, time)}
+                            onClick={() => handleCellClick(header, time)}
                           />
                         );
                       })}
