@@ -88,7 +88,8 @@ router.post("/upload/:category", verifyToken, upload.single("image"), async (req
             return res.status(400).json({ message: "잘못된 카테고리입니다." });
         }
 
-        const imageUrl = `${process.env.S3_BUCKET_URL}/${req.file.key}`;
+        // const imageUrl = `${process.env.S3_BUCKET_URL}/${req.file.key}`;
+        const imageUrl = req.file.location;
         let recordId = null;
 
         if (category === "meal") {
