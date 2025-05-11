@@ -1,7 +1,8 @@
 const { scheduleJob } = require("node-schedule");
 const notifier = require("node-notifier");
 const eventEmitter = require("../utils/eventEmitter");
-const { WorkoutSchedule } = require('../models');
+const { User, WorkoutSchedule, Workout, TrainerMembers } = require('../models'); 
+const { Op } = require('sequelize');
 
 // 현재 활성화된 스케줄 저장
 const activeJobs = {};
@@ -16,64 +17,90 @@ const setLoggedInUser = (userId) => {
 
 // 운동 알림 스케줄링 함수
 const scheduleWorkoutNotification = (schedule) => {
-
     try {
-        if (!schedule) {
-            console.error("schedule 객체가 undefined");
-            return;
-        }
-
+        if (!schedule) return;
         const { id, userId, workoutTime, days } = schedule;
-        
 
-        if (!id || !workoutTime) {
-            console.error(`잘못된 운동 스케줄 데이터 (ID: ${id || 'N/A'})`);
-            return;
-        }
-
-        if (loggedInUserId !== userId) {
-            // console.log(`로그인한 사용자(${loggedInUserId})와 스케줄 사용자(${userId}) 불일치`);
-            return;
-        }
+        if (!id || !workoutTime) return;
+        if (loggedInUserId !== userId) return;
 
         const weekdayToCronIndex = {
-            Sunday: 0,
-            Monday: 1,
-            Tuesday: 2,
-            Wednesday: 3,
-            Thursday: 4,
-            Friday: 5,
-            Saturday: 6
+            Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3,
+            Thursday: 4, Friday: 5, Saturday: 6
         };
-        
+
         const dayList = (days || "")
             .split(",")
             .map(day => weekdayToCronIndex[day.trim()])
             .filter(day => day !== undefined);
-        
+
         const [hour, minute] = workoutTime.split(":").map(Number);
 
-        if (dayList.length === 0) {
-            console.warn(`유효한 요일 없음 (ID: ${id}, 사용자: ${userId}, days: ${days})`);
-            return;
-        }
+        if (dayList.length === 0) return;
 
-        // 기존 스케줄 제거 (중복 방지)
         if (activeJobs[id]) {
             activeJobs[id].forEach(job => job.cancel());
             delete activeJobs[id];
         }
 
-        // 새로운 스케줄 등록
         activeJobs[id] = [];
+
         dayList.forEach((dayOfWeek) => {
             const cronExpression = `0 ${minute} ${hour} * * ${dayOfWeek}`;
+            const followUpCron = `0 ${minute} ${hour + 1 === 24 ? 0 : hour + 1} * * ${dayOfWeek}`; // 1시간 뒤
 
+            // 운동 시간 알림
             const job = scheduleJob(cronExpression, () => {
                 sendWorkoutNotification(userId);
             });
-
             activeJobs[id].push(job);
+
+            //  운동 시간 +1시간 후 인증 여부 확인 & 트레이너에게 알림
+            const checkJob = scheduleJob(followUpCron, async () => {
+                const now = new Date();
+                const dateStr = now.toISOString().split("T")[0];
+
+                const startTime = new Date(`${dateStr}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`);
+                const endTime = new Date(startTime);
+                endTime.setHours(endTime.getHours() + 1);
+
+                const hasWorkout = await Workout.findOne({
+                    where: {
+                        userId,
+                        createdAt: { [Op.between]: [startTime, endTime] }
+                    }
+                });
+
+                if (!hasWorkout) {
+                    const relation = await TrainerMembers.findOne({
+                        where: { memberId: userId, status: 'active' }
+                    });
+                
+                    if (relation) {
+                        const trainerId = relation.trainerId;
+                
+                        const user = await User.findByPk(userId); // 🔹 이름 가져오기
+                
+                        const memberName = user ? user.name : `ID ${userId}`;
+                
+                        // Electron 알림
+                        eventEmitter.emit("notification", {
+                            title: "오운완 미제출 알림",
+                            message: `회원 ${memberName}님이 운동 인증 사진을 제출하지 않았습니다.`,
+                            userId: trainerId
+                        });
+                
+                        // OS 알림
+                        notifier.notify({
+                            title: "오운완 미제출 알림",
+                            message: `회원 ${memberName}님이 운동 인증을 안 했습니다.`,
+                            sound: true
+                        });
+                    }
+                }
+            });
+
+            activeJobs[id].push(checkJob);
         });
     } catch (error) {
         console.error("운동 스케줄 등록 중 오류가 발생했습니다:", error);
@@ -83,7 +110,6 @@ const scheduleWorkoutNotification = (schedule) => {
 // 운동 알림 전송 (Electron & OS 알림)
 const sendWorkoutNotification = (userId) => {
     try {
-
         // 로그인한 사용자만 알림 받도록 설정
         if (loggedInUserId !== userId) {
             // console.log(`로그인한 사용자(${loggedInUserId})와 알림 대상(${userId}) 불일치`);

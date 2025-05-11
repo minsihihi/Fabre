@@ -181,7 +181,7 @@ router.delete('/member/bookings/:bookingId', verifyToken, checkRole(['member']),
         res.status(200).json({
             message: '예약에 성공하였습니다.',
         });
-  
+
     } catch (error) {
         console.error('예약 취소 오류:', error);
         res.status(500).json({ message: '서버 오류가 발생했습니다.' });

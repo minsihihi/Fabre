@@ -22,11 +22,29 @@ initializeWorkoutNotifications();
 const app = express();
 const server = http.createServer(app); // 기존 Express 서버를 HTTP 서버로 감싸기
 const wss = new WebSocket.Server({ server }); // WebSocket 서버 추가
+const clients = new Set();
 
 // WebSocket 설정
+// wss.on("connection", (ws) => {
+//     eventEmitter.on("notification", (notificationData) => {
+//         ws.send(JSON.stringify(notificationData));
+//     });
+// });
+
 wss.on("connection", (ws) => {
-    eventEmitter.on("notification", (notificationData) => {
-        ws.send(JSON.stringify(notificationData));
+    clients.add(ws);
+
+    ws.on("close", () => {
+        clients.delete(ws);
+    });
+});
+
+eventEmitter.on("notification", (notificationData) => {
+    const payload = JSON.stringify(notificationData);
+    clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(payload);
+        }
     });
 });
 
