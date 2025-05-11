@@ -18,6 +18,7 @@ const setLoggedInUser = (userId) => {
 const scheduleWorkoutNotification = (schedule) => {
 
     try {
+        // console.log("➡️ 스케줄 등록 시도:", schedule);
         if (!schedule) {
             console.error("schedule 객체가 undefined");
             return;
@@ -83,7 +84,6 @@ const scheduleWorkoutNotification = (schedule) => {
 // 운동 알림 전송 (Electron & OS 알림)
 const sendWorkoutNotification = (userId) => {
     try {
-
         // 로그인한 사용자만 알림 받도록 설정
         if (loggedInUserId !== userId) {
             // console.log(`로그인한 사용자(${loggedInUserId})와 알림 대상(${userId}) 불일치`);

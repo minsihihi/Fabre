@@ -72,6 +72,12 @@ import("electron-is-dev").then(async (module) => {
     app.whenReady().then(() => {
         createWindow();
 
+        const testNotification = new Notification({
+            title: "🔔 알림 테스트",
+            body: "지금 이 알림이 보이면 성공입니다!",
+        });
+        testNotification.show();
+
         // 내부 이벤트 알림 핸들러
         eventEmitter.on("notification", (notificationData) => {
         if (!mainWindow) return;
