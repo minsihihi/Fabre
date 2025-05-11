@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Notification } = require("electron");
+const { app, BrowserWindow, Notification, ipcMain } = require("electron");
 const path = require("path");
 const WebSocket = require("ws");
 const eventEmitterPath = path.join(app.getAppPath(), "backend", "utils", "eventEmitter");
@@ -23,8 +23,22 @@ import("electron-is-dev").then(async (module) => {
         console.log("WebSocket 연결 성공");
     });
 
+    let loggedInTrainerId = null; // 👈 트레이너 로그인 시 저장할 변수
+
+    // 프론트에서 trainer ID 전달 받아 저장하는 채널 정의 (preload 통해)
+    ipcMain.on("set-logged-in-trainer", (event, trainerId) => {
+        loggedInTrainerId = trainerId;
+        console.log("트레이너 로그인 ID 저장됨:", trainerId);
+    });
+
     ws.on("message", (data) => {
         const notificationData = JSON.parse(data);
+
+  // 👇 트레이너용 알림인지 필터링
+    if (
+        !notificationData.targetTrainerId ||             // 일반 사용자용 알림이면 모두에게 보냄
+        notificationData.targetTrainerId === loggedInTrainerId  // 트레이너 전용이면 일치할 때만
+    ) {
         if (mainWindow) {
         const notification = new Notification({
             title: notificationData.title,
@@ -32,9 +46,12 @@ import("electron-is-dev").then(async (module) => {
             silent: false,
         });
         notification.show();
+
         mainWindow.webContents.send("workout-notification", notificationData);
         }
-    });
+    }
+});
+
 
     // Electron 윈도우 생성
     function createWindow() {
@@ -71,12 +88,6 @@ import("electron-is-dev").then(async (module) => {
     // 앱 준비되면 창 생성
     app.whenReady().then(() => {
         createWindow();
-
-        const testNotification = new Notification({
-            title: "🔔 알림 테스트",
-            body: "지금 이 알림이 보이면 성공입니다!",
-        });
-        testNotification.show();
 
         // 내부 이벤트 알림 핸들러
         eventEmitter.on("notification", (notificationData) => {

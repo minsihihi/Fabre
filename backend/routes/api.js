@@ -400,8 +400,6 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ message: '아이디 또는 비밀번호가 일치하지 않습니다.' });
         }
         setLoggedInUser(user.id);
-        console.log("✅ 로그인한 사용자 ID 설정됨:", user.id);
-
 
         
         // JWT 토큰 생성
