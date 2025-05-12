@@ -107,12 +107,12 @@ const TrainerScheduleGrid: React.FC = () => {
   // 데이터 가져오기 함수
   const fetchData = async () => {
     try {
-      const scheduleRes = await axios.get('http://localhost:3000/api/trainer/schedule', {
+      const scheduleRes = await axios.get('http://13.209.19.146:3000/api/trainer/schedule', {
         headers: { Authorization: `Bearer ${token}` },
       });
       setScheduleData(scheduleRes.data.schedules);
 
-      const bookingsRes = await axios.get('http://localhost:3000/api/trainer/bookings', {
+      const bookingsRes = await axios.get('http://13.209.19.146:3000/api/trainer/bookings', {
         headers: { Authorization: `Bearer ${token}` },
       });
       setBookingsData(
@@ -254,7 +254,7 @@ const TrainerScheduleGrid: React.FC = () => {
 
     axios
       .post(
-        'http://localhost:3000/api/trainer/schedule',
+        'http://13.209.19.146:3000/api/trainer/schedule',
         {
           date: dateOnly,
           start_time: formattedStart,
@@ -287,7 +287,7 @@ const TrainerScheduleGrid: React.FC = () => {
   const handleDeleteSchedule = () => {
     if (!deleteTargetId) return;
     axios
-      .delete(`http://localhost:3000/api/trainer/schedule/${deleteTargetId}`, {
+      .delete(`http://13.209.19.146:3000/api/trainer/schedule/${deleteTargetId}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then(() => {

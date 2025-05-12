@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const dotenv = require("dotenv");
 dotenv.config({ path: "backend/.env" });
 
@@ -42,7 +43,7 @@ app.use(cookieParser());
 
 app.use(
     cors({
-        origin: ["http://localhost:3000", "http://localhost:5173"],
+        origin: ["http://13.209.19.146:3000", "http://localhost:5173"],
         credentials: true,
     })
 );
