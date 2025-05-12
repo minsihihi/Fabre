@@ -1,25 +1,37 @@
-// ✅ Workout 모델 (파일 ID → URL 저장)
 module.exports = (sequelize, DataTypes) => {
     const Workout = sequelize.define("Workout", {
-        id: {  
+        id: {
             type: DataTypes.INTEGER,
             autoIncrement: true,
             primaryKey: true
         },
         userId: {
             type: DataTypes.INTEGER,
-            allowNull: false
+            allowNull: false,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
         },
-        imageUrl: {  // ✅ S3 이미지 URL 저장
+        imageUrl: {
             type: DataTypes.STRING,
             allowNull: false
         },
-        createdAt: {  
+        createdAt: {
             type: DataTypes.DATE,
             allowNull: false,
             defaultValue: sequelize.NOW
         }
+    }, {
+        tableName: 'workouts',
+        timestamps: true,
+        updatedAt: false,
+        underscored: true
     });
+
+    Workout.associate = function(models) {
+        Workout.belongsTo(models.User, { foreignKey: 'userId' });
+    };
 
     return Workout;
 };

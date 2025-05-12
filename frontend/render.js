@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3000/api'; // 백엔드 API URL
+const API_BASE_URL = 'http://13.209.19.146:3000/api'; // 백엔드 API URL
 
 document.addEventListener('DOMContentLoaded', async () => {
     // 화면 전환 함수

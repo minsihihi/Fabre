@@ -17,7 +17,7 @@ import("electron-is-dev").then(async (module) => {
     autoUpdater = importedAutoUpdater;
 
     // WebSocket 연결
-    const ws = new WebSocket("ws://localhost:3000");
+    const ws = new WebSocket("ws://13.209.19.146:3000");
 
     ws.on("open", () => {
         console.log("WebSocket 연결 성공");

@@ -1,5 +1,7 @@
 // cron-job.js
 const cron = require('node-cron');
+const crypto = require('crypto');
+
 const { WorkoutSchedule } = require('./models');
 
 // 주기적으로 운동 시간 확인

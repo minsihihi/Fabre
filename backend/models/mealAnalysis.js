@@ -2,11 +2,19 @@ module.exports = (sequelize, DataTypes) => {
     const MealAnalysis = sequelize.define("MealAnalysis", {
         userId: {
             type: DataTypes.INTEGER,
-            allowNull: false
+            allowNull: false,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
         },
         mealId: {
             type: DataTypes.INTEGER,
-            allowNull: false
+            allowNull: false,
+            references: {
+                model: 'meals',
+                key: 'id'
+            }
         },
         fileId: {
             type: DataTypes.STRING,
@@ -20,9 +28,13 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: false
         }
+    }, {
+        tableName: 'meal_analyses',
+        timestamps: true,
+        underscored: true
     });
 
-    MealAnalysis.associate = (models) => {
+    MealAnalysis.associate = function(models) {
         MealAnalysis.belongsTo(models.User, { foreignKey: "userId" });
         MealAnalysis.belongsTo(models.Meal, { foreignKey: "mealId" });
     };

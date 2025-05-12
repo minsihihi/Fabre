@@ -7,11 +7,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         user_id: {
             type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'Users',
-                key: 'id'
-            }
+            allowNull: false
         },
         workout_date: {
             type: DataTypes.DATEONLY,
@@ -35,10 +31,16 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: true
         }
     }, {
-        tableName: 'WorkoutLogs',
+        tableName: 'workout_logs',
         timestamps: true,
         underscored: true
     });
+
+    WorkoutLog.associate = (models) => {
+        WorkoutLog.belongsTo(models.User, { foreignKey: 'user_id' });
+        WorkoutLog.hasMany(models.WorkoutDetail, { foreignKey: 'workout_log_id' });
+        WorkoutLog.hasOne(models.WeeklyReport, { foreignKey: 'workout_log_id' });
+    };
 
     return WorkoutLog;
 };

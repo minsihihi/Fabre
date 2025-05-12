@@ -37,7 +37,7 @@ export default function TrainerHome() {
         return;
       }
 
-      const response = await axios.get("http://localhost:3000/api/trainer/members", {
+      const response = await axios.get("http://13.209.19.146:3000/api/trainer/members", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -52,7 +52,7 @@ export default function TrainerHome() {
       const updatedMembers = await Promise.all(
         membersData.map(async (member: { User: { id: number; name: string } }) => {
           try {
-            const profileRes = await axios.get("http://localhost:3000/api/images/profile", {
+            const profileRes = await axios.get("http://13.209.19.146:3000/api/images/profile", {
               params: { userId: member.User.id },
               headers: { Authorization: `Bearer ${token}` },
             });
@@ -98,7 +98,7 @@ export default function TrainerHome() {
     const updatedMembers = await Promise.all(
       members.map(async (member: Member) => {
         try {
-          const response = await axios.get("http://localhost:3000/api/images/workout", {
+          const response = await axios.get("http://13.209.19.146:3000/api/images/workout", {
             params: { userId: member.id, workoutDate: formattedDate },
             headers: { Authorization: `Bearer ${token}` },
           });
