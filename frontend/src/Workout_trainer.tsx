@@ -5,6 +5,16 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "./Workout.css";
 
+const CATEGORY_MAP: { [key: string]: string } = {
+  가슴: "상체",
+  등: "상체",
+  어깨: "상체",
+  팔: "상체",
+  하체: "하체",
+  전신: "전신",
+  유산소: "유산소",
+};
+
 // 운동 이름과 카테고리 예시
 const EXERCISE_NAMES = ["벤치프레스", "스쿼트", "데드리프트", "풀업"];
 const CATEGORIES = ["가슴", "등", "하체", "어깨", "팔"];
@@ -71,7 +81,7 @@ const WorkoutPage: React.FC = () => {
         return;
       }
       try {
-        const response = await axios.get("http://localhost:3000/api/users/me", {
+        const response = await axios.get("http://13.209.19.146:3000/api/users/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log("사용자 정보 조회 성공:", response.data);
@@ -96,7 +106,7 @@ const WorkoutPage: React.FC = () => {
   useEffect(() => {
     if (!token || !userInfo) return;
     axios
-      .get("http://localhost:3000/api/member/trainer", {
+      .get("http://13.209.19.146:3000/api/member/trainer", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
@@ -203,7 +213,7 @@ const WorkoutPage: React.FC = () => {
           }
           const formattedDate = formatLocalDate(workoutDate);
           try {
-            const response = await axios.get("http://localhost:3000/api/images/workout", {
+            const response = await axios.get("http://13.209.19.146:3000/api/images/workout", {
               params: { userId, workoutDate: formattedDate },
               headers: { Authorization: `Bearer ${token}` },
             });
@@ -229,7 +239,7 @@ const WorkoutPage: React.FC = () => {
       const formData = new FormData();
       formData.append("image", file);
       formData.append("workoutDate", formatLocalDate(workoutDate));
-      const response = await axios.post("http://localhost:3000/api/upload/workout", formData, {
+      const response = await axios.post("http://13.209.19.146:3000/api/upload/workout", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
@@ -266,15 +276,27 @@ const WorkoutPage: React.FC = () => {
       }
 
       const formattedWorkoutDate = formatLocalDate(workoutDate);
+      const filteredExercises = exercises.filter(
+        (ex) => ex.name && ex.sets > 0 && ex.reps > 0
+      );
 
       const payload: any = {
+        userId: userInfo.id,
         workout_date: formattedWorkoutDate,
         start_time: startTime,
         end_time: endTime,
-        total_duration: totalDuration || null,
+        total_duration: typeof totalDuration === "number" ? totalDuration : null,
         note: "",
-        exercises: exercises.filter((ex) => ex.name && ex.category),
+        exercises: filteredExercises.map((ex) => ({
+          name: ex.name,
+          category: CATEGORY_MAP[ex.category] || "상체",
+          sets: ex.sets,
+          reps: ex.reps,
+          weight: ex.weight,
+          note: ex.note || "",
+        })),
       };
+      
 
       // 사용자 역할에 따라 payload 구성
       if (userInfo.role === "member") {
@@ -299,7 +321,7 @@ const WorkoutPage: React.FC = () => {
       console.log("토큰:", token);
       console.log("사용자 역할:", userInfo.role);
 
-      const response = await axios.post("http://localhost:3000/api/record", payload, {
+      const response = await axios.post("http://13.209.19.146:3000/api/record", payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -308,8 +330,13 @@ const WorkoutPage: React.FC = () => {
       alert(response.data.message || "운동 기록이 저장되었습니다!");
     } catch (error: any) {
       console.error("운동 기록 저장 오류:", error);
-      let message = error.response?.data?.message || "운동 기록 저장 실패";
-      alert(message);
+      if (error.response) {
+        console.error("서버 응답 상태:", error.response.status);
+        console.error("서버 응답 데이터:", JSON.stringify(error.response.data, null, 2));
+        alert(error.response.data?.message || "운동 기록 저장 실패");
+      } else {
+        alert("네트워크 오류 또는 서버에 연결할 수 없습니다.");
+      }
     }
   };
 
@@ -324,7 +351,7 @@ const WorkoutPage: React.FC = () => {
     const formattedDate = formatLocalDate(value);
     try {
       // 우선 기존에 찍어둔 운동 인증샷(오운완) 조회
-      const response = await axios.get("http://localhost:3000/api/images/workout", {
+      const response = await axios.get("http://13.209.19.146:3000/api/images/workout", {
         params: { userId, workoutDate: formattedDate },
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -359,7 +386,7 @@ const WorkoutPage: React.FC = () => {
       params.memberId = memberIdLocal;
     }
     try {
-      const response = await axios.get("http://localhost:3000/api/record", {
+      const response = await axios.get("http://13.209.19.146:3000/api/record", {
         headers: { Authorization: `Bearer ${token}` },
         params,
       });

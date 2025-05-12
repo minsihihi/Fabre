@@ -7,40 +7,39 @@ module.exports = (sequelize, DataTypes) => {
         },
         workout_log_id: {
             type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'WorkoutLogs',
-                key: 'id'
-            }
+            allowNull: false
         },
         analysis_result: {
-            type: DataTypes.TEXT,  // TEXT로 변경 (길이가 긴 문자열을 저장)
+            type: DataTypes.TEXT,
             allowNull: true
         },
         total_calories_burned: {
-            type: DataTypes.TEXT,  // TEXT로 변경
+            type: DataTypes.TEXT,
             allowNull: false
         },
         muscle_change: {
-            type: DataTypes.TEXT,  // TEXT로 변경
+            type: DataTypes.TEXT,
             allowNull: false
         },
         body_change: {
-            type: DataTypes.TEXT,  // TEXT로 변경
+            type: DataTypes.TEXT,
             allowNull: false
         },
         feedback: {
-            type: DataTypes.TEXT,  // TEXT로 변경
+            type: DataTypes.TEXT,
             allowNull: true
         }
     }, {
-        tableName: 'weekly_reports',  // 테이블 이름 설정
+        tableName: 'weekly_reports',
         timestamps: true,
         underscored: true
     });
 
-    // 관계 설정 (WorkoutLogs 모델과의 관계 설정)
-    WeeklyReport.belongsTo(sequelize.models.WorkoutLog, { foreignKey: 'workout_log_id' });
+    WeeklyReport.associate = (models) => {
+        WeeklyReport.belongsTo(models.WorkoutLog, {
+            foreignKey: 'workout_log_id'
+        });
+    };
 
     return WeeklyReport;
 };

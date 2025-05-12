@@ -15,6 +15,6 @@ app.get('/', (req, res) => {
 
 // 서버 포트 설정
 app.listen(3000, () => {
-    console.log('서버가 http://localhost:3000 에서 실행 중입니다.');
+    console.log('서버가 실행 중입니다.');
     initializeAllNotifications();
 });
