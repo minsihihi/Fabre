@@ -1,7 +1,7 @@
 const AWS = require('aws-sdk');
 
-const axios = require('axios');
 
+const axios = require('axios');
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt'); 

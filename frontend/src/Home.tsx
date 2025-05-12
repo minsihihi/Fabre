@@ -43,7 +43,7 @@ export default function WorkoutTable() {
     }
 
     axios
-      .get("http://localhost:3000/api/users/me", {
+      .get("http://13.209.19.146:3000/api/users/me", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
@@ -63,7 +63,7 @@ export default function WorkoutTable() {
     if (!userInfo) return;
 
     axios
-      .get(`http://localhost:3000/api/workout-schedule/${userInfo.id}`, {
+      .get(`http://13.209.19.146:3000/api/workout-schedule/${userInfo.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
@@ -156,7 +156,7 @@ export default function WorkoutTable() {
           days: [day], // 단일 요일 배열로 전송
         };
 
-        await axios.post(`http://localhost:3000/api/workout-schedule`, payload, {
+        await axios.post(`http://13.209.19.146:3000/api/workout-schedule`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log(`${dayMap[day]}요일 등록 성공`);
@@ -177,7 +177,7 @@ export default function WorkoutTable() {
 
       if (schedule && workoutTime) {
         axios
-          .put(`http://localhost:3000/api/workout-schedule/${schedule.id}`, {
+          .put(`http://13.209.19.146:3000/api/workout-schedule/${schedule.id}`, {
             workoutTime,
             days: [day],
           }, {
@@ -202,7 +202,7 @@ export default function WorkoutTable() {
 
       if (schedule) {
         axios
-          .delete(`http://localhost:3000/api/workout-schedule/${schedule.id}`, {
+          .delete(`http://13.209.19.146:3000/api/workout-schedule/${schedule.id}`, {
             headers: { Authorization: `Bearer ${token}` },
           })
           .then(() => {
