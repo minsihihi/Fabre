@@ -7,23 +7,14 @@ module.exports = (sequelize, DataTypes) => {
         },
         workout_log_id: {
             type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'WorkoutLogs',
-                key: 'id'
-            }
+            allowNull: false
         },
         exercise_id: {
             type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'Exercises',
-                key: 'id'
-            }
+            allowNull: false
         },
         sets: {
             type: DataTypes.INTEGER,
-            allowNull: false,
             defaultValue: 1
         },
         reps: {
@@ -35,14 +26,19 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: true
         },
         note: {
-            type: DataTypes.STRING(255),
+            type: DataTypes.STRING,
             allowNull: true
         }
     }, {
-        tableName: 'WorkoutDetails',
+        tableName: 'workout_details',
         timestamps: true,
         underscored: true
     });
+
+    WorkoutDetail.associate = (models) => {
+        WorkoutDetail.belongsTo(models.WorkoutLog, { foreignKey: 'workout_log_id' });
+        WorkoutDetail.belongsTo(models.Exercise, { foreignKey: 'exercise_id' });
+    };
 
     return WorkoutDetail;
 };

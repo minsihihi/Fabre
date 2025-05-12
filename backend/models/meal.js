@@ -7,14 +7,18 @@ module.exports = (sequelize, DataTypes) => {
         },
         userId: {
             type: DataTypes.INTEGER,
-            allowNull: false
+            allowNull: false,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
         },
         imageUrl: {
             type: DataTypes.STRING,
             allowNull: false
         },
         mealDate: {
-            type: DataTypes.DATEONLY, // YYYY-MM-DD 형식으로 저장
+            type: DataTypes.DATEONLY,
             allowNull: true
         },
         mealType: {
@@ -26,9 +30,14 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: true
         }
     }, {
-        tableName: 'meals', 
-        timestamps: true
+        tableName: 'meals',
+        timestamps: true,
+        underscored: true
     });
+
+    Meal.associate = function(models) {
+        Meal.belongsTo(models.User, { foreignKey: 'userId' });
+    };
 
     return Meal;
 };
