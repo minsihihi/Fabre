@@ -171,6 +171,33 @@ const WorkoutPage: React.FC = () => {
     calculateDuration();
   }, [startTime, endTime]);
 
+  useEffect(() => {
+    // 알림 권한 요청
+    const requestNotificationPermission = async () => {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        new Notification("알림 권한이 허용되었습니다.");
+      } else {
+        console.warn("알림 권한 거부:", permission);
+      }
+    };
+  
+    // 카메라 권한 요청 (스트림 없이 권한만 요청)
+    const requestCameraPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        console.log("카메라 권한 허용됨");
+        stream.getTracks().forEach((track) => track.stop()); // 권한 확인용 스트림 정리
+      } catch (err) {
+        console.error("카메라 권한 요청 실패:", err);
+      }
+    };
+  
+    requestNotificationPermission();
+    requestCameraPermission();
+  }, []);
+  
+
   // 카메라 접근 및 촬영
   useEffect(() => {
     if (showCameraModal && videoRef.current) {

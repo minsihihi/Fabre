@@ -1,6 +1,6 @@
 {
   "name": "capstone_project",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "main": "frontend/main.js",
   "type": "commonjs",
   "scripts": {
@@ -11,7 +11,8 @@
     "dev": "vite --host",
     "build": "vite build --config frontend/vite.config.js",
     "dist": "electron-builder",
-    "deploy": "npm run build && npm run dist -- --publish always"
+    "deploy": "npm run build && npm run dist -- --publish always",
+    "postbuild": "xattr -cr dist/mac-arm64/채찍피티.app"
   },
   "build": {
     "appId": "com.chaejjikpt",
@@ -30,7 +31,12 @@
       "output": "dist"
     },
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "gatekeeperAssess": false,
+      "identity": null
     },
     "publish": {
       "provider": "github",
