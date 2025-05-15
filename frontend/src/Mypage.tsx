@@ -95,7 +95,8 @@ function MypageMember() {
       localStorage.removeItem("token");
       localStorage.removeItem("id");
       localStorage.removeItem("userId");
-      window.location.href = "/login";
+      // window.location.href = "/login";
+      navigate("/login"); 
     } catch (error) {
       console.error("로그아웃 실패:", error);
     }
