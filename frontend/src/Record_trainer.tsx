@@ -22,7 +22,7 @@ export default function Report() {
   useEffect(() => {
     const fetchReport = async () => {
       try {
-        const response = await fetch("http://localhost:3000/api/workouts/analyze-weekly", {
+        const response = await fetch("http://13.209.19.146:3000/api/workouts/analyze-weekly", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

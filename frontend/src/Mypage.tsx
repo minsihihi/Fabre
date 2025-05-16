@@ -20,7 +20,7 @@ function MypageMember() {
 
   const fetchUserInfo = async () => {
     try {
-      const response = await axios.get("http://localhost:3000/api/users/me");
+      const response = await axios.get("http://13.209.19.146:3000/api/users/me");
       const user = response.data;
 
       if (user) {
@@ -34,7 +34,7 @@ function MypageMember() {
 
         const token = localStorage.getItem("token");
         axios
-          .get("http://localhost:3000/api/member/trainer", {
+          .get("http://13.209.19.146:3000/api/member/trainer", {
             headers: { Authorization: `Bearer ${token}` },
           })
           .then((trainerRes) => {
@@ -56,7 +56,7 @@ function MypageMember() {
 
   const fetchProfileImage = async (userId: string) => {
     try {
-      const response = await axios.get("http://localhost:3000/api/images/profile", {
+      const response = await axios.get("http://13.209.19.146:3000/api/images/profile", {
         params: { userId },
       });
       setProfileImage(response.data.imageUrl);
@@ -72,7 +72,7 @@ function MypageMember() {
       formData.append("image", file);
 
       try {
-        const response = await axios.post("http://localhost:3000/api/upload/profile", formData, {
+        const response = await axios.post("http://13.209.19.146:3000/api/upload/profile", formData, {
           headers: {
             "Content-Type": "multipart/form-data",
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -91,11 +91,12 @@ function MypageMember() {
 
   const handleLogout = async () => {
     try {
-      await axios.post("http://localhost:3000/api/logout");
+      await axios.post("http://13.209.19.146:3000/api/logout");
       localStorage.removeItem("token");
       localStorage.removeItem("id");
       localStorage.removeItem("userId");
-      window.location.href = "/login";
+      // window.location.href = "/login";
+      navigate("/login"); 
     } catch (error) {
       console.error("로그아웃 실패:", error);
     }

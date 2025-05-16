@@ -5,41 +5,47 @@ module.exports = (sequelize, DataTypes) => {
             autoIncrement: true,
             primaryKey: true
         },
-        login_id:{
-            type:DataTypes.STRING(30),
-            allowNull:false,
-            unique:true,
-            validate:{
-                len:[4, 30],
-                isAlphanumeric:true
+        login_id: {
+            type: DataTypes.STRING(30),
+            allowNull: false,
+            unique: true,
+            validate: {
+                len: [4, 30],
+                isAlphanumeric: true
             }
         },
-        password:{
-            type:DataTypes.STRING(255),
-            allowNull:false
+        password: {
+            type: DataTypes.STRING(255),
+            allowNull: false
         },
         name: {
             type: DataTypes.STRING,
             allowNull: false,
         },
-        role:{
-            type:DataTypes.ENUM('member', 'trainer'),
-            allowNull:false,
-            defaultValue:'member',
+        role: {
+            type: DataTypes.ENUM('member', 'trainer'),
+            allowNull: false,
+            defaultValue: 'member',
         }
-    },{
-        timestamps:true,
-        underscored:true
+    }, {
+        tableName: "users",
+        timestamps: true,
+        underscored: true
     });
 
     User.associate = function(models) {
-        User.hasMany(models.TrainerMembers, {
-            foreignKey: 'trainerId',
-        });
-        User.hasMany(models.TrainerMembers, {
-            foreignKey: 'memberId',
-        });
+        if (models.TrainerMembers) {
+            User.hasMany(models.TrainerMembers, {
+                foreignKey: 'trainerId',
+                as: 'trainer_members'
+            });
+            User.hasMany(models.TrainerMembers, {
+                foreignKey: 'memberId',
+                as: 'member_members'
+            });
+        }
     };
+    
 
     return User;
-}
+};

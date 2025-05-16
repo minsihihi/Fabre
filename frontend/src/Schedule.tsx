@@ -94,19 +94,19 @@ const MemberScheduleGrid: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const trainerRes = await axios.get('http://localhost:3000/api/member/trainer', {
+        const trainerRes = await axios.get('hhttp://13.209.19.146:3000/api/member/trainer', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setTrainer(trainerRes.data.trainer);
 
         if (trainerRes.data.trainer?.id) {
           const scheduleRes = await axios.get(
-            `http://localhost:3000/api/trainer/schedule/${trainerRes.data.trainer.id}`,
+            `http://13.209.19.146:3000/api/trainer/schedule/${trainerRes.data.trainer.id}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setScheduleData(scheduleRes.data.schedule);
 
-          const bookingsRes = await axios.get('http://localhost:3000/api/member/bookings', {
+          const bookingsRes = await axios.get('http://13.209.19.146:3000/api/member/bookings', {
             headers: { Authorization: `Bearer ${token}` },
           });
           // upcomingBookings와 pastBookings를 모두 bookings 상태에 저장
@@ -207,7 +207,7 @@ const MemberScheduleGrid: React.FC = () => {
     if (!selectedSlot) return;
     try {
       const res = await axios.post(
-        'http://localhost:3000/api/trainer/schedule/book',
+        'http://13.209.19.146:3000/api/trainer/schedule/book',
         { scheduleId: selectedSlot.scheduleId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -227,7 +227,7 @@ const MemberScheduleGrid: React.FC = () => {
             startTime: selectedSlot.start_time,
             endTime: selectedSlot.end_time,
           },
-          isPast: false,
+          isPast: true,
         },
       ]);
       setSelectedSlot(null);
@@ -246,7 +246,7 @@ const MemberScheduleGrid: React.FC = () => {
       return;
     }
     try {
-      await axios.delete(`http://localhost:3000/api/member/bookings/${booking.id}`, {
+      await axios.delete(`http://13.209.19.146:3000/api/member/bookings/${booking.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       alert('예약 취소 성공!');
@@ -297,24 +297,23 @@ const MemberScheduleGrid: React.FC = () => {
                         const isPast = cellDateOnly < todayOnly;
                         const schedule = findScheduleByDayAndTime(header, time);
                         const myBooking = findBookingByDayAndTime(header, time);
+
                         let cellClass = '';
                         if (!schedule) {
                           cellClass = 'empty';
+                        } else if (myBooking) {
+                          cellClass = myBooking.isPast ? 'my-booking-past' : 'my-booking';
+                        } else if (schedule.isBooked) {
+                          cellClass = 'booked';
                         } else {
-                          cellClass = schedule.isBooked
-                            ? myBooking
-                              ? myBooking.isPast
-                                ? 'my-booking-past'
-                                : 'my-booking'
-                              : 'booked'
-                            : 'available';
+                          cellClass = 'available';
                         }
-                        if (isPast) cellClass += ' past';
+
                         return (
                           <div
                             key={`${header.day}-${time}`}
                             className={`schedule-cell ${cellClass}`}
-                            onClick={() => !isPast && handleCellClick(header, time)}
+                            onClick={() => handleCellClick(header, time)}
                           />
                         );
                       })}

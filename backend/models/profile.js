@@ -1,20 +1,31 @@
-// ✅ Profile 모델 (파일 ID → URL 저장)
 module.exports = (sequelize, DataTypes) => {
     const Profile = sequelize.define("Profile", {
-        id: {  
+        id: {
             type: DataTypes.INTEGER,
             autoIncrement: true,
             primaryKey: true
         },
         userId: {
             type: DataTypes.INTEGER,
-            allowNull: false
+            allowNull: false,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
         },
-        imageUrl: {  // ✅ S3 이미지 URL 저장
+        imageUrl: {
             type: DataTypes.STRING,
             allowNull: false
         }
+    }, {
+        tableName: 'profiles',
+        timestamps: true,
+        underscored: true
     });
+
+    Profile.associate = function(models) {
+        Profile.belongsTo(models.User, { foreignKey: 'userId' });
+    };
 
     return Profile;
 };

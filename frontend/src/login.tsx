@@ -14,7 +14,7 @@ export default function Login() {
 
     try {
       // 백엔드 로그인 엔드포인트 (백엔드는 3000번 포트, /api/login)
-      const apiUrl = "http://localhost:3000/api/login";
+      const apiUrl = "http://13.209.19.146:3000/api/login";
       
       console.log("로그인 요청 전송:", { login_id: loginId, password: "***" });
       
@@ -108,3 +108,5 @@ export default function Login() {
     </div>
   );
 }
+
+

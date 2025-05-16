@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { ipcRenderer } from "electron";
 import './App.css';
 
 import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import axios from 'axios';
-import Login from './Login';
+import Login from './login';
 import Register from './Register';
 import Home from './Home';
 import Home_trainer from './Home_trainer';

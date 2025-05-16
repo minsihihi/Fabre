@@ -7,7 +7,16 @@ import "./Workout.css";
 
 // 운동 이름과 카테고리 예시
 const EXERCISE_NAMES = ["벤치프레스", "스쿼트", "데드리프트", "풀업"];
-const CATEGORIES = ["가슴", "등", "하체", "어깨", "팔"];
+const CATEGORIES = ["상체", "하체", "전신", "유산소"];
+
+// 서버의 category 값을 UI에 표시하기 위한 역매핑
+const CATEGORY_REVERSE_MAP: { [key: string]: string } = {
+  chest: "가슴",
+  back: "등",
+  legs: "하체",
+  shoulders: "어깨",
+  arms: "팔",
+};
 
 interface UserInfo {
   id: number;
@@ -53,9 +62,7 @@ const WorkoutPage: React.FC = () => {
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [showChoicePopup, setShowChoicePopup] = useState(false);
   const [showImagePopup, setShowImagePopup] = useState(false);
-  const [showRecordModal, setShowRecordModal] = useState(false);
   const [workoutImages, setWorkoutImages] = useState<any[]>([]);
-  const [workoutRecords, setWorkoutRecords] = useState<any[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
   
   const navigate = useNavigate();
@@ -71,7 +78,7 @@ const WorkoutPage: React.FC = () => {
         return;
       }
       try {
-        const response = await axios.get("http://localhost:3000/api/users/me", {
+        const response = await axios.get("http://13.209.19.146:3000/api/users/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log("사용자 정보 조회 성공:", response.data);
@@ -81,7 +88,6 @@ const WorkoutPage: React.FC = () => {
         let message = "사용자 정보를 불러오지 못했습니다.";
         if (err.response?.status === 401) {
           message = "세션이 만료되었습니다. 다시 로그인해주세요.";
-          // 토큰 제거 및 로그인 리다이렉트 대신 경고만 표시합니다.
         } else if (err.response?.status === 404) {
           message = "사용자를 찾을 수 없습니다.";
         }
@@ -93,11 +99,11 @@ const WorkoutPage: React.FC = () => {
     fetchUserInfo();
   }, [token, navigate]);
 
-  // 회원이 자신의 트레이너 정보 조회 (API: /api/member/trainer)
+  // 회원이 자신의 트레이너 정보 조회
   useEffect(() => {
     if (!token || !userInfo) return;
     axios
-      .get("http://localhost:3000/api/member/trainer", {
+      .get("http://13.209.19.146:3000/api/member/trainer", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
@@ -156,12 +162,41 @@ const WorkoutPage: React.FC = () => {
       const [endH, endM] = endTime.split(":").map(Number);
       const duration = endH * 60 + endM - (startH * 60 + startM);
       setTotalDuration(duration > 0 ? duration : 0);
+    } else {
+      setTotalDuration("");
     }
   };
 
   useEffect(() => {
     calculateDuration();
   }, [startTime, endTime]);
+
+  useEffect(() => {
+    // 알림 권한 요청
+    const requestNotificationPermission = async () => {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        new Notification("알림 권한이 허용되었습니다.");
+      } else {
+        console.warn("알림 권한 거부:", permission);
+      }
+    };
+  
+    // 카메라 권한 요청 (스트림 없이 권한만 요청)
+    const requestCameraPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        console.log("카메라 권한 허용됨");
+        stream.getTracks().forEach((track) => track.stop()); // 권한 확인용 스트림 정리
+      } catch (err) {
+        console.error("카메라 권한 요청 실패:", err);
+      }
+    };
+  
+    requestNotificationPermission();
+    requestCameraPermission();
+  }, []);
+  
 
   // 카메라 접근 및 촬영
   useEffect(() => {
@@ -202,9 +237,9 @@ const WorkoutPage: React.FC = () => {
             alert("사용자 정보가 필요합니다.");
             return;
           }
-          const formattedDate = workoutDate.toISOString().split("T")[0];
+          const formattedDate = formatLocalDate(workoutDate);
           try {
-            const response = await axios.get("http://localhost:3000/api/images/workout", {
+            const response = await axios.get("http://13.209.19.146:3000/api/images/workout", {
               params: { userId, workoutDate: formattedDate },
               headers: { Authorization: `Bearer ${token}` },
             });
@@ -229,9 +264,10 @@ const WorkoutPage: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append("image", file);
-      const response = await axios.post("http://localhost:3000/api/upload/workout", formData, {
+      formData.append("workoutDate", formatLocalDate(workoutDate));
+      const response = await axios.post("http://13.209.19.146:3000/api/upload/workout", formData, {
         headers: {
-          "Content-Type": "multipart/form-data",
+          // "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
         },
       });
@@ -262,21 +298,37 @@ const WorkoutPage: React.FC = () => {
     try {
       if (!token) {
         alert("로그인이 필요합니다.");
+        navigate("/login");
         return;
       }
 
-      const formattedWorkoutDate = workoutDate.toISOString().split("T")[0];
+      const formattedWorkoutDate = formatLocalDate(workoutDate);
+      const filteredExercises = exercises.filter(
+        (ex) => ex.name && ex.sets > 0 && ex.reps > 0
+      );
+
+      if (filteredExercises.length === 0) {
+        alert("최소한 하나의 유효한 운동 항목을 입력해주세요.");
+        return;
+      }
 
       const payload: any = {
+        userId: userInfo.id,
         workout_date: formattedWorkoutDate,
         start_time: startTime,
         end_time: endTime,
-        total_duration: totalDuration || null,
+        total_duration: typeof totalDuration === "number" ? totalDuration : null,
         note: "",
-        exercises: exercises.filter((ex) => ex.name && ex.category),
+        exercises: filteredExercises.map((ex) => ({
+          name: ex.name,
+          category: ex.category,
+          sets: ex.sets,
+          reps: ex.reps,
+          weight: ex.weight,
+          note: ex.note || "",
+        })),
       };
 
-      // 사용자 역할에 따라 payload 구성
       if (userInfo.role === "member") {
         if (!trainerInfo) {
           alert("트레이너 정보를 불러오지 못했습니다.");
@@ -295,21 +347,27 @@ const WorkoutPage: React.FC = () => {
         return;
       }
 
-      console.log("전송 페이로드:", payload);
+      console.log("전송 페이로드:", JSON.stringify(payload, null, 2));
       console.log("토큰:", token);
       console.log("사용자 역할:", userInfo.role);
 
-      const response = await axios.post("http://localhost:3000/api/record", payload, {
+      const response = await axios.post("http://13.209.19.146:3000/api/record", payload, {
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
       });
 
+      console.log("서버 응답:", response.data);
       alert(response.data.message || "운동 기록이 저장되었습니다!");
+
+      // 저장 후 최신 기록 조회
+      await fetchWorkoutRecords(workoutDate);
     } catch (error: any) {
       console.error("운동 기록 저장 오류:", error);
-      let message = error.response?.data?.message || "운동 기록 저장 실패";
-      alert(message);
+      const errorMessage = error.response?.data?.message || error.message || "운동 기록 저장 실패";
+      console.error("서버 오류 상세:", error.response?.data);
+      alert(`운동 기록 저장에 실패했습니다: ${errorMessage}`);
     }
   };
 
@@ -321,20 +379,23 @@ const WorkoutPage: React.FC = () => {
       alert("사용자 정보가 필요합니다.");
       return;
     }
-    const formattedDate = value.toISOString().split("T")[0];
+    const formattedDate = formatLocalDate(value);
     try {
-      // 우선 기존에 찍어둔 운동 인증샷(오운완) 조회
-      const response = await axios.get("http://localhost:3000/api/images/workout", {
+      // 운동 인증샷 조회
+      const imageResponse = await axios.get("http://13.209.19.146:3000/api/images/workout", {
         params: { userId, workoutDate: formattedDate },
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("이미지 조회 응답:", response.data);
-      const images = response.data.workouts || [];
+      console.log("이미지 조회 응답:", imageResponse.data);
+      const images = imageResponse.data.workouts || [];
       setWorkoutImages(images);
 
-      // 당일이면서 이미지가 없으면 사진 등록 선택 팝업을 띄움
+      // 운동 기록 조회
+      await fetchWorkoutRecords(value);
+
+      // 당일이면서 이미지가 없으면 사진 등록 선택 팝업
       const today = new Date();
-      const isToday = value.toDateString() === today.toDateString();
+      const isToday = formatLocalDate(value) === formatLocalDate(today);
       if (isToday && images.length === 0) {
         setShowChoicePopup(true);
       } else {
@@ -346,7 +407,7 @@ const WorkoutPage: React.FC = () => {
     }
   };
 
-  // 운동 기록 조회 함수 (GET /record)
+  // 운동 기록 조회 함수
   const fetchWorkoutRecords = async (date: Date) => {
     if (!token || !userInfo) return;
     let params: any = {};
@@ -359,20 +420,46 @@ const WorkoutPage: React.FC = () => {
       params.memberId = memberIdLocal;
     }
     try {
-      const response = await axios.get("http://localhost:3000/api/record", {
+      const response = await axios.get("http://13.209.19.146:3000/api/record", {
         headers: { Authorization: `Bearer ${token}` },
         params,
       });
+      console.log("운동 기록 조회 응답:", JSON.stringify(response.data, null, 2));
       const allRecords = response.data.data || [];
-      const formattedDate = date.toISOString().split("T")[0];
-      // 조회된 운동 기록 중 저장 날짜가 클릭한 날짜와 일치하는 항목만 필터링
+      const formattedDate = formatLocalDate(date);
       const filteredRecords = allRecords.filter(
         (record: any) => record.workout_date === formattedDate
       );
-      setWorkoutRecords(filteredRecords);
-      setShowRecordModal(true);
+
+      if (filteredRecords.length > 0) {
+        const record = filteredRecords[0]; // 첫 번째 기록 사용
+        setStartTime(record.start_time || "");
+        setEndTime(record.end_time || "");
+        setTotalDuration(record.total_duration || "");
+        setExercises(
+          record.WorkoutDetails?.length > 0
+            ? record.WorkoutDetails.map((ex: any) => ({
+                name: ex.Exercise?.name || "",
+                category: CATEGORY_REVERSE_MAP[ex.Exercise?.category] || ex.Exercise?.category || "",
+                sets: ex.sets || 0,
+                reps: ex.reps || 0,
+                weight: ex.weight || 0,
+                note: ex.note || "",
+              }))
+            : [{ name: "", category: "", sets: 0, reps: 0, weight: 0 }]
+        );
+        setCurrentExerciseIndex(0);
+      } else {
+        // 기록이 없으면 기본값으로 초기화
+        setStartTime("");
+        setEndTime("");
+        setTotalDuration("");
+        setExercises([{ name: "", category: "", sets: 0, reps: 0, weight: 0 }]);
+        setCurrentExerciseIndex(0);
+      }
     } catch (error: any) {
       console.error("운동 기록 조회 오류:", error);
+      console.error("서버 오류 상세:", error.response?.data);
       alert(error.response?.data?.message || "운동 기록 조회 실패");
     }
   };
@@ -509,7 +596,7 @@ const WorkoutPage: React.FC = () => {
         </div>
       )}
 
-      {/* 운동 인증샷(오운완) 모달 */}
+      {/* 운동 인증샷(오운완) 팝업 */}
       {showImagePopup && (
         <div className="popup-overlay">
           <div className="popup-box">
@@ -523,43 +610,14 @@ const WorkoutPage: React.FC = () => {
             ) : (
               <p>등록된 인증샷이 없습니다.</p>
             )}
-            {workoutDate.toDateString() === new Date().toDateString() && (
+            {formatLocalDate(workoutDate) === formatLocalDate(new Date()) && (
               <button onClick={() => { setShowImagePopup(false); setShowCameraModal(true); }}>
                 다시 찍기
               </button>
             )}
-            <button
-              onClick={() => {
-                setShowImagePopup(false);
-                fetchWorkoutRecords(workoutDate);
-              }}
-            >
+            <button onClick={() => setShowImagePopup(false)}>
               닫기
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* 운동 기록 모달 */}
-      {showRecordModal && (
-        <div className="popup-overlay">
-          <div className="popup-box">
-            <h3>운동 기록</h3>
-            {workoutRecords && workoutRecords.length > 0 ? (
-              <div className="record-list">
-                {workoutRecords.map((record: any) => (
-                  <div key={record.id} className="record-item">
-                    <p>날짜: {record.workout_date}</p>
-                    <p>운동 시간: {record.start_time} - {record.end_time}</p>
-                    <p>총 운동 시간: {record.total_duration} 분</p>
-                    {/* 상세 운동 내용이 있다면 추가 표시 */}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p>저장된 운동 기록이 없습니다.</p>
-            )}
-            <button onClick={() => setShowRecordModal(false)}>닫기</button>
           </div>
         </div>
       )}
