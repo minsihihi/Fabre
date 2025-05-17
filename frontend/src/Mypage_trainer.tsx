@@ -50,9 +50,9 @@ export default function MypageTrainer() {
     try {
       const { data } = await axios.get("http://13.209.19.146:3000/api/trainer/members");
       const members = data.data.map((member: any) => ({
-        id: member.User.id,
-        name: member.User.name,
-        photo: member.User.photo || "", // 사진이 있으면 포함
+        id: member.member.id,
+        name: member.member.name,
+        photo: member.member.photo || "", // 사진이 있으면 포함
       }));
       setMyMembers(members);
     } catch (error) {

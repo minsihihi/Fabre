@@ -70,7 +70,7 @@ export default function TrainerHome() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const membersData: { User: { id: number; name: string } }[] = response.data.data;
+      const membersData: { member: { id: number; name: string } }[] = response.data.data;
 
       if (!membersData || !membersData.length) {
         console.log("등록된 회원이 없습니다.");
@@ -78,28 +78,33 @@ export default function TrainerHome() {
         return;
       }
 
-      const updatedMembersPromises = membersData.map(async (memberData: { User: { id: number; name: string } }) => {
+      const updatedMembersPromises = membersData.map(async (memberData) => {
+        const userId = memberData.member?.id;
+        const userName = memberData.member?.name;
+      
         try {
           const profileRes = await axios.get("http://13.209.19.146:3000/api/images/profile", {
-            params: { userId: memberData.User.id },
+            params: { userId },
             headers: { Authorization: `Bearer ${token}` },
           });
+      
           return {
-            id: memberData.User.id,
-            name: memberData.User.name,
-            completed: false, // Initial completion state
+            id: userId,
+            name: userName,
+            completed: false,
             profileImageUrl: profileRes.data.imageUrl || "/default-profile.png",
           };
-        } catch (error: unknown) {
-          console.error(`프로필 이미지 조회 실패 for member ${memberData.User.id}`, error);
+        } catch (error) {
+          console.error(`프로필 이미지 조회 실패 for member ${userId}`, error);
           return {
-            id: memberData.User.id,
-            name: memberData.User.name,
+            id: userId,
+            name: userName,
             completed: false,
-            profileImageUrl: "/default-profile.png", // Fallback profile image
+            profileImageUrl: "/default-profile.png",
           };
         }
       });
+      
       const resolvedMembers = await Promise.all(updatedMembersPromises);
       setMembers(resolvedMembers);
     } catch (error: unknown) {

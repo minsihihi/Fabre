@@ -19,6 +19,10 @@ router.use('/', recordRoutes);
 const streakRoutes = require('./streak');  // 실제 경로는 streak.js가 위치한 상대 경로로 수정
 router.use('/', streakRoutes);
 
+
+const { spawn } = require('child_process');
+
+
 const fs = require('fs');
 const path = require('path');
 const { User, Profile, Workout, TrainerMembers, WorkoutLog, WorkoutDetail, Exercise, Meal, WeeklyReport, TrainerSchedule, MemberBookings, MealAnalysis, WorkoutSchedule} = require('../models'); 
@@ -33,6 +37,7 @@ const { setLoggedInUser } = require('../utils/notificationScheduler');
 
 
 require('dotenv').config({ path: 'backend/.env' });
+
 
 
 // ✅ OpenAI API 설정
@@ -90,7 +95,6 @@ router.post("/upload/:category", verifyToken, upload.single("image"), async (req
             return res.status(400).json({ message: "잘못된 카테고리입니다." });
         }
 
-        // const imageUrl = `${process.env.S3_BUCKET_URL}/${req.file.key}`;
         const imageUrl = req.file.location;
         let recordId = null;
 
@@ -161,7 +165,6 @@ router.post("/upload/:category", verifyToken, upload.single("image"), async (req
         res.status(500).json({ message: "서버 오류", error: error.message });
     }
 });
-
 
 
 /* ----------------------------------- */
