@@ -176,7 +176,7 @@ const WorkoutPage: React.FC = () => {
     const requestNotificationPermission = async () => {
       const permission = await Notification.requestPermission();
       if (permission === "granted") {
-        new Notification("알림 권한이 허용되었습니다.");
+        // new Notification("알림 권한이 허용되었습니다.");
       } else {
         console.warn("알림 권한 거부:", permission);
       }

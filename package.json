@@ -90,6 +90,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^25.9.8",
     "electron-builder": "^26.0.12",
+    "semver": "^7.7.2",
     "typescript": "^5.7.3",
     "vite": "^6.1.0"
   }
