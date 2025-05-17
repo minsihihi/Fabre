@@ -60,7 +60,7 @@
 /* 사이드바 영역 */
 .left-sidebar {
   width: 16.6667%;
-  background: linear-gradient(135deg, #00462A, #006a4e);
+  background: linear-gradient(135deg, #999fca, #9ad7ba);
   padding: 1rem;
   display: flex;
   flex-direction: column;
