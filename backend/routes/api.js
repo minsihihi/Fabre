@@ -113,6 +113,7 @@ router.post("/upload/:category", verifyToken, upload.single("image"), async (req
             const now = new Date();
             const userId = req.user.id;
             const today = now.toLocaleDateString("en-US", { weekday: 'long' }); // 'Monday', 'Tuesday', ...
+            console.log("🧭 오늘 요일:", today);
 
             // 사용자 스케줄 중 오늘 요일(active) 스케줄 찾기
             const schedules = await WorkoutSchedule.findAll({
@@ -128,6 +129,8 @@ router.post("/upload/:category", verifyToken, upload.single("image"), async (req
             if (!schedules || schedules.length === 0) {
                 return res.status(403).json({ message: "오늘 등록된 운동 스케줄이 없습니다." });
             }
+            
+
 
             // 현재 시간이 해당 스케줄의 운동 시간 ±1시간 이내인지 확인
             const isWithinTime = schedules.some(schedule => {
@@ -137,8 +140,17 @@ router.post("/upload/:category", verifyToken, upload.single("image"), async (req
                 const workoutEnd = new Date(workoutStart);
                 workoutEnd.setHours(workoutStart.getHours() + 1);
 
+                console.log("📅 Schedule Time from DB:", schedule.workoutTime);
+                console.log("🧭 오늘 요일:", today);
+                console.log("✅ 현재 시간:", now);
+                console.log("✅ 운동 시작:", workoutStart);
+                console.log("✅ 운동 종료:", workoutEnd);
+                
+
                 return now >= workoutStart && now <= workoutEnd;
             });
+
+
 
             if (!isWithinTime) {
                 return res.status(403).json({ message: "운동 인증 가능한 시간이 아닙니다." });
