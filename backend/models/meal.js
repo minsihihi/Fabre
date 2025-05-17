@@ -32,7 +32,6 @@ module.exports = (sequelize, DataTypes) => {
     }, {
         tableName: 'meals',
         timestamps: true,
-        underscored: true
     });
 
     Meal.associate = function(models) {
