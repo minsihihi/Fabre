@@ -2,6 +2,20 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./Home.css";
 
+// --- Helper Functions ---
+
+const dayMap: { [key: number]: string } = {
+  0: "Sunday",
+  1: "Monday",
+  2: "Tuesday",
+  3: "Wednesday",
+  4: "Thursday",
+  5: "Friday",
+  6: "Saturday",
+};
+
+// --- Type Definitions ---
+
 interface UserInfo {
   id: number;
   login_id: string;
@@ -12,114 +26,172 @@ interface UserInfo {
 interface WorkoutSchedule {
   id: number;
   workoutTime: string;
-  days: string; // 예: "Monday,Wednesday,Friday"
+  days: string;
 }
 
-const dayMap: { [key: number]: string } = {
-  0: "일",
-  1: "월",
-  2: "화",
-  3: "수",
-  4: "목",
-  5: "금",
-  6: "토",
+interface AttendanceData {
+  date: string;
+  hasImage: boolean;
+}
+
+// --- MiniCalendar Component ---
+
+const MiniCalendar: React.FC<{ year: number; month: number; attendance: AttendanceData[]; }> = ({ year, month, attendance }) => {
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDay = new Date(year, month, 1).getDay();
+  const monthName = new Date(year, month).toLocaleString("ko-KR", { month: "long" });
+
+  const dates = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const emptyCells = Array.from({ length: firstDay }, (_, i) => i);
+
+  return (
+    <div className="mini-calendar">
+      <h3 className="calendar-title">{`${year}년 ${monthName}`}</h3>
+      <div className="calendar-header">
+        {Object.values(dayMap).map((day, index) => (
+          <div key={index} className="day-name">
+            {day}
+          </div>
+        ))}
+      </div>
+      <div className="calendar-body">
+        {emptyCells.map((_, idx) => (
+          <div key={`empty-${idx}`} className="calendar-cell empty" />
+        ))}
+        {dates.map((date) => {
+          const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(
+            date
+          ).padStart(2, "0")}`;
+          const hasImage = attendance.find((a) => a.date === dateStr)?.hasImage || false;
+          return (
+            <div
+              key={dateStr}
+              className={`calendar-cell ${hasImage ? "attended" : ""}`}
+              title={hasImage ? "오운완 이미지 등록됨" : undefined}
+            >
+              {date}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 };
+
+// --- Main Component ---
 
 export default function WorkoutTable() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-  // 요일별 운동 시간을 저장 (예: { 1: "09:00", 3: "09:30", ... })
   const [workoutTimes, setWorkoutTimes] = useState<{ [key: number]: string }>({});
-  // 중복 없이, 각 요일마다 하나의 운동 스케줄 정보를 저장 (키: 요일 number)
   const [schedules, setSchedules] = useState<{ [key: number]: WorkoutSchedule }>({});
-  // 선택된 요일 배열 (체크된 요일 번호)
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
+  const [attendance, setAttendance] = useState<{
+    prevMonth: AttendanceData[];
+    currentMonth: AttendanceData[];
+    nextMonth: AttendanceData[];
+  }>({ prevMonth: [], currentMonth: [], nextMonth: [] });
   const token = localStorage.getItem("token");
 
-  // 사용자 정보 조회
+  // 내 정보 조회
   useEffect(() => {
     if (!token) {
       alert("로그인이 필요합니다.");
       return;
     }
-
     axios
       .get("http://13.209.19.146:3000/api/users/me", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        console.log("사용자 정보 조회 성공:", res.data);
+        console.log("유저 정보 조회 성공:", res.data);
         setUserInfo(res.data);
       })
       .catch((err) => {
-        console.error("사용자 정보 조회 실패:", err);
-        if (err.response?.status === 401) {
+        console.error("유저 정보 조회 실패:", err);
+        if (err.response?.status === 401)
           alert("세션이 만료되었습니다. 다시 로그인해주세요.");
-        }
       });
   }, [token]);
 
-  // 운동 스케줄 조회 (userInfo가 있을 때)
-  useEffect(() => {
+  // 스케줄 조회 함수
+  const fetchSchedules = async () => {
     if (!userInfo) return;
+    try {
+      const res = await axios.get<WorkoutSchedule[]>(
+        `http://13.209.19.146:3000/api/workout-schedule/${userInfo.id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      console.log("스케줄 조회 성공:", res.data);
+      const fetched = res.data;
+      const mapRes: { [key: number]: WorkoutSchedule } = {};
+      const times: { [key: number]: string } = {};
+      const days: number[] = [];
 
-    axios
-      .get(`http://13.209.19.146:3000/api/workout-schedule/${userInfo.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        const fetchedSchedules: WorkoutSchedule[] = res.data;
-        const dayScheduleMap: { [key: number]: WorkoutSchedule } = {};
-        const times: { [key: number]: string } = {};
-        const daysWithSchedules: number[] = [];
-
-        fetchedSchedules.forEach((schedule) => {
-          // schedule.days가 "Monday,Wednesday,Friday"와 같이 전달된다고 가정
-          const dayNums = schedule.days
-            .split(",")
-            .map((day) => {
-              // dayMap의 값(한글 요일)과 비교하여 해당 숫자 키를 반환
-              const found = Object.entries(dayMap).find(
-                ([, v]) => v === 
-                  (day.trim() === "Sunday"
-                    ? "일"
-                    : day.trim() === "Monday"
-                    ? "월"
-                    : day.trim() === "Tuesday"
-                    ? "화"
-                    : day.trim() === "Wednesday"
-                    ? "수"
-                    : day.trim() === "Thursday"
-                    ? "목"
-                    : day.trim() === "Friday"
-                    ? "금"
-                    : day.trim() === "Saturday"
-                    ? "토"
-                    : "")
-              );
-              return found ? Number(found[0]) : null;
-            })
-            .filter((num): num is number => num !== null);
-
-          // **중복 제거**: 해당 요일에 스케줄이 아직 등록되지 않은 경우만 추가합니다.
-          dayNums.forEach((dayNum) => {
-            if (dayScheduleMap[dayNum] === undefined) {
-              dayScheduleMap[dayNum] = schedule;
-              times[dayNum] = schedule.workoutTime;
-              daysWithSchedules.push(dayNum);
-            }
-          });
+      fetched.forEach((s) => {
+        s.days.split(",").forEach((d) => {
+          const idx = Object.entries(dayMap).find(([, v]) => v === d)?.[0];
+          if (idx != null) {
+            const num = Number(idx);
+            mapRes[num] = s;
+            times[num] = s.workoutTime;
+            days.push(num);
+          }
         });
-
-        console.log("운동 스케줄 조회 성공:", fetchedSchedules);
-        setSchedules(dayScheduleMap);
-        setWorkoutTimes(times);
-        setSelectedDays(daysWithSchedules);
-      })
-      .catch((err) => {
-        console.error("운동 스케줄 불러오기 실패:", err);
       });
-  }, [userInfo, token]);
 
+      setSchedules(mapRes);
+      setWorkoutTimes(times);
+      setSelectedDays(days);
+    } catch (e) {
+      console.error("스케줄 조회 에러:", e);
+    }
+  };
+
+  // 출석 데이터 조회
+  const fetchAttendance = async () => {
+    if (!userInfo) return;
+    const now = new Date();
+    const months = [
+      new Date(now.getFullYear(), now.getMonth() - 1),
+      now,
+      new Date(now.getFullYear(), now.getMonth() + 1),
+    ];
+    const results = await Promise.all(
+      months.map(async (m) => {
+        const year = m.getFullYear();
+        const month0 = m.getMonth();
+        const maxDay = new Date(year, month0 + 1, 0).getDate();
+        const list: AttendanceData[] = [];
+        for (let d = 1; d <= maxDay; d++) {
+          const dateStr = `${year}-${String(month0 + 1).padStart(2, "0")}-${String(
+            d
+          ).padStart(2, "0")}`;
+          try {
+            const resp = await axios.get(
+              `http://13.209.19.146:3000/api/images/workout?userId=${userInfo.id}&workoutDate=${dateStr}`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            list.push({ date: dateStr, hasImage: resp.data.workouts.length > 0 });
+          } catch {
+            list.push({ date: dateStr, hasImage: false });
+          }
+        }
+        return list;
+      })
+    );
+    console.log("출석 데이터 조회 완료");
+    setAttendance({ prevMonth: results[0], currentMonth: results[1], nextMonth: results[2] });
+  };
+
+  // 초기 데이터 로드
+  useEffect(() => {
+    if (userInfo) {
+      fetchSchedules();
+      fetchAttendance();
+    }
+  }, [userInfo]);
+
+  // 핸들러
   const handleTimeChange = (day: number, value: string) => {
     setWorkoutTimes((prev) => ({ ...prev, [day]: value }));
   };
@@ -132,106 +204,124 @@ export default function WorkoutTable() {
 
   const handleRegister = async () => {
     if (!userInfo) {
-      alert("사용자 정보가 없습니다. 로그인해 주세요.");
+      alert("로그인이 필요합니다.");
       return;
     }
     if (selectedDays.length === 0) {
-      alert("최소 하나의 요일을 선택해 주세요.");
+      alert("요일을 선택해 주세요.");
       return;
     }
-
     try {
-      // 각 선택된 요일에 대해 개별적으로 API 호출 (중복 없이 등록됨)
-      for (const day of selectedDays) {
-        // workoutTimes 객체에서 해당 요일의 시간을 가져옴
-        const workoutTime = workoutTimes[day];
-        if (!workoutTime) {
-          alert("모든 선택된 요일에 운동 시간을 입력해 주세요.");
-          return;
-        }
-
-        const payload = {
-          userId: userInfo.id,
-          workoutTime,
-          days: [day], // 단일 요일 배열로 전송
-        };
-
-        await axios.post(`http://13.209.19.146:3000/api/workout-schedule`, payload, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        console.log(`${dayMap[day]}요일 등록 성공`);
-      }
-
-      alert("운동 시간 등록 완료!");
-      window.location.reload();
-    } catch (err: any) {
-      console.error("등록 오류:", err);
-      alert(err.response?.data?.message || "운동 시간 등록 중 오류가 발생했습니다.");
+      const responses = await Promise.all(
+        selectedDays.map((day) => {
+          const time = workoutTimes[day];
+          if (!time) throw new Error("시간을 입력해 주세요.");
+          return axios.post(
+            `http://13.209.19.146:3000/api/workout-schedule`,
+            { userId: userInfo.id, workoutTime: time, days: [day] },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        })
+      );
+      console.log("등록 응답:", responses.map(r => r.data));
+      alert("등록 완료");
+      fetchSchedules();
+    } catch (e: any) {
+      console.error("등록 실패:", e);
+      alert(e.message || e.response?.data?.message || "등록 실패");
     }
   };
 
-  const handleUpdate = () => {
-    selectedDays.forEach((day) => {
-      const schedule = schedules[day];
-      const workoutTime = workoutTimes[day];
-
-      if (schedule && workoutTime) {
-        axios
-          .put(`http://13.209.19.146:3000/api/workout-schedule/${schedule.id}`, {
-            workoutTime,
-            days: [day],
-          }, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          .then(() => {
-            console.log(`${dayMap[day]}요일 수정 완료`);
-          })
-          .catch((err) => {
-            console.error(`${dayMap[day]} 수정 오류:`, err);
-          });
-      }
-    });
-
-    alert("수정 완료!");
-    window.location.reload();
+  const handleUpdate = async () => {
+    try {
+      const responses = await Promise.all(
+        selectedDays.map((day) => {
+          const sched = schedules[day];
+          const time = workoutTimes[day];
+          if (sched && time) {
+            return axios.put(
+              `http://13.209.19.146:3000/api/workout-schedule/${sched.id}`,
+              { workoutTime: time, days: [day] },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+          }
+          return Promise.resolve(null);
+        })
+      );
+      console.log("수정 응답:", responses.filter(r => r)?.map(r => r!.data));
+      alert("수정 완료");
+      fetchSchedules();
+    } catch (e) {
+      console.error("수정 실패:", e);
+      alert("수정 실패");
+    }
   };
 
-  const handleDelete = () => {
-    selectedDays.forEach((day) => {
-      const schedule = schedules[day];
-
-      if (schedule) {
-        axios
-          .delete(`http://13.209.19.146:3000/api/workout-schedule/${schedule.id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          .then(() => {
-            console.log(`${dayMap[day]} 삭제 완료`);
-          })
-          .catch((err) => {
-            console.error(`${dayMap[day]} 삭제 오류:`, err);
-          });
-      }
-    });
-
-    alert("삭제 완료!");
-    window.location.reload();
+  const handleDelete = async () => {
+    try {
+      const responses = await Promise.all(
+        selectedDays.map((day) => {
+          const sched = schedules[day];
+          if (sched) {
+            return axios.delete(
+              `http://13.209.19.146:3000/api/workout-schedule/${sched.id}`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+          }
+          return Promise.resolve(null);
+        })
+      );
+      console.log("삭제 응답:", responses.filter(r => r)?.map(r => r!.data));
+      alert("삭제 완료");
+      setSelectedDays([]);
+      fetchSchedules();
+    } catch (e) {
+      console.error("삭제 실패:", e);
+      alert("삭제 실패");
+    }
   };
+
+  // 렌더링
+  const now = new Date();
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1);
+  const next = new Date(now.getFullYear(), now.getMonth() + 1);
 
   return (
     <div className="table-container">
-      <h2>요일별 운동시간 설정</h2>
+      <h2>
+        {userInfo
+          ? `안녕하세요, ${userInfo.name}님 👋`
+          : "요일별 운동시간 설정"}
+      </h2>
+      <div className="calendar-container">
+        <MiniCalendar
+          year={prev.getFullYear()}
+          month={prev.getMonth()}
+          attendance={attendance.prevMonth}
+        />
+        <MiniCalendar
+          year={now.getFullYear()}
+          month={now.getMonth()}
+          attendance={attendance.currentMonth}
+        />
+        <MiniCalendar
+          year={next.getFullYear()}
+          month={next.getMonth()}
+          attendance={attendance.nextMonth}
+        />
+      </div>
+
       <table className="workout-table">
         <thead>
           <tr>
             <th>선택</th>
             <th>요일</th>
-            <th>운동 시간</th>
+            <th>시간</th>
           </tr>
         </thead>
         <tbody>
           {Object.entries(dayMap).map(([key, label]) => {
-            const day = parseInt(key);
+            const day = Number(key);
             return (
               <tr key={day}>
                 <td>
