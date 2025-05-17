@@ -140,13 +140,6 @@ router.post("/upload/:category", verifyToken, upload.single("image"), async (req
                 const workoutEnd = new Date(workoutStart);
                 workoutEnd.setHours(workoutStart.getHours() + 1);
 
-                console.log("📅 Schedule Time from DB:", schedule.workoutTime);
-                console.log("🧭 오늘 요일:", today);
-                console.log("✅ 현재 시간:", now);
-                console.log("✅ 운동 시작:", workoutStart);
-                console.log("✅ 운동 종료:", workoutEnd);
-                
-
                 return now >= workoutStart && now <= workoutEnd;
             });
 

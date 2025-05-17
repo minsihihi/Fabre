@@ -94,7 +94,7 @@ const MemberScheduleGrid: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const trainerRes = await axios.get('hhttp://13.209.19.146:3000/api/member/trainer', {
+        const trainerRes = await axios.get('http://13.209.19.146:3000/api/member/trainer', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setTrainer(trainerRes.data.trainer);
