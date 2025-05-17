@@ -167,7 +167,6 @@ router.post("/upload/:category", verifyToken, upload.single("image"), async (req
 });
 
 
-
 /* ----------------------------------- */
 /* ✅ 업로드된 '식단' 이미지 조회 API (날짜 + 식사 유형 기반) */
 /* ----------------------------------- */
