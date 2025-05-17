@@ -533,10 +533,11 @@ router.get('/trainer/members', verifyToken, checkRole(['trainer']), async (req, 
             },
             include: [{
                 model: User,
+                as : 'member',
                 attributes: ['id', 'login_id', 'name', 'createdAt']
             }],
             // 회원 아이디와 시작 날짜, 남은 세션, 회원 상태(활성 비활성)
-            attributes: ['id', 'startDate', 'sessionsLeft', 'status'], 
+            attributes: ['id', 'trainerId', 'memberId','startDate', 'sessionsLeft', 'status'], 
             order: [['startDate', 'DESC']]
         });
 
