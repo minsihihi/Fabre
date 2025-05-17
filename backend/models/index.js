@@ -39,8 +39,8 @@ Object.keys(db).forEach(modelName => {
 });
 
 // ✅ 누락된 수동 관계 추가 (associate 없는 모델들)
-db.TrainerMembers.belongsTo(db.User, { foreignKey: 'memberId', as: 'member' });
-db.TrainerMembers.belongsTo(db.User, { foreignKey: 'trainerId', as: 'trainer' });
+// db.TrainerMembers.belongsTo(db.User, { foreignKey: 'memberId', as: 'member' });
+// db.TrainerMembers.belongsTo(db.User, { foreignKey: 'trainerId', as: 'trainer' });
 
 db.WorkoutLog.hasMany(db.WorkoutDetail, { foreignKey: 'workout_log_id' });
 db.WorkoutDetail.belongsTo(db.WorkoutLog, { foreignKey: 'workout_log_id' });
