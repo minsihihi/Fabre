@@ -80,6 +80,7 @@ const upload = multer({
 
 
 // ✅ 식단, 프로필, 운동 이미지 업로드 API (1개 파일만 허용)
+// ✅ 식단, 프로필, 운동 이미지 업로드 API (1개 파일만 허용)
 router.post("/upload/:category", verifyToken, upload.single("image"), async (req, res) => {
     try {
         console.log("🔹 [DEBUG] 업로드 요청 - category:", req.params.category);
@@ -105,12 +106,13 @@ router.post("/upload/:category", verifyToken, upload.single("image"), async (req
             }
             if (!mealDate) return res.status(400).json({ message: "mealDate가 필요합니다." });
 
-            const meal = await Meal.create({ userId: req.user.id, imageUrl, mealType, mealDate });
+            // userId -> user_id로 변경
+            const meal = await Meal.create({ user_id: req.user.id, imageUrl, mealType, mealDate });
             recordId = meal.id;
 
         } else if (category === "profile") {
-            await Profile.destroy({ where: { userId: req.user.id } });
-            const profile = await Profile.create({ userId: req.user.id, imageUrl });
+            await Profile.destroy({ where: { user_id: req.user.id } });  // userId -> user_id로 변경
+            const profile = await Profile.create({ user_id: req.user.id, imageUrl });  // userId -> user_id로 변경
             recordId = profile.id;
 
         } else if (category === "workout") {
@@ -122,7 +124,7 @@ router.post("/upload/:category", verifyToken, upload.single("image"), async (req
             // 사용자 스케줄 중 오늘 요일(active) 스케줄 찾기
             const schedules = await WorkoutSchedule.findAll({
                 where: {
-                    userId,
+                    user_id: userId,  // userId -> user_id로 변경
                     isActive: true,
                     days: {
                         [Op.like]: `%${today}%`
@@ -133,8 +135,6 @@ router.post("/upload/:category", verifyToken, upload.single("image"), async (req
             if (!schedules || schedules.length === 0) {
                 return res.status(403).json({ message: "오늘 등록된 운동 스케줄이 없습니다." });
             }
-            
-
 
             // 현재 시간이 해당 스케줄의 운동 시간 ±1시간 이내인지 확인
             const isWithinTime = schedules.some(schedule => {
@@ -147,14 +147,12 @@ router.post("/upload/:category", verifyToken, upload.single("image"), async (req
                 return now >= workoutStart && now <= workoutEnd;
             });
 
-
-
             if (!isWithinTime) {
                 return res.status(403).json({ message: "운동 인증 가능한 시간이 아닙니다." });
             }
 
             // 통과하면 업로드
-            const workout = await Workout.create({ userId, imageUrl });
+            const workout = await Workout.create({ user_id: userId, imageUrl });  // userId -> user_id로 변경
             recordId = workout.id;
         }
 

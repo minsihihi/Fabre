@@ -52,6 +52,7 @@ db.MealAnalysis.belongsTo(db.Meal, { foreignKey: 'mealId' });
 
 db.Profile.belongsTo(db.User, { foreignKey: 'userId' });
 db.Workout.belongsTo(db.User, { foreignKey: 'userId' });
+db.Workout.belongsTo(db.User, { foreignKey: 'userId' });
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
