@@ -82,6 +82,24 @@ body {
   font-size: 0.95rem;
 }
 
+.raw-json-container {
+  margin-top: 2rem;
+  padding: 1rem;
+  background-color: #272822;
+  color: #f8f8f2;
+  font-family: "Courier New", monospace;
+  border-radius: 8px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+}
+
+.raw-json-container h2 {
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  color: #66d9ef;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .trainer-records-container {
@@ -99,5 +117,9 @@ body {
 
   .detail-item {
     padding: 0.5rem;
+  }
+
+  .raw-json-container {
+    font-size: 0.85rem;
   }
 }

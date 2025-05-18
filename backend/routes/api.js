@@ -805,12 +805,19 @@ router.post('/record', verifyToken, async(req, res) => {
         if (exercises && exercises.length > 0) {
             for (let exerciseData of exercises) {
                 // 운동 정보 생성 또는 찾기
-                const [exercise] = await Exercise.findOrCreate({
-                    where: { 
-                        name: exerciseData.name, 
-                        category: exerciseData.category 
+                let exercise = await Exercise.findOne({
+                    where: {
+                        name: exerciseData.name,
+                        category: exerciseData.category
+                        }
+                    });
+                    
+                    if (!exercise) {
+                        exercise = await Exercise.create({
+                        name: exerciseData.name,
+                        category: exerciseData.category
+                        });
                     }
-                });
 
                 // 운동 상세 정보 생성
                 await WorkoutDetail.create({

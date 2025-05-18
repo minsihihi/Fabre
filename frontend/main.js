@@ -57,7 +57,7 @@ import("electron-is-dev").then(async (module) => {
     function createWindow() {
         mainWindow = new BrowserWindow({
         width: 1200,
-        height: 800,
+        height: 1500,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,

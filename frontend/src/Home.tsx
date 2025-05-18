@@ -2,17 +2,30 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./Home.css";
 
-// --- Helper Functions ---
 
 const dayMap: { [key: number]: string } = {
-  0: "Sun",
-  1: "Mon",
-  2: "Tue",
-  3: "Wed",
-  4: "Thu",
-  5: "Fri",
-  6: "Sat",
+  0: "Sunday",
+  1: "Monday",
+  2: "Tuesday",
+  3: "Wednesday",
+  4: "Thursday",
+  5: "Friday",
+  6: "Saturday",
 };
+
+const fullDayMap: { [key: string]: number } = {
+  Sunday: 0,
+  Monday: 1,
+  Tuesday: 2,
+  Wednesday: 3,
+  Thursday: 4,
+  Friday: 5,
+  Saturday: 6,
+};
+
+
+const shortDayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 
 // --- Type Definitions ---
 
@@ -48,7 +61,7 @@ const MiniCalendar: React.FC<{ year: number; month: number; attendance: Attendan
     <div className="mini-calendar">
       <h3 className="calendar-title">{`${year}년 ${monthName}`}</h3>
       <div className="calendar-header">
-        {Object.values(dayMap).map((day, index) => (
+        {shortDayNames.map((day, index) => (
           <div key={index} className="day-name">
             {day}
           </div>
@@ -85,11 +98,7 @@ export default function WorkoutTable() {
   const [workoutTimes, setWorkoutTimes] = useState<{ [key: number]: string }>({});
   const [schedules, setSchedules] = useState<{ [key: number]: WorkoutSchedule }>({});
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
-  const [attendance, setAttendance] = useState<{
-    prevMonth: AttendanceData[];
-    currentMonth: AttendanceData[];
-    nextMonth: AttendanceData[];
-  }>({ prevMonth: [], currentMonth: [], nextMonth: [] });
+  const [attendance, setAttendance] = useState<{ prevMonth: AttendanceData[]; currentMonth: AttendanceData[]; nextMonth: AttendanceData[] }>({ prevMonth: [], currentMonth: [], nextMonth: [] });
   const token = localStorage.getItem("token");
 
   // 내 정보 조회
@@ -127,14 +136,14 @@ export default function WorkoutTable() {
       const times: { [key: number]: string } = {};
       const days: number[] = [];
 
+      // Full 이름 매핑 사용
       fetched.forEach((s) => {
-        s.days.split(",").forEach((d) => {
-          const idx = Object.entries(dayMap).find(([, v]) => v === d)?.[0];
-          if (idx != null) {
-            const num = Number(idx);
-            mapRes[num] = s;
-            times[num] = s.workoutTime;
-            days.push(num);
+        s.days.split(",").map(d => d.trim()).forEach((d) => {
+          const idx = fullDayMap[d];
+          if (idx !== undefined) {
+            mapRes[idx] = s;
+            times[idx] = s.workoutTime;
+            days.push(idx);
           }
         });
       });
@@ -165,7 +174,7 @@ export default function WorkoutTable() {
         for (let d = 1; d <= maxDay; d++) {
           const dateStr = `${year}-${String(month0 + 1).padStart(2, "0")}-${String(
             d
-          ).padStart(2, "0")}`;
+          ).padStart(2, "00")}`;
           try {
             const resp = await axios.get(
               `http://13.209.19.146:3000/api/images/workout?userId=${userInfo.id}&workoutDate=${dateStr}`,

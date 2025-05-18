@@ -1,0 +1,23 @@
+.body-container {
+  position: relative;
+  width: 300px;
+  margin: 2rem auto;
+}
+
+.body-image {
+  width: 100%;
+  display: block;
+}
+
+.muscle-marker {
+  position: absolute;
+  padding: 4px 6px;
+  color: white;
+  font-size: 12px;
+  border-radius: 6px;
+  transform: translate(-50%, -50%);
+  pointer-events: all;
+  font-weight: bold;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+}
