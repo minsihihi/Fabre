@@ -15,7 +15,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         imageUrl: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         },
         mealDate: {
             type: DataTypes.DATEONLY,
@@ -25,6 +25,27 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.ENUM('breakfast', 'lunch', 'dinner'),
             allowNull: true
         },
+        carb: {
+            type: DataTypes.STRING,  // 음식 이름으로 변경
+            allowNull: false,
+            validate: {
+                isIn: [['삶은고구마', '밥', '바나나']]  // carb 음식 이름 리스트
+            }
+        },
+        protein: {
+            type: DataTypes.STRING,  // 음식 이름으로 변경
+            allowNull: false,
+            validate: {
+                isIn: [['닭가슴살구이', '쇠고기구이', '두부', '연어구이']]  // protein 음식 이름 리스트
+            }
+        },
+        fat: {
+            type: DataTypes.STRING,  // 음식 이름으로 변경
+            allowNull: false,
+            validate: {
+                isIn: [['아몬드', '캐슈넛', '방울토마토']]  // fat 음식 이름 리스트
+            }
+        },
         analysisResult: {
             type: DataTypes.JSON,
             allowNull: true
@@ -32,7 +53,6 @@ module.exports = (sequelize, DataTypes) => {
     }, {
         tableName: 'meals',
         timestamps: true,
-        underscored: true
     });
 
     Meal.associate = function(models) {
