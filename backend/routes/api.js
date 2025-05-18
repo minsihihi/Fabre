@@ -406,6 +406,23 @@ router.get('/meal', verifyToken, async (req, res) => {
     }
 });
 
+// 유저가 업로드한 전체 식단 조회
+router.get('/meals', verifyToken, async (req, res) => {
+    try {
+        const meals = await Meal.findAll({
+            where: { userId: req.user.id },
+            order: [['mealDate', 'DESC'], ['mealType', 'ASC']],
+            attributes: ['id', 'mealDate', 'mealType', 'imageUrl', 'matchRate', 'detection']
+        });
+
+        return res.status(200).json({ message: '식단 전체 조회 성공', meals });
+    } catch (error) {
+        console.error("❌ 전체 식단 조회 오류:", error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message });
+    }
+});
+
+
 
 
 // 식단 crud
