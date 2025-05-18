@@ -8,7 +8,6 @@ module.exports = (sequelize, DataTypes) => {
         name: {
             type: DataTypes.STRING(100),
             allowNull: false,
-            unique: true
         },
         category: {
             type: DataTypes.ENUM('상체', '하체', '전신', '유산소'),
