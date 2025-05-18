@@ -1,4 +1,4 @@
-/* ─────────────── 공통 컨테이너 ─────────────── */
+/* Meals.css */
 .meal-container {
   max-width: 900px;
   margin: 20px auto;
@@ -11,32 +11,19 @@
 }
 
 .meal-container h1,
-.meal-container h2,
-.meal-container h3 {
+.meal-container h2 {
   text-align: center;
   color: #333;
 }
 
-.meal-container h1 {
-  margin-bottom: 20px;
-  font-size: 28px;
-}
-
-.meal-container h2 {
-  margin: 40px 0 20px;
-  font-size: 24px;
-}
-
-/* ─────────────── 달력 박스 ─────────────── */
 .calendar-box {
   margin-bottom: 30px;
   text-align: center;
 }
 
-/* ─────────────── 팝업 오버레이 ─────────────── */
 .popup-overlay {
   position: fixed;
-  inset: 0; /* top:0; left:0; right:0; bottom:0; 의 축약 */
+  inset: 0;
   background: rgba(0, 0, 0, 0.45);
   display: flex;
   justify-content: center;
@@ -44,22 +31,13 @@
   z-index: 1000;
 }
 
-/* ─────────────── 팝업 카드 ─────────────── */
-.popup-content,
-.popup-card {
+.popup-content {
   background: #fff;
   padding: 25px 30px;
   border-radius: 12px;
   width: 280px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   text-align: center;
-}
-
-.popup-content h3,
-.popup-card h3 {
-  margin-bottom: 20px;
-  font-size: 22px;
-  color: #222;
 }
 
 .popup-button {
@@ -73,14 +51,8 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
 }
 
-.popup-button:hover {
-  background-color: #218838;
-}
-
-/* ─────────────── 파일 업로드 ─────────────── */
 .file-input-label {
   display: inline-block;
   padding: 12px 20px;
@@ -89,19 +61,12 @@
   border-radius: 8px;
   cursor: pointer;
   margin-top: 10px;
-  font-weight: 600;
-  transition: background-color 0.3s ease;
-}
-
-.file-input-label:hover {
-  background-color: #0056b3;
 }
 
 input[type="file"] {
   display: none;
 }
 
-/* ─────────────── 사진 박스 ─────────────── */
 .meal-box {
   padding: 20px;
   text-align: center;
@@ -119,7 +84,6 @@ input[type="file"] {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* ─────────────── 나의 하루 식사 ─────────────── */
 .daily-meals {
   margin-top: 40px;
 }
@@ -152,27 +116,4 @@ input[type="file"] {
 .no-image {
   color: #888;
   margin-top: 40px;
-}
-
-/* ─────────────── 회원 선택 (트레이너 전용) ─────────────── */
-.member-select-wrapper {
-  margin: 20px 0;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.member-select-wrapper label {
-  font-weight: 600;
-}
-
-/* ─────────────── 추가 추천 섹션 (트레이너 전용) ─────────────── */
-.recommendation-section {
-  text-align: center;
-  margin-top: 40px;
-}
-
-.recommendation-section ul {
-  margin-top: 20px;
-  line-height: 1.8;
 }

@@ -101,18 +101,38 @@ export default function Meals() {
     setStep("choose");
   };
 
-  // 파일 업로드
+  // mealId 조회 (POST 전에 반드시 필요)
+  const fetchMealId = async (): Promise<number | null> => {
+    if (!userId || !selectedMealTime) return null;
+    try {
+      const res = await axios.get("http://13.209.19.146:3000/api/meal", {
+        params: {
+          userId,
+          mealDate: formatDate(selectedDate),
+          mealType: mealTypeMap[selectedMealTime],
+        },
+      });
+      return res.data.id;
+    } catch {
+      return null;
+    }
+  };
+
+  // 파일 업로드 (새 API: 쿼리 파라미터로 mealId)
   const uploadFile = async (file: File) => {
     if (!selectedMealTime || !userId) return;
+    const mealId = await fetchMealId();
+    if (mealId === null) {
+      alert("먼저 식단을 생성(탄단지 입력)해야 사진을 업로드할 수 있습니다.");
+      return;
+    }
+
     const form = new FormData();
     form.append("image", file);
-    form.append("mealType", mealTypeMap[selectedMealTime]);
-    form.append("mealDate", formatDate(selectedDate));
-    form.append("userId", userId.toString());
 
     try {
       const res = await axios.post(
-        "http://13.209.19.146:3000/api/upload/meal",
+        `http://13.209.19.146:3000/api/upload/meal?mealId=${mealId}`,
         form
       );
       alert(res.data.message);
@@ -152,6 +172,7 @@ export default function Meals() {
     };
   }, [step]);
 
+  // 촬영
   const capturePhoto = () => {
     if (!videoRef.current) return;
     const video = videoRef.current;
@@ -162,10 +183,7 @@ export default function Meals() {
     if (!ctx) return;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     canvas.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], "meal.jpg", { type: "image/jpeg" });
-        uploadFile(file);
-      }
+      if (blob) uploadFile(new File([blob], "meal.jpg", { type: "image/jpeg" }));
     }, "image/jpeg");
   };
 
@@ -218,16 +236,6 @@ export default function Meals() {
                 >
                   📷 카메라 촬영
                 </button>
-
-                <label className="file-input-label" htmlFor="file">
-                  파일 선택
-                </label>
-                <input
-                  id="file"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFile}
-                />
 
                 <button
                   className="popup-button"

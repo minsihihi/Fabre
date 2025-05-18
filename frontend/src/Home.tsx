@@ -2,19 +2,17 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./Home.css";
 
-// --- Helper Functions ---
 
 const dayMap: { [key: number]: string } = {
-  0: "Sun",
-  1: "Mon",
-  2: "Tue",
-  3: "Wed",
-  4: "Thu",
-  5: "Fri",
-  6: "Sat",
+  0: "Sunday",
+  1: "Monday",
+  2: "Tuesday",
+  3: "Wednesday",
+  4: "Thursday",
+  5: "Friday",
+  6: "Saturday",
 };
 
-// Full day names to index map
 const fullDayMap: { [key: string]: number } = {
   Sunday: 0,
   Monday: 1,
@@ -24,6 +22,10 @@ const fullDayMap: { [key: string]: number } = {
   Friday: 5,
   Saturday: 6,
 };
+
+
+const shortDayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 
 // --- Type Definitions ---
 
@@ -59,7 +61,7 @@ const MiniCalendar: React.FC<{ year: number; month: number; attendance: Attendan
     <div className="mini-calendar">
       <h3 className="calendar-title">{`${year}년 ${monthName}`}</h3>
       <div className="calendar-header">
-        {Object.values(dayMap).map((day, index) => (
+        {shortDayNames.map((day, index) => (
           <div key={index} className="day-name">
             {day}
           </div>
