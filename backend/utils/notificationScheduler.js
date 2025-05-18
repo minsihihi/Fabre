@@ -87,7 +87,7 @@ const scheduleWorkoutNotification = (schedule) => {
                         eventEmitter.emit("notification", {
                             title: "오운완 미제출 알림",
                             message: `회원 ${memberName}님이 운동 인증 사진을 제출하지 않았습니다.`,
-                            userId: trainerId
+                            targetTrainerId: trainerId
                         });
                 
                         // OS 알림
