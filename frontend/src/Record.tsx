@@ -1,11 +1,17 @@
 import { useState, useEffect } from "react";
+import BodyVisualization from "./BodyVisualization"; // 시각화 컴포넌트 추가
 import "./Record.css";
 
 export default function Report() {
-  const [selectedMonth, setSelectedMonth] = useState<number>(1);
-  const [selectedWeek, setSelectedWeek] = useState<number>(1);
+  const today = new Date();
+  const currentMonth = today.getMonth() + 1;
+  const currentWeek = Math.ceil(today.getDate() / 7);
+
+  const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
+  const [selectedWeek, setSelectedWeek] = useState<number>(currentWeek);
   const [viewType, setViewType] = useState<string>("주간");
   const [reportData, setReportData] = useState<any>(null);
+  const [userInfo, setUserInfo] = useState<any>(null);
 
   const handleMonthChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedMonth(Number(event.target.value));
@@ -20,21 +26,43 @@ export default function Report() {
   };
 
   useEffect(() => {
+    const fetchUserInfo = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      try {
+        const response = await fetch("http://13.209.19.146:3000/api/users/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        setUserInfo(data);
+      } catch (error) {
+        console.error("사용자 정보 불러오기 실패:", error);
+      }
+    };
+
+    fetchUserInfo();
+  }, []);
+
+  useEffect(() => {
     const fetchReport = async () => {
+      if (!userInfo?.id) return;
+
       try {
         const response = await fetch("http://13.209.19.146:3000/api/workouts/analyze-weekly", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${localStorage.getItem("token")}` // 혹은 적절한 인증 방식 적용
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-          body: JSON.stringify({
-            memberId: "12345" // 실제 memberId로 수정 필요
-          }),
+          body: JSON.stringify({ memberId: userInfo.id }),
         });
         const data = await response.json();
         if (data.report) {
-          setReportData(data.report);
+          setReportData({
+            ...data.report,
+            muscle_breakdown: data.muscle_breakdown || [],
+          });
         } else {
           console.error("리포트가 없습니다.");
         }
@@ -44,7 +72,7 @@ export default function Report() {
     };
 
     fetchReport();
-  }, [selectedMonth, selectedWeek, viewType]);
+  }, [userInfo, selectedMonth, selectedWeek, viewType]);
 
   return (
     <div className="record-container">
@@ -63,9 +91,7 @@ export default function Report() {
           <label htmlFor="month">월:</label>
           <select id="month" value={selectedMonth} onChange={handleMonthChange}>
             {[...Array(12)].map((_, index) => (
-              <option key={index} value={index + 1}>
-                {index + 1}월
-              </option>
+              <option key={index} value={index + 1}>{index + 1}월</option>
             ))}
           </select>
         </div>
@@ -77,9 +103,7 @@ export default function Report() {
           <label htmlFor="week">주차:</label>
           <select id="week" value={selectedWeek} onChange={handleWeekChange}>
             {[1, 2, 3, 4].map((week) => (
-              <option key={week} value={week}>
-                {week}주
-              </option>
+              <option key={week} value={week}>{week}주</option>
             ))}
           </select>
         </div>
@@ -90,10 +114,18 @@ export default function Report() {
         <div className="record-box">
           {reportData ? (
             <div className="record-data">
+              {console.log("✅ muscle_breakdown:", reportData.muscle_breakdown)}
               <p>🔥 총 소모 칼로리: {reportData.total_calories_burned} kcal</p>
               <p>💪 근육 변화: {reportData.muscle_change} kg</p>
               <p>⚖️ 체중 변화: {reportData.body_change} kg</p>
               <p>📢 피드백: {reportData.feedback}</p>
+
+              {reportData.muscle_breakdown && (
+                <div>
+                  <h3 className="record-subtitle">📍 부위별 근육 증가</h3>
+                  <BodyVisualization data={reportData.muscle_breakdown} />
+                </div>
+              )}
             </div>
           ) : (
             <p>리포트를 불러오는 중...</p>
