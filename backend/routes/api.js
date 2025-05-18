@@ -41,6 +41,29 @@ const { setLoggedInUser } = require('../utils/notificationScheduler');
 require('dotenv').config({ path: 'backend/.env' });
 
 
+// 🎯 식단 분석 인덱스 일치율 계산 함수
+function calculateMatchRate(meal, detectedIndexes) {
+    const classNames = [
+        "닭가슴살구이", "방울토마토", "삶은고구마", "삶은달걀",
+        "쇠고기구이", "두부", "연어구이",
+        "밥", "단호박", "바나나",
+        "아몬드", "캐슈넛"
+    ];
+
+    const expectedFoods = [meal.carb, meal.protein, meal.fat];
+    const detectedFoods = detectedIndexes.map(i => classNames[parseInt(i)]);
+    const matchCount = expectedFoods.filter(food => detectedFoods.includes(food)).length;
+    const matchRate = Math.round((matchCount / expectedFoods.length) * 100);
+
+    return {
+        expectedFoods,
+        detectedFoods,
+        matchCount,
+        matchRate
+    };
+}
+
+
 
 // ✅ OpenAI API 설정
 const openai = new OpenAI({
@@ -269,30 +292,38 @@ router.get("/images/profile", async (req, res) => {
 });
 
 
+
 /* ----------------------------------- */
 /* ✅ 2. OpenAI API를 이용한 식단 분석 API */
 /* ----------------------------------- */
 router.post('/meals/analyze', verifyToken, async (req, res) => {
     try {
         const { mealId } = req.query;
-        if (!mealId) return res.status(400).json({ message: "mealId가 필요합니다." });
+        if (!mealId) {
+            return res.status(400).json({ message: "mealId가 필요합니다." });
+        }
 
-        // ✅ `mealId`를 기반으로 DB에서 해당 식단 찾기
+        // ✅ 식단 조회
         const meal = await Meal.findByPk(mealId);
-        if (!meal) return res.status(404).json({ message: "해당 mealId의 식단을 찾을 수 없습니다." });
+        if (!meal) {
+            return res.status(404).json({ message: "해당 mealId의 식단을 찾을 수 없습니다." });
+        }
 
-        // ✅ DB에서 `fileId` 가져오기
-        const fileId = meal.fileId;  // 🔹 meal 테이블에 fileId 필드가 있어야 함
-        if (!fileId) return res.status(400).json({ message: "해당 mealId에 대한 파일 정보가 없습니다." });
+        const imageUrl = meal.imageUrl;
+        if (!imageUrl) {
+            return res.status(400).json({ message: "해당 식단에 imageUrl이 없습니다." });
+        }
 
-        // ✅ S3 이미지 URL 생성
-        const imageUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/meal/${fileId}`;
+        // ✅ imageUrl에서 fileId 추출
+        const fileId = imageUrl.split('.com/')[1];
+        if (!fileId) {
+            return res.status(400).json({ message: "imageUrl에서 fileId를 추출할 수 없습니다." });
+        }
+
         console.log(`✅ 분석할 이미지 URL: ${imageUrl}`);
 
-        // 🔹 OpenAI Vision API 요청 (🚀 수정된 부분)
+        // ✅ OpenAI Vision API 요청
         const response = await openai.chat.completions.create({
-            
-            // gpt 모델명
             model: "gpt-4o-mini",
             messages: [
                 {
@@ -302,24 +333,47 @@ router.post('/meals/analyze', verifyToken, async (req, res) => {
                 {
                     role: "user",
                     content: [
-                        { type: "text", text: "Analyze this meal and estimate the calorie count. Please calculate the total amout of calories(unit : kcal), carbs(unit : gram), protein, fat. Also, give a name of a ingredient or menu that can resolve the imbalce amoung the nutrients. (e.g. 칼로리 : 1000kcal, 탄수화물 : 20g, 단백질 : 10g, 지방 : 30g, 추천식단 : 닭가슴살) Remember that you must not depict the ingredient of the menu. Just provide the 3 nutritions of the main dish itself. Please comply with the given e.g. Korean form strictly." },
-                        { type: "image_url", image_url: { url: imageUrl } } // ✅ 수정된 부분
+                        {
+                            type: "text",
+                            text: `Analyze this meal and return the indexes of up to 3 detected ingredients from the following: 
+(닭가슴살구이: 0, 방울토마토: 1, 삶은고구마: 2, 삶은달걀: 3, 쇠고기구이: 4, 두부: 5, 연어구이: 6, 밥: 7, 단호박: 8, 바나나: 9, 아몬드: 10, 캐슈넛: 11).
+Just return a comma-separated index list like: 0, 2, 7`
+                        },
+                        {
+                            type: "image_url",
+                            image_url: { url: imageUrl }
+                        }
                     ]
                 }
             ],
             max_tokens: 300
         });
 
-        // ✅ OpenAI 응답 데이터 저장
+        // ✅ 응답 처리
         const analysisResult = response.choices[0].message.content;
         console.log("🔍 AI 분석 결과:", analysisResult);
 
-        // ✅ 추천 식단 추출
-        const match = analysisResult.match(/추천식단\s*:\s*(.+)/);
-        const recommendedFood = match ? match[1].trim() : null;
-        console.log("✅ 추천 식단:", recommendedFood);
+        const match = analysisResult.match(/([0-9,\s]+)/);
+        const recommendedFood = match ? match[1].replace(/\s+/g, '') : null;
+        if (!recommendedFood) {
+            return res.status(400).json({ message: "분석 결과를 파싱할 수 없습니다." });
+        }
 
-        // ✅ DB에 저장 (새로운 `MealAnalysis` 데이터 생성)
+        const detectedIndexes = recommendedFood.split(',').map(v => v.trim());
+        const matchInfo = calculateMatchRate(meal, detectedIndexes);
+
+        // ✅ Meal에 결과 저장
+        meal.detection = detectedIndexes;
+        meal.analysisResult = {
+            matchRate: matchInfo.matchRate,
+            expectedFoods: matchInfo.expectedFoods,
+            detectedFoods: matchInfo.detectedFoods,
+            matchedCount: matchInfo.matchCount
+        };
+        meal.matchRate = matchInfo.matchRate;
+        await meal.save();
+
+        // ✅ 분석 로그 저장
         const mealAnalysis = await MealAnalysis.create({
             userId: req.user.id,
             mealId,
@@ -332,6 +386,8 @@ router.post('/meals/analyze', verifyToken, async (req, res) => {
             message: '식단 분석 완료',
             analysisResult,
             recommendedFood,
+            matchRate: matchInfo.matchRate,
+            matchedCount: matchInfo.matchCount,
             analysisId: mealAnalysis.id
         });
 
@@ -340,6 +396,39 @@ router.post('/meals/analyze', verifyToken, async (req, res) => {
         res.status(500).json({ message: '서버 오류', error: error.message });
     }
 });
+
+router.get('/meal', verifyToken, async (req, res) => {
+    try {
+        const { mealId } = req.query;
+
+        if (!mealId) {
+            return res.status(400).json({ message: "mealId가 필요합니다." });
+        }
+
+        const meal = await Meal.findOne({
+            where: {
+                userId: req.user.id,
+                id: mealId
+            }
+        });
+
+        if (!meal) {
+            return res.status(404).json({ message: "식단을 찾을 수 없습니다." });
+        }
+
+        // ✅ matchRate 추출
+        const matchRate = meal.analysisResult?.matchRate ?? null;
+
+        return res.status(200).json({
+            meal,
+            matchRate
+        });
+
+    } catch (err) {
+        return res.status(400).json({ message: "Failed to get meal", error: err });
+    }
+});
+
 
 
 // 식단 crud
