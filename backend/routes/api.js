@@ -7,6 +7,8 @@ const router = express.Router();
 const bcrypt = require('bcrypt'); 
 const jwt = require('jsonwebtoken'); 
 
+const mealController = require('../controllers/mealController');
+
 const multer = require('multer');  
 const multerS3 = require('multer-s3');
 
@@ -314,42 +316,153 @@ router.post('/meals/analyze', verifyToken, async (req, res) => {
         res.status(500).json({ message: '서버 오류', error: error.message });
     }
 });
-
-router.get('/meals/recommend', verifyToken, async (req, res) => {
+// 식단 이미지 업로드 및 등록
+router.post("/upload/:category", verifyToken, upload.single("image"), async (req, res) => {
     try {
-        const { analysisId } = req.query;
-        if (!analysisId) return res.status(400).json({ message: "analysisId가 필요합니다." });
+        if (!req.file) {
+            return res.status(400).json({ message: "파일이 없습니다. form-data의 Key가 'image'인지 확인하세요." });
+        }
 
-        // ✅ DB에서 추천 식재료 조회
-        const mealAnalysis = await MealAnalysis.findByPk(analysisId);
-        if (!mealAnalysis) return res.status(404).json({ message: "해당 분석 결과를 찾을 수 없습니다." });
+        const { category } = req.params;
+        if (!category || !["meal"].includes(category)) {
+            return res.status(400).json({ message: "잘못된 카테고리입니다." });
+        }
 
-        const food = mealAnalysis.recommendedFood;
-        const encodedFood = encodeURIComponent(food); // URL 인코딩
-        const searchUrl = `https://search.shopping.naver.com/search/all?query=${encodedFood}`;
+        const imageUrl = req.file.location;
+        const { mealType, mealDate, carb, protein, fat } = req.body;
+        if (!["breakfast", "lunch", "snack", "dinner"].includes(mealType)) {
+            return res.status(400).json({ message: "mealType이 올바르지 않습니다." });
+        }
+        if (!mealDate) return res.status(400).json({ message: "mealDate가 필요합니다." });
+        if (!carb || !protein || !fat) {
+            return res.status(400).json({ message: "carb, protein, fat 정보가 모두 필요합니다." });
+        }
 
-        console.log(`🔍 크롤링 대상 URL: ${searchUrl}`);
-
-        // ✅ 네이버 쇼핑 크롤링
-        const { data } = await axios.get(searchUrl);
-        const $ = cheerio.load(data);
-
-        let products = [];
-        $('.basicList_info_area__17Xyo').each((i, el) => {
-            if (i >= 5) return false;  // 5개까지만 가져오기
-            let title = $(el).find('.basicList_title__3P9Q7 a').text();
-            let link = $(el).find('.basicList_title__3P9Q7 a').attr('href');
-            let price = $(el).find('.price_num__2WUXn').text();
-            products.push({ title, price, link });
+        const meal = await Meal.create({
+            userId: req.user.id,
+            imageUrl,
+            mealType,
+            mealDate,
+            carb,
+            protein,
+            fat
         });
 
-        res.status(200).json({ message: '추천 식재료 검색 완료', food, products });
-
+        res.status(201).json({ message: "식단 이미지 업로드 성공", imageUrl, meal });
     } catch (error) {
-        console.error("❌ 크롤링 오류:", error);
-        res.status(500).json({ message: '서버 오류', error: error.message });
+        console.error("❌ 이미지 업로드 오류:", error);
+        res.status(500).json({ message: "서버 오류", error: error.message });
     }
 });
+
+// 식단 crud
+// 트레이너가 식단을 생성
+router.post('/meal', verifyToken, async (req, res) => {
+    const { carb, protein, fat, mealDate, mealType } = req.body;
+    const user = await User.findByPk(req.user.id);
+
+    // 트레이너 권한 확인
+    if (user.role !== 'trainer') {
+        return res.status(403).json({ message: "트레이너만 식단을 올릴 수 있습니다." });
+    }
+
+    try {
+        const meal = await Meal.create({
+            userId: req.user.id,
+            carb,
+            protein,
+            fat,
+            mealDate,
+            mealType,
+        });
+        return res.status(201).json(meal);
+    } catch (err) {
+        return res.status(400).json({ message: "Failed to create meal", error: err });
+    }
+});
+
+// 트레이너가 식단 수정
+router.patch('/meal', verifyToken, async (req, res) => {
+    const { mealId, carb, protein, fat, mealDate, mealType } = req.body;
+    const user = await User.findByPk(req.user.id);
+
+    if (user.role !== 'trainer') {
+        return res.status(403).json({ message: "트레이너만 식단을 수정할 수 있습니다." });
+    }
+
+    try {
+        const meal = await Meal.findByPk(mealId);
+
+        if (!meal) {
+            return res.status(404).json({ message: "올라온 식단이 없습니다." });
+        }
+
+        await meal.update({
+            carb,
+            protein,
+            fat,
+            mealDate,
+            mealType,
+            });
+
+        return res.status(200).json(meal);
+    } catch (err) {
+        return res.status(400).json({ message: "Failed to update meal", error: err });
+    }
+});
+
+// 식단
+// 트레이너가 식단 삭제
+router.delete('/meal', verifyToken, async (req, res) => {
+    const { mealId } = req.body;
+    const user = await User.findByPk(req.user.id);
+
+    if (user.role !== 'trainer') {
+        return res.status(403).json({ message: "트레이너만 식단을 삭제할 수 있습니다." });
+    }
+
+    try {
+        const meal = await Meal.findByPk(mealId);
+
+        if (!meal) {
+            return res.status(404).json({ message: "식단을 찾을 수 없습니다." });
+        }
+
+        await meal.destroy();
+        return res.status(200).json({ message: "식단 삭제 성공" });
+    } catch (err) {
+        return res.status(400).json({ message: "Failed to delete meal", error: err });
+    }
+});
+
+// 유저가 요청한 특정 mealId 조회
+router.get('/meal', verifyToken, async (req, res) => {
+    try {
+        const { mealId } = req.query;  // 쿼리 파라미터로 mealId 받기
+
+        if (!mealId) {
+            return res.status(400).json({ message: "mealId가 필요합니다." });
+        }
+
+        const meal = await Meal.findOne({
+            where: {
+                userId: req.user.id,
+                id: mealId  // userId와 mealId로 필터링
+            }
+        });
+
+        if (!meal) {
+            return res.status(404).json({ message: "식단을 찾을 수 없습니다." });
+        }
+
+        return res.status(200).json(meal);
+    } catch (err) {
+        return res.status(400).json({ message: "Failed to get meal", error: err });
+    }
+});
+
+
+module.exports = router;
 
 // 회원 가입
 router.post('/register', async (req, res) => {
