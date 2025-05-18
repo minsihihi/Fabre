@@ -376,24 +376,25 @@ Just return a comma-separated index list like: 0, 2, 7`
 
 router.get('/meal', verifyToken, async (req, res) => {
     try {
-        const { mealId } = req.query;
+        const { mealType, mealDate } = req.query;
 
-        if (!mealId) {
-            return res.status(400).json({ message: "mealId가 필요합니다." });
+        if (!mealType || !mealDate) {
+            return res.status(400).json({ message: "mealType과 mealDate가 필요합니다." });
         }
 
         const meal = await Meal.findOne({
             where: {
                 userId: req.user.id,
-                id: mealId
+                mealType,
+                mealDate
             }
         });
 
         if (!meal) {
-            return res.status(404).json({ message: "식단을 찾을 수 없습니다." });
+            return res.status(404).json({ message: "해당 조건의 식단을 찾을 수 없습니다." });
+            
         }
 
-        // ✅ matchRate 추출
         const matchRate = meal.analysisResult?.matchRate ?? null;
 
         return res.status(200).json({
@@ -402,9 +403,28 @@ router.get('/meal', verifyToken, async (req, res) => {
         });
 
     } catch (err) {
-        return res.status(400).json({ message: "Failed to get meal", error: err });
+        return res.status(400).json({ message: "식단 조회 실패", error: err });
     }
 });
+
+
+// 유저가 업로드한 전체 식단 조회
+router.get('/meals', verifyToken, async (req, res) => {
+    try {
+        const meals = await Meal.findAll({
+            where: { userId: req.user.id },
+            order: [['mealDate', 'DESC'], ['mealType', 'ASC']],
+            attributes: ['id', 'mealDate', 'mealType', 'imageUrl', 'matchRate', 'detection']
+        });
+
+        return res.status(200).json({ message: '식단 전체 조회 성공', meals });
+    } catch (error) {
+        console.error("❌ 전체 식단 조회 오류:", error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message });
+    }
+});
+
+
 
 
 
