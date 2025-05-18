@@ -49,7 +49,6 @@ const TrainerRecordsPage: React.FC = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  // 사용자 정보 조회
   useEffect(() => {
     const fetchUserInfo = async () => {
       if (!token) {
@@ -70,7 +69,6 @@ const TrainerRecordsPage: React.FC = () => {
     fetchUserInfo().finally(() => setIsLoading(false));
   }, [token, navigate]);
 
-  // 트레이너 회원 목록 조회
   useEffect(() => {
     if (!token || userInfo?.role !== "trainer") return;
     axios
@@ -81,7 +79,6 @@ const TrainerRecordsPage: React.FC = () => {
       .catch((err) => console.error("회원 목록 조회 오류:", err));
   }, [token, userInfo]);
 
-  // 운동 기록 조회
   const fetchWorkoutRecords = async (memberId: number) => {
     try {
       const res = await axios.get("http://13.209.19.146:3000/api/record", {
@@ -148,6 +145,14 @@ const TrainerRecordsPage: React.FC = () => {
           <p>운동 기록이 없습니다.</p>
         )}
       </div>
+
+      {/* 원시 데이터 출력 영역 */}
+      {workoutRecords.length > 0 && (
+        <div className="raw-json-container">
+          <h2>🔍 원본 운동 로그(JSON)</h2>
+          <pre>{JSON.stringify(workoutRecords, null, 2)}</pre>
+        </div>
+      )}
     </div>
   );
 };
