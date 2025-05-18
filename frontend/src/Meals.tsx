@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+// Meals.tsx
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
@@ -6,64 +7,75 @@ import "./Meals.css";
 
 type MealTime = "아침" | "점심" | "저녁";
 
+// 한글 ↔ 영문 매핑
 const mealTypeMap: Record<MealTime, string> = {
   아침: "breakfast",
   점심: "lunch",
   저녁: "dinner",
 };
+const reverseMealTypeMap: Record<string, MealTime> = {
+  breakfast: "아침",
+  lunch: "점심",
+  dinner: "저녁",
+};
 
-export default function Diet() {
+export default function Meals() {
   const [userId, setUserId] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [showMealTimePopup, setShowMealTimePopup] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+  const [step, setStep] = useState<"selectTime" | "choose" | "camera">("selectTime");
   const [selectedMealTime, setSelectedMealTime] = useState<MealTime | null>(null);
-  const [mealImages, setMealImages] = useState<Record<string, Record<MealTime, string | null>>>({});
+  const [mealImages, setMealImages] = useState<
+    Record<string, Record<MealTime, string | null>>
+  >({});
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  // 날짜 포맷 YYYY-MM-DD
-  const formatDate = (date: Date) => date.toISOString().split("T")[0];
+  const formatDate = (d: Date) => d.toISOString().slice(0, 10);
 
-  // 현재 로그인한 사용자 정보 조회 (ID 획득)
-  const fetchUser = async () => {
+  // 토큰 설정
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  }, []);
+
+  // 사용자 정보 조회
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await axios.get("http://13.209.19.146:3000/api/users/me");
+        setUserId(res.data.id);
+      } catch (error: any) {
+        console.error("사용자 정보 조회 에러:", error.response?.data || error);
+        alert(
+          error.response?.data?.message ||
+            JSON.stringify(error.response?.data) ||
+            "로그인 상태를 확인해주세요."
+        );
+      }
+    })();
+  }, []);
+
+  // 해당 날짜의 이미지 불러오기
+  const loadImages = async (date: Date) => {
+    if (!userId) return;
+    const mealDate = formatDate(date);
     try {
-      const token = localStorage.getItem("token"); // 토큰 위치에 맞게 수정하세요
-      if (!token) throw new Error("로그인 토큰이 없습니다.");
-
-      const res = await axios.get("http://13.209.19.146:3000/api/users/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUserId(res.data.id);
-    } catch (error) {
-      console.error("사용자 정보 조회 실패", error);
-      alert("사용자 정보를 가져오는데 실패했습니다. 로그인 상태를 확인해주세요.");
-    }
-  };
-
-  // 선택된 날짜 기준 이미지 서버에서 조회
-  const fetchMealImages = async (date: Date) => {
-    if (!userId) return; // userId가 없으면 조회하지 않음
-    try {
-      const mealDate = formatDate(date);
       const res = await axios.get("http://13.209.19.146:3000/api/images/meal", {
         params: { userId, mealDate },
       });
-
-      const meals = res.data.meals;
-      const dayMeals: Record<MealTime, string | null> = { 아침: null, 점심: null, 저녁: null };
-
-      meals.forEach((meal: { mealType: string; imageUrl: string }) => {
-        const key = Object.entries(mealTypeMap).find(([, v]) => v === meal.mealType)?.[0];
-        if (key) {
-          dayMeals[key] = meal.imageUrl;
-        }
+      const day: Record<MealTime, string | null> = { 아침: null, 점심: null, 저녁: null };
+      res.data.meals.forEach((m: { mealType: string; imageUrl: string }) => {
+        const t = reverseMealTypeMap[m.mealType];
+        if (t) day[t] = m.imageUrl;
       });
-
-      setMealImages((prev) => ({
-        ...prev,
-        [mealDate]: dayMeals,
-      }));
-    } catch (error) {
-      console.error("식단 이미지 조회 실패", error);
-      const mealDate = formatDate(date);
+      setMealImages((prev) => ({ ...prev, [mealDate]: day }));
+    } catch (error: any) {
+      console.error("이미지 조회 에러:", error.response?.data || error);
+      alert(
+        error.response?.data?.message ||
+          JSON.stringify(error.response?.data) ||
+          "식단 이미지 로드 중 오류가 발생했습니다."
+      );
       setMealImages((prev) => ({
         ...prev,
         [mealDate]: { 아침: null, 점심: null, 저녁: null },
@@ -72,152 +84,196 @@ export default function Diet() {
   };
 
   useEffect(() => {
-    fetchUser();
-  }, []);
-
-  useEffect(() => {
-    fetchMealImages(selectedDate);
+    loadImages(selectedDate);
   }, [selectedDate, userId]);
 
-  const onDateChange = (date: Date) => {
+  // 달력 날짜 클릭
+  const onClickDay = (date: Date) => {
     setSelectedDate(date);
-    setShowMealTimePopup(true);
+    setStep("selectTime");
     setSelectedMealTime(null);
+    setShowPopup(true);
   };
 
-  const onMealTimeSelect = (mealTime: MealTime) => {
-    setSelectedMealTime(mealTime);
-    setShowMealTimePopup(false);
+  // 식사 시간 선택
+  const chooseTime = (meal: MealTime) => {
+    setSelectedMealTime(meal);
+    setStep("choose");
   };
 
-  // 이미지 업로드 & 서버 전송
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0] && selectedMealTime && userId) {
-      const file = e.target.files[0];
-      const formData = new FormData();
-      formData.append("image", file);
-      formData.append("mealType", mealTypeMap[selectedMealTime]);
-      formData.append("mealDate", formatDate(selectedDate));
-      formData.append("userId", userId.toString());
+  // 파일 업로드
+  const uploadFile = async (file: File) => {
+    if (!selectedMealTime || !userId) return;
+    const form = new FormData();
+    form.append("image", file);
+    form.append("mealType", mealTypeMap[selectedMealTime]);
+    form.append("mealDate", formatDate(selectedDate));
+    form.append("userId", userId.toString());
 
-      try {
-        const res = await axios.post("http://13.209.19.146:3000/api/upload/meal", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-
-        await fetchMealImages(selectedDate);
-        alert(res.data.message);
-      } catch (error: any) {
-        console.error("이미지 업로드 실패", error);
-        alert(error.response?.data?.message || "업로드 실패");
-      }
+    try {
+      const res = await axios.post(
+        "http://13.209.19.146:3000/api/upload/meal",
+        form
+      );
+      alert(res.data.message);
+      await loadImages(selectedDate);
+      setShowPopup(false);
+    } catch (error: any) {
+      console.error("업로드 에러 응답:", error.response?.data || error);
+      alert(
+        error.response?.data?.message ||
+          JSON.stringify(error.response?.data) ||
+          "업로드 실패(401/500 확인)"
+      );
     }
   };
 
-  const dateKey = formatDate(selectedDate);
-  const imagesForSelectedDate = mealImages[dateKey] || { 아침: null, 점심: null, 저녁: null };
-  const selectedImage = selectedMealTime ? imagesForSelectedDate[selectedMealTime] : null;
+  // File input 핸들러
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) uploadFile(e.target.files[0]);
+  };
+
+  // 카메라 스트림 세팅
+  useEffect(() => {
+    if (step === "camera" && videoRef.current) {
+      navigator.mediaDevices
+        .getUserMedia({ video: true })
+        .then((stream) => {
+          if (videoRef.current) videoRef.current.srcObject = stream;
+        })
+        .catch((err) => console.error("카메라 접근 오류:", err));
+    }
+    return () => {
+      if (videoRef.current?.srcObject) {
+        (videoRef.current.srcObject as MediaStream)
+          .getTracks()
+          .forEach((t) => t.stop());
+      }
+    };
+  }, [step]);
+
+  const capturePhoto = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const file = new File([blob], "meal.jpg", { type: "image/jpeg" });
+        uploadFile(file);
+      }
+    }, "image/jpeg");
+  };
+
+  // 오늘 식사 데이터
+  const key = formatDate(selectedDate);
+  const today = mealImages[key] || { 아침: null, 점심: null, 저녁: null };
 
   return (
-    <div className="meal-container" style={{ maxWidth: 600, margin: "auto", padding: 20 }}>
-      <Calendar onChange={onDateChange} value={selectedDate} />
+    <div className="meal-container">
+      <h1>식단 기록</h1>
 
-      <div style={{ marginTop: 20, textAlign: "center" }}>
-        <h3>선택된 날짜: {dateKey}</h3>
-        {selectedMealTime && <h4>선택된 식사 시간: {selectedMealTime}</h4>}
+      <div className="calendar-box">
+        <Calendar onClickDay={onClickDay} value={selectedDate} />
       </div>
 
-      {showMealTimePopup && (
-        <div
-          className="popup-overlay"
-          onClick={() => setShowMealTimePopup(false)}
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.3)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 100,
-          }}
-        >
-          <div
-            className="popup-content"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: "white",
-              padding: 20,
-              borderRadius: 8,
-              textAlign: "center",
-              minWidth: 250,
-            }}
-          >
-            <h3>사진 올리기 - 식사 시간 선택</h3>
-            {(["아침", "점심", "저녁"] as MealTime[]).map((meal) => (
-              <button
-                key={meal}
-                onClick={() => onMealTimeSelect(meal)}
-                style={{ margin: "10px", padding: "10px 20px" }}
-              >
-                {meal === "아침" ? "🍽 아침" : meal === "점심" ? "🍱 점심" : "🍜 저녁"}
-              </button>
-            ))}
-            <br />
-            <button onClick={() => setShowMealTimePopup(false)} style={{ marginTop: 10 }}>
-              취소
-            </button>
+      {/* 팝업 */}
+      {showPopup && (
+        <div className="popup-overlay" onClick={() => setShowPopup(false)}>
+          <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+            {/* STEP 1: 시간 선택 */}
+            {step === "selectTime" && (
+              <>
+                <h3>{key} 식사 선택</h3>
+                {(["아침", "점심", "저녁"] as MealTime[]).map((m) => (
+                  <button
+                    key={m}
+                    className="popup-button"
+                    onClick={() => chooseTime(m)}
+                  >
+                    {m}
+                  </button>
+                ))}
+                <button
+                  className="popup-button"
+                  onClick={() => setShowPopup(false)}
+                >
+                  취소
+                </button>
+              </>
+            )}
+
+            {/* STEP 2: 업로드 방식 */}
+            {step === "choose" && selectedMealTime && (
+              <>
+                <h3>{selectedMealTime} 업로드</h3>
+
+                <button
+                  className="popup-button"
+                  onClick={() => setStep("camera")}
+                >
+                  📷 카메라 촬영
+                </button>
+
+                <label className="file-input-label" htmlFor="file">
+                  파일 선택
+                </label>
+                <input
+                  id="file"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFile}
+                />
+
+                <button
+                  className="popup-button"
+                  onClick={() => setShowPopup(false)}
+                >
+                  닫기
+                </button>
+              </>
+            )}
+
+            {/* STEP 3: 카메라 모드 */}
+            {step === "camera" && (
+              <>
+                <h3>사진 촬영 ({selectedMealTime})</h3>
+                <video ref={videoRef} autoPlay playsInline />
+                <div style={{ marginTop: 12 }}>
+                  <button
+                    className="popup-button"
+                    onClick={capturePhoto}
+                  >
+                    촬영
+                  </button>
+                  <button
+                    className="popup-button"
+                    onClick={() => setStep("choose")}
+                  >
+                    취소
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
 
-      {selectedMealTime && (
-        <div style={{ marginTop: 30, textAlign: "center" }}>
-          <input type="file" accept="image/*" onChange={handleImageUpload} />
-          {selectedImage && (
-            <div style={{ marginTop: 20 }}>
-              <img
-                src={selectedImage}
-                alt={`${selectedMealTime} 식사 사진`}
-                style={{ maxWidth: "100%", maxHeight: 300, borderRadius: 10 }}
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-      <div style={{ marginTop: 40 }}>
-        <h2 style={{ textAlign: "center" }}>나의 하루 식사</h2>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-around",
-            marginTop: 20,
-            gap: 20,
-          }}
-        >
-          {(["아침", "점심", "저녁"] as MealTime[]).map((meal) => (
-            <div
-              key={meal}
-              style={{
-                flex: 1,
-                border: "1px solid #ccc",
-                borderRadius: 8,
-                padding: 10,
-                textAlign: "center",
-              }}
-            >
-              <h3>{meal}</h3>
-              {imagesForSelectedDate[meal] ? (
-                <img
-                  src={imagesForSelectedDate[meal]!}
-                  alt={`${meal} 식사 사진`}
-                  style={{ width: "100%", maxHeight: 150, objectFit: "cover", borderRadius: 8 }}
-                />
+      {/* 나의 하루 식사 */}
+      <div className="daily-meals">
+        <h2>나의 하루 식사</h2>
+        <div className="daily-meals-grid">
+          {(["아침", "점심", "저녁"] as MealTime[]).map((m) => (
+            <div key={m} className="meal-card">
+              <h3>{m}</h3>
+              {today[m] ? (
+                <img src={today[m]!} alt={m} className="meal-image" />
               ) : (
-                <p style={{ color: "#888", marginTop: 40 }}>사진 없음</p>
+                <p className="no-image">사진 없음</p>
               )}
             </div>
           ))}
@@ -226,4 +282,3 @@ export default function Diet() {
     </div>
   );
 }
-
