@@ -372,12 +372,7 @@ Just return a comma-separated index list like: 0, 2, 7`
         res.status(500).json({ message: '서버 오류', error: error.message });
     }
 });
-// 식단 이미지 업로드 및 등록
-router.post("/upload/:category", verifyToken, upload.single("image"), async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ message: "파일이 없습니다. form-data의 Key가 'image'인지 확인하세요." });
-        }
+
 
 router.get('/meal', verifyToken, async (req, res) => {
     try {
