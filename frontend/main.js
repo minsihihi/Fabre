@@ -28,7 +28,6 @@ import("electron-is-dev").then(async (module) => {
     // 프론트에서 trainer ID 전달 받아 저장하는 채널 정의 (preload 통해)
     ipcMain.on("set-logged-in-trainer", (event, trainerId) => {
         loggedInTrainerId = trainerId;
-        console.log("트레이너 로그인 ID 저장됨:", trainerId);
     });
 
     ws.on("message", (data) => {
