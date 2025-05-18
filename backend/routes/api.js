@@ -65,6 +65,7 @@ const upload = multer({
         key: function (req, file, cb) {
             const category = req.params.category;
             const userId = req.user.id;
+            const mealId = req.query.mealId;
 
             console.log("🔹 [DEBUG] S3 저장 - category:", category);
             console.log("🔹 [DEBUG] S3 저장 - userId:", userId);
@@ -73,7 +74,16 @@ const upload = multer({
                 return cb(new Error("잘못된 카테고리"), false);
             }
 
-            cb(null, `${category}/${userId}/${Date.now()}_${file.originalname}`);
+            if (category === "meal" && !mealId) {
+                return cb(new Error("mealId가 필요합니다."), false);
+            }
+
+            const filename = `${Date.now()}_${file.originalname}`;
+            const key = category === "meal"
+                ? `${category}/${userId}/${mealId}/${filename}`
+                : `${category}/${userId}/${filename}`;
+
+            cb(null, key);
         }
     }),
     limits: { fileSize: 10 * 1024 * 1024 } // 10MB 제한
@@ -87,27 +97,33 @@ router.post("/upload/:category", verifyToken, upload.single("image"), async (req
         console.log("🔹 [DEBUG] 업로드 요청 - category:", req.params.category);
         console.log("🔹 [DEBUG] req.file:", req.file);  // ✅ 파일이 제대로 받아졌는지 확인
         console.log("🔹 [DEBUG] req.body:", req.body);
+        console.log("🔹 [DEBUG] req.query:", req.query);
 
         if (!req.file) {
             return res.status(400).json({ message: "파일이 없습니다. form-data의 Key가 'image'인지 확인하세요." });
         }
 
         const { category } = req.params;
+        const { mealId } = req.query;
+        const imageUrl = req.file.location;
+        let recordId = null;
+
+
         if (!category || !["meal", "profile", "workout"].includes(category)) {
             return res.status(400).json({ message: "잘못된 카테고리입니다." });
         }
 
-        const imageUrl = req.file.location;
-        let recordId = null;
-
         if (category === "meal") {
-            const { mealType, mealDate } = req.body;
-            if (!["breakfast", "lunch", "snack", "dinner"].includes(mealType)) {
-                return res.status(400).json({ message: "mealType이 올바르지 않습니다." });
+            if (!mealId) {
+                return res.status(400).json({ message: "mealId가 필요합니다." });
             }
-            if (!mealDate) return res.status(400).json({ message: "mealDate가 필요합니다." });
 
-            const meal = await Meal.create({ userId: req.user.id, imageUrl, mealType, mealDate });
+            const meal = await Meal.findByPk(mealId);
+            if (!meal || meal.userId !== req.user.id) {
+                return res.status(404).json({ message: "해당 식단을 찾을 수 없습니다." });
+            }
+
+            await meal.update({ imageUrl });
             recordId = meal.id;
 
         } else if (category === "profile") {
@@ -174,17 +190,25 @@ router.post("/upload/:category", verifyToken, upload.single("image"), async (req
 /* ----------------------------------- */
 router.get("/images/meal", async (req, res) => {
     try {
-        const { userId, mealDate } = req.query;
-        if (!userId || !mealDate) {
-            return res.status(400).json({ message: "userId와 mealDate가 필요합니다." });
+        const { userId, mealId } = req.query;
+
+        if (!userId || !mealId) {
+            return res.status(400).json({ message: "userId와 mealId가 필요합니다." });
         }
 
-        const meals = await Meal.findAll({
-            where: { userId, mealDate },
-            attributes: ["id", "imageUrl", "mealType"]
+        const meal = await Meal.findOne({
+            where: {
+                id: mealId,
+                userId: userId
+            },
+            attributes: ["id", "imageUrl", "mealType", "mealDate", "carb", "protein", "fat"]
         });
 
-        res.json({ meals });
+        if (!meal) {
+            return res.status(404).json({ message: "해당 식단 정보를 찾을 수 없습니다." });
+        }
+
+        return res.status(200).json({ meal });
 
     } catch (error) {
         console.error("❌ 식단 조회 오류:", error);
@@ -316,44 +340,7 @@ router.post('/meals/analyze', verifyToken, async (req, res) => {
         res.status(500).json({ message: '서버 오류', error: error.message });
     }
 });
-// 식단 이미지 업로드 및 등록
-router.post("/upload/:category", verifyToken, upload.single("image"), async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ message: "파일이 없습니다. form-data의 Key가 'image'인지 확인하세요." });
-        }
 
-        const { category } = req.params;
-        if (!category || !["meal"].includes(category)) {
-            return res.status(400).json({ message: "잘못된 카테고리입니다." });
-        }
-
-        const imageUrl = req.file.location;
-        const { mealType, mealDate, carb, protein, fat } = req.body;
-        if (!["breakfast", "lunch", "snack", "dinner"].includes(mealType)) {
-            return res.status(400).json({ message: "mealType이 올바르지 않습니다." });
-        }
-        if (!mealDate) return res.status(400).json({ message: "mealDate가 필요합니다." });
-        if (!carb || !protein || !fat) {
-            return res.status(400).json({ message: "carb, protein, fat 정보가 모두 필요합니다." });
-        }
-
-        const meal = await Meal.create({
-            userId: req.user.id,
-            imageUrl,
-            mealType,
-            mealDate,
-            carb,
-            protein,
-            fat
-        });
-
-        res.status(201).json({ message: "식단 이미지 업로드 성공", imageUrl, meal });
-    } catch (error) {
-        console.error("❌ 이미지 업로드 오류:", error);
-        res.status(500).json({ message: "서버 오류", error: error.message });
-    }
-});
 
 // 식단 crud
 // 트레이너가 식단을 생성
