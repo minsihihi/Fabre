@@ -72,7 +72,7 @@ db.sequelize
 const PORT = process.env.PORT || 3000;
 
 db.sequelize
-    .sync({ alter: true })  // 변경된 부분
+    .sync({ alter: true })
     .then(() => {
         console.log("✅ 테이블 동기화 완료 (alter 모드)");
         startAllSchedulers();
