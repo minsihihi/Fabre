@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./Home.css";
 
-// --- Helper Functions ---
 
 const dayMap: { [key: number]: string } = {
   0: "Sunday",
