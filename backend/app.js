@@ -29,6 +29,7 @@ wss.on("connection", (ws) => {
 });
 
 eventEmitter.on("notification", (notificationData) => {
+    console.log("🚀 서버가 클라이언트에게 보내는 알림:", notificationData); // ✅ 여기 추가
     const payload = JSON.stringify(notificationData);
     clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {

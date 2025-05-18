@@ -2,6 +2,15 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
 
+declare global {
+  interface Window {
+    electronAPI?: {
+      setTrainerId: (trainerId: number) => void;
+      // 다른 electronAPI 메서드들...
+    };
+  }
+}
+
 export default function Login() {
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
@@ -53,6 +62,12 @@ export default function Login() {
       
       // 역할에 따라 리디렉션
       if (data.user.role === "trainer") {
+         // Electron 앱 환경에서만 실행
+        if (window.electronAPI) {
+          window.electronAPI.setTrainerId(data.user.id);
+        } else {
+          console.log('electronAPI가 사용 불가능합니다 - 브라우저 환경인지 확인하세요');
+        }
         navigate("/home_trainer");
       } else {
         navigate("/home");
