@@ -64,6 +64,14 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.JSON,
         allowNull: true,
       },
+      memberId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+          model: "users",
+          key: "id",
+        },
+      },
     },
     {
       tableName: "meals",
@@ -72,7 +80,8 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   Meal.associate = function (models) {
-    Meal.belongsTo(models.User, { foreignKey: "userId" });
+    Meal.belongsTo(models.User, { foreignKey: "userId", as: "trainer" });
+    Meal.belongsTo(models.User, { foreignKey: "memberId", as: "member" });  
   };
 
   return Meal;

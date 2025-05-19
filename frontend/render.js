@@ -82,6 +82,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = await response.json();
             localStorage.setItem('token', data.token);
             updateUIAfterLogin(data.user);
+            if (data.user.role === 'trainer' && window.electronAPI?.send) {
+                window.electronAPI.send("set-logged-in-trainer", data.user.id);
+            }
 
             alert(`로그인 성공! 환영합니다, ${data.user.name}`);
             showPage('main');

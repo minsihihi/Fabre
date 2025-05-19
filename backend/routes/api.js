@@ -376,24 +376,25 @@ Just return a comma-separated index list like: 0, 2, 7`
 
 router.get('/meal', verifyToken, async (req, res) => {
     try {
-        const { mealId } = req.query;
+        const { mealType, mealDate } = req.query;
 
-        if (!mealId) {
-            return res.status(400).json({ message: "mealId가 필요합니다." });
+        if (!mealType || !mealDate) {
+            return res.status(400).json({ message: "mealType과 mealDate가 필요합니다." });
         }
 
         const meal = await Meal.findOne({
             where: {
                 userId: req.user.id,
-                id: mealId
+                mealType,
+                mealDate
             }
         });
 
         if (!meal) {
-            return res.status(404).json({ message: "식단을 찾을 수 없습니다." });
+            return res.status(404).json({ message: "해당 조건의 식단을 찾을 수 없습니다." });
+            
         }
 
-        // ✅ matchRate 추출
         const matchRate = meal.analysisResult?.matchRate ?? null;
 
         return res.status(200).json({
@@ -402,26 +403,58 @@ router.get('/meal', verifyToken, async (req, res) => {
         });
 
     } catch (err) {
-        return res.status(400).json({ message: "Failed to get meal", error: err });
+        return res.status(400).json({ message: "식단 조회 실패", error: err });
     }
 });
+
+
+// 유저가 업로드한 전체 식단 조회
+router.get('/meals', verifyToken, async (req, res) => {
+    try {
+        const meals = await Meal.findAll({
+            where: { userId: req.user.id },
+            order: [['mealDate', 'DESC'], ['mealType', 'ASC']],
+            attributes: ['id', 'mealDate', 'mealType', 'imageUrl', 'matchRate', 'detection']
+        });
+
+        return res.status(200).json({ message: '식단 전체 조회 성공', meals });
+    } catch (error) {
+        console.error("❌ 전체 식단 조회 오류:", error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message });
+    }
+});
+
+
 
 
 
 // 식단 crud
 // 트레이너가 식단을 생성
 router.post('/meal', verifyToken, async (req, res) => {
-    const { carb, protein, fat, mealDate, mealType } = req.body;
-    const user = await User.findByPk(req.user.id);
+    const { memberId, carb, protein, fat, mealDate, mealType } = req.body;
 
-    // 트레이너 권한 확인
+    const user = await User.findByPk(req.user.id);
     if (user.role !== 'trainer') {
         return res.status(403).json({ message: "트레이너만 식단을 올릴 수 있습니다." });
     }
 
+    // 트레이너-회원 관계 검증
+    const relation = await TrainerMembers.findOne({
+        where: {
+            trainerId: req.user.id,
+            memberId,
+            status: 'active'
+        }
+    });
+
+    if (!relation) {
+        return res.status(400).json({ message: "이 회원에게 식단을 등록할 수 없습니다." });
+    }
+
     try {
         const meal = await Meal.create({
-            userId: req.user.id,
+            userId: req.user.id,     // 트레이너 ID
+            memberId: memberId,      // 회원 ID 추가
             carb,
             protein,
             fat,
@@ -436,83 +469,222 @@ router.post('/meal', verifyToken, async (req, res) => {
 
 // 트레이너가 식단 수정
 router.patch('/meal', verifyToken, async (req, res) => {
-    const { mealId, carb, protein, fat, mealDate, mealType } = req.body;
-    const user = await User.findByPk(req.user.id);
+    const { memberId, mealDate, mealType, carb, protein, fat } = req.body;
 
+    // 트레이너만 허용
+    const user = await User.findByPk(req.user.id);
     if (user.role !== 'trainer') {
         return res.status(403).json({ message: "트레이너만 식단을 수정할 수 있습니다." });
     }
 
-    try {
-        const meal = await Meal.findByPk(mealId);
+    // 유효한 트레이너-회원 관계인지 확인
+    const relation = await TrainerMembers.findOne({
+        where: { trainerId: req.user.id, memberId, status: 'active' }
+    });
 
-        if (!meal) {
-            return res.status(404).json({ message: "올라온 식단이 없습니다." });
-        }
-
-        await meal.update({
-            carb,
-            protein,
-            fat,
-            mealDate,
-            mealType,
-            });
-
-        return res.status(200).json(meal);
-    } catch (err) {
-        return res.status(400).json({ message: "Failed to update meal", error: err });
-    }
-});
-
-// 식단
-// 트레이너가 식단 삭제
-router.delete('/meal', verifyToken, async (req, res) => {
-    const { mealId } = req.body;
-    const user = await User.findByPk(req.user.id);
-
-    if (user.role !== 'trainer') {
-        return res.status(403).json({ message: "트레이너만 식단을 삭제할 수 있습니다." });
+    if (!relation) {
+        return res.status(403).json({ message: "이 회원과 연결된 트레이너가 아닙니다." });
     }
 
     try {
-        const meal = await Meal.findByPk(mealId);
-
-        if (!meal) {
-            return res.status(404).json({ message: "식단을 찾을 수 없습니다." });
-        }
-
-        await meal.destroy();
-        return res.status(200).json({ message: "식단 삭제 성공" });
-    } catch (err) {
-        return res.status(400).json({ message: "Failed to delete meal", error: err });
-    }
-});
-
-// 유저가 요청한 특정 mealId 조회
-router.get('/meal', verifyToken, async (req, res) => {
-    try {
-        const { mealId } = req.query;  // 쿼리 파라미터로 mealId 받기
-
-        if (!mealId) {
-            return res.status(400).json({ message: "mealId가 필요합니다." });
-        }
-
         const meal = await Meal.findOne({
             where: {
                 userId: req.user.id,
-                id: mealId  // userId와 mealId로 필터링
+                memberId,
+                mealDate,
+                mealType
             }
         });
 
         if (!meal) {
-            return res.status(404).json({ message: "식단을 찾을 수 없습니다." });
+            return res.status(404).json({ message: "해당 조건의 식단을 찾을 수 없습니다." });
         }
 
-        return res.status(200).json(meal);
+        await meal.update({ carb, protein, fat });
+        return res.status(200).json({ message: "식단 수정 완료", meal });
+
     } catch (err) {
-        return res.status(400).json({ message: "Failed to get meal", error: err });
+        return res.status(400).json({ message: "식단 수정 실패", error: err.message });
     }
 });
+
+
+// 식단
+// 트레이너가 식단 삭제
+router.delete('/meal', verifyToken, async (req, res) => {
+    const { memberId, mealDate, mealType } = req.body;
+
+    const user = await User.findByPk(req.user.id);
+    if (user.role !== 'trainer') {
+        return res.status(403).json({ message: "트레이너만 식단을 삭제할 수 있습니다." });
+    }
+
+    const relation = await TrainerMembers.findOne({
+        where: { trainerId: req.user.id, memberId, status: 'active' }
+    });
+
+    if (!relation) {
+        return res.status(403).json({ message: "이 회원과 연결된 트레이너가 아닙니다." });
+    }
+
+    try {
+        const meal = await Meal.findOne({
+            where: {
+                userId: req.user.id,
+                memberId,
+                mealDate,
+                mealType
+            }
+        });
+
+        if (!meal) {
+            return res.status(404).json({ message: "식단이 없습니다." });
+        }
+
+        await meal.destroy();
+        return res.status(200).json({ message: "식단 삭제 완료" });
+
+    } catch (err) {
+        return res.status(400).json({ message: "식단 삭제 실패", error: err.message });
+    }
+});
+
+router.get('/trainermeals', verifyToken, async (req, res) => {
+    const { memberId, mealDate, mealType } = req.query;
+    const trainerId = req.user.id;
+
+    if (req.user.role !== 'trainer') {
+        return res.status(403).json({ message: "트레이너만 접근할 수 있습니다." });
+    }
+
+    if (!memberId || !mealDate || !mealType) {
+        return res.status(400).json({ message: "memberId, mealDate, mealType 모두 필요합니다." });
+    }
+
+    const relation = await TrainerMembers.findOne({
+        where: { trainerId, memberId, status: 'active' }
+    });
+
+    if (!relation) {
+        return res.status(403).json({ message: "이 회원과 연결된 트레이너가 아닙니다." });
+    }
+
+    const meal = await Meal.findOne({
+        where: {
+            userId: trainerId,
+            memberId,
+            mealDate,
+            mealType: mealType.toLowerCase().trim()
+        }
+    });
+
+    if (!meal) {
+        return res.status(404).json({ message: "식단을 찾을 수 없습니다." });
+    }
+
+    return res.status(200).json({ meal });
+});
+
+router.get('/membermeals', verifyToken, async (req, res) => {
+    const { mealDate, mealType } = req.query;
+    const memberId = req.user.id;
+
+    if (req.user.role !== 'member') {
+        return res.status(403).json({ message: "회원만 접근할 수 있습니다." });
+    }
+
+    if (!mealDate || !mealType) {
+        return res.status(400).json({ message: "mealDate와 mealType이 필요합니다." });
+    }
+
+    const meal = await Meal.findOne({
+        where: {
+            memberId,
+            mealDate,
+            mealType: mealType.toLowerCase().trim()
+        }
+    });
+
+    if (!meal) {
+        return res.status(404).json({ message: "식단을 찾을 수 없습니다." });
+    }
+
+    return res.status(200).json({ meal });
+});
+
+
+// // 유저가 요청한 자신의 식단 1건 조회
+// router.get('/meal', verifyToken, async (req, res) => {
+//     try {
+//         const { mealDate, mealType } = req.query;
+//         const { id: userId, role } = req.user;
+
+//         if (!mealDate || !mealType) {
+//             return res.status(400).json({ message: "mealDate와 mealType이 필요합니다." });
+//         }
+
+//         let meal;
+
+//         if (role === 'trainer') {
+//             // 트레이너 → 회원 ID를 반드시 쿼리로 전달
+//             const { memberId } = req.query;
+//             console.log("✅ 트레이너너으로 분기 진입함");
+//             console.log("🧪 userId:", userId);
+//             console.log("🧪 memberId:", memberId);
+//             console.log("🧪 mealDate:", mealDate);
+//             console.log("🧪 mealType:", mealType.toLowerCase().trim());
+
+//             if (!memberId) {
+//                 return res.status(400).json({ message: "트레이너는 memberId를 반드시 제공해야 합니다." });
+//             }
+
+//             // 트레이너-회원 관계 확인
+//             const relation = await TrainerMembers.findOne({
+//                 where: { trainerId: userId, memberId, status: 'active' }
+//             });
+
+//             if (!relation) {
+//                 return res.status(403).json({ message: "해당 회원과 연결된 트레이너가 아닙니다." });
+//             }
+
+//             meal = await Meal.findOne({
+//                 where: {
+//                     userId: req.user.id,         // 트레이너 ID
+//                     memberId,
+//                     mealDate,
+//                     mealType
+//                 }
+//             });
+
+//         } else if (role === 'member') {
+//             const memberId = req.user.id; // ✅ 정확한 소문자 i
+
+//             console.log("✅ 회원으로 분기 진입함");
+//             console.log("🧪 memberId:", memberId);
+//             console.log("🧪 mealDate:", mealDate);
+//             console.log("🧪 mealType:", mealType.toLowerCase().trim());
+//             // 회원은 자신의 meal만 조회
+//             meal = await Meal.findOne({
+//                 where: {
+//                     memberId,
+//                     mealDate,
+//                     mealType: mealType.toLowerCase().trim()
+//                 }
+//             });
+//         }
+
+//         if (!meal) {
+//             return res.status(404).json({ message: "해당 식단을 찾을 수 없습니다." });
+//         }
+
+//         return res.status(200).json({ meal });
+
+//     } catch (err) {
+//         console.error("❌ 식단 조회 오류:", err);
+//         return res.status(400).json({ message: "식단 조회 실패", error: err.message });
+//     }
+// });
+
 
 
 module.exports = router;
