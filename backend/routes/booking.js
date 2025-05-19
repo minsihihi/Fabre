@@ -4,6 +4,7 @@ const { verifyToken, checkRole } = require('../middleware/auth');
 const { TrainerSchedule, TrainerMembers, MemberBookings, User } = require('../models');
 const { Op } = require('sequelize');
 
+
 // 회원이 스케줄 예약
 router.post('/trainer/schedule/book', verifyToken, checkRole(['member']), async (req, res) => {
     try {

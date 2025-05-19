@@ -66,7 +66,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       memberId: {
         type: DataTypes.INTEGER,
-        allowNull: true,
+        allowNull: false,
         references: {
           model: "users",
           key: "id",
@@ -81,7 +81,7 @@ module.exports = (sequelize, DataTypes) => {
 
   Meal.associate = function (models) {
     Meal.belongsTo(models.User, { foreignKey: "userId", as: "trainer" });
-    Meal.belongsTo(models.User, { foreignKey: "memberId", as: "member" });  
+    Meal.belongsTo(models.User, { foreignKey: "memberId", as: "member" });
   };
 
   return Meal;
