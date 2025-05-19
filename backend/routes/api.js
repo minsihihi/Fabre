@@ -448,6 +448,74 @@ Just return a comma-separated index list like: 0, 2, 7`
     }
 });
 
+router.get('/meals/analyze', verifyToken, async (req, res) => {
+    try {
+        const { memberId, mealDate, mealType } = req.query;
+
+        if (!mealDate || !mealType) {
+            return res.status(400).json({ message: "mealDate와 mealType은 필수입니다." });
+        }
+
+        let targetMemberId;
+
+        if (req.user.role === 'trainer') {
+            if (!memberId) {
+                return res.status(400).json({ message: "트레이너는 memberId를 함께 전달해야 합니다." });
+            }
+
+            // 트레이너-회원 관계 확인
+            const relation = await TrainerMembers.findOne({
+                where: { trainerId: req.user.id, memberId, status: 'active' }
+            });
+
+            if (!relation) {
+                return res.status(403).json({ message: "해당 회원과 연결된 트레이너가 아닙니다." });
+            }
+
+            targetMemberId = memberId;
+
+        } else if (req.user.role === 'member') {
+            targetMemberId = req.user.id;
+
+        } else {
+            return res.status(403).json({ message: "권한이 없습니다." });
+        }
+
+        // Meal 찾기
+        const meal = await Meal.findOne({
+            where: {
+                memberId: targetMemberId,
+                mealDate,
+                mealType
+            }
+        });
+
+        if (!meal) {
+            return res.status(404).json({ message: "해당 조건의 식단이 존재하지 않습니다." });
+        }
+
+        // 분석 결과 찾기 (명시적으로 attributes 지정)
+        const analysis = await MealAnalysis.findOne({
+            where: {
+                mealId: meal.id
+            },
+            attributes: ['id', 'mealId', 'fileId', 'recommendedFood', 'analysisResult', 'createdAt'],
+            order: [['createdAt', 'DESC']]
+        });
+
+        if (!analysis) {
+            return res.status(404).json({ message: "식단 분석 결과가 없습니다." });
+        }
+
+        return res.status(200).json({ message: "분석 결과 조회 성공", analysis });
+
+    } catch (error) {
+        console.error("❌ MealAnalysis 조회 오류:", error);
+        return res.status(500).json({ message: "서버 오류", error: error.message });
+    }
+});
+
+
 
 router.get('/meal', verifyToken, async (req, res) => {
     try {
@@ -686,80 +754,6 @@ router.get('/membermeals', verifyToken, async (req, res) => {
 
     return res.status(200).json({ meal });
 });
-
-
-// // 유저가 요청한 자신의 식단 1건 조회
-// router.get('/meal', verifyToken, async (req, res) => {
-//     try {
-//         const { mealDate, mealType } = req.query;
-//         const { id: userId, role } = req.user;
-
-//         if (!mealDate || !mealType) {
-//             return res.status(400).json({ message: "mealDate와 mealType이 필요합니다." });
-//         }
-
-//         let meal;
-
-//         if (role === 'trainer') {
-//             // 트레이너 → 회원 ID를 반드시 쿼리로 전달
-//             const { memberId } = req.query;
-//             console.log("✅ 트레이너너으로 분기 진입함");
-//             console.log("🧪 userId:", userId);
-//             console.log("🧪 memberId:", memberId);
-//             console.log("🧪 mealDate:", mealDate);
-//             console.log("🧪 mealType:", mealType.toLowerCase().trim());
-
-//             if (!memberId) {
-//                 return res.status(400).json({ message: "트레이너는 memberId를 반드시 제공해야 합니다." });
-//             }
-
-//             // 트레이너-회원 관계 확인
-//             const relation = await TrainerMembers.findOne({
-//                 where: { trainerId: userId, memberId, status: 'active' }
-//             });
-
-//             if (!relation) {
-//                 return res.status(403).json({ message: "해당 회원과 연결된 트레이너가 아닙니다." });
-//             }
-
-//             meal = await Meal.findOne({
-//                 where: {
-//                     userId: req.user.id,         // 트레이너 ID
-//                     memberId,
-//                     mealDate,
-//                     mealType
-//                 }
-//             });
-
-//         } else if (role === 'member') {
-//             const memberId = req.user.id; // ✅ 정확한 소문자 i
-
-//             console.log("✅ 회원으로 분기 진입함");
-//             console.log("🧪 memberId:", memberId);
-//             console.log("🧪 mealDate:", mealDate);
-//             console.log("🧪 mealType:", mealType.toLowerCase().trim());
-//             // 회원은 자신의 meal만 조회
-//             meal = await Meal.findOne({
-//                 where: {
-//                     memberId,
-//                     mealDate,
-//                     mealType: mealType.toLowerCase().trim()
-//                 }
-//             });
-//         }
-
-//         if (!meal) {
-//             return res.status(404).json({ message: "해당 식단을 찾을 수 없습니다." });
-//         }
-
-//         return res.status(200).json({ meal });
-
-//     } catch (err) {
-//         console.error("❌ 식단 조회 오류:", err);
-//         return res.status(400).json({ message: "식단 조회 실패", error: err.message });
-//     }
-// });
-
 
 
 module.exports = router;
