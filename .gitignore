@@ -6,4 +6,4 @@ dist/
 !dist/latest.yml
 !dist/**/*.blockmap
 node_modules
-newvenv/
+newvenv/capstone-key.pem
