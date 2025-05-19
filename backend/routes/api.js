@@ -253,7 +253,7 @@ router.get("/images/meal", async (req, res) => {
 
     } catch (error) {
         console.error("❌ 식단 조회 오류:", error);
-        res.status(500).json({ message: "서버 오류", error: error.message });
+        res.status(500).json({ message: "server 오류", error: error.message });
     }
 });
 
