@@ -29,16 +29,45 @@
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 20px; /* 내부 여백 추가 */
 }
 
+
+/* 기본 팝업 크기 유지 */
 .popup-content {
   background: #fff;
   padding: 25px 30px;
   border-radius: 12px;
   width: 280px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   text-align: center;
 }
+
+/* 카메라 팝업일 때만 크기 자동 조절 */
+.popup-content.camera-mode {
+  width: fit-content;
+  min-width: 320px;
+}
+
+/* video 요소는 항상 꽉 차게 */
+.popup-content.camera-mode video {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
+
+.popup-content video {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
 
 .popup-button {
   display: block;

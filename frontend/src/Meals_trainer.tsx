@@ -20,23 +20,17 @@ interface TrainerMember {
   status: string;
 }
 
-interface RecommendProduct {
-  title: string;
-  price: string;
-  link: string;
-}
-
 interface MealPlan {
   mealType: MealTime;
-  carbohydrate: string;
+  carb: string;
   protein: string;
   fat: string;
 }
 
 const foodOptions = {
-  carbohydrate: ["고구마", "현미밥", "오트밀", "바나나", "감자"],
-  protein: ["닭가슴살", "계란", "두부", "소고기", "그릭요거트"],
-  fat: ["아보카도", "올리브오일", "견과류", "치즈", "땅콩버터"]
+  carb: ["삶은고구마", "밥", "바나나", "단호박"],
+  protein: ["닭가슴살구이", "쇠고기구이", "두부", "연어구이", "삶은달걀"],
+  fat: ["아몬드", "캐슈넛", "방울토마토"]
 };
 
 export default function MealsTrainer() {
@@ -44,17 +38,22 @@ export default function MealsTrainer() {
   const [selectedMember, setSelectedMember] = useState<TrainerMember | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [mealImages, setMealImages] = useState<Record<string, Record<MealTime, string | null>>>({});
-  const [recommend, setRecommend] = useState<{ food: string; products: RecommendProduct[] } | null>(null);
+  const [fetchedMealPlans, setFetchedMealPlans] = useState<Record<string, Record<MealTime, MealPlan | null>>>({});
   const [showPopup, setShowPopup] = useState(false);
 
   const [mealPlan, setMealPlan] = useState<MealPlan>({
     mealType: "아침",
-    carbohydrate: "",
+    carb: "",
     protein: "",
     fat: ""
   });
 
-  const formatDate = (d: Date) => d.toISOString().split("T")[0];
+  const formatDate = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
 
   useEffect(() => {
     (async () => {
@@ -73,7 +72,7 @@ export default function MealsTrainer() {
   const fetchMealImages = async (memberId: number, date: Date) => {
     const mealDate = formatDate(date);
     try {
-      const res = await axios.get("http://13.209.19.146:3000/api/images/meal", {
+      const res = await axios.get("http://13.209.19.146:3000/api/meals", {
         params: { userId: memberId, mealDate },
       });
       const day: Record<MealTime, string | null> = { 아침: null, 점심: null, 저녁: null };
@@ -87,9 +86,47 @@ export default function MealsTrainer() {
     }
   };
 
+  const fetchMealPlans = async (memberId: number, date: Date) => {
+    const token = localStorage.getItem("token");
+    const mealDate = formatDate(date);
+    const dateData: Record<MealTime, MealPlan | null> = { 아침: null, 점심: null, 저녁: null };
+
+    console.log(`📅 Fetching meal plans for memberId=${memberId} on ${mealDate}...`);
+    for (const t of ["아침", "점심", "저녁"] as MealTime[]) {
+      try {
+        const res = await axios.get("http://13.209.19.146:3000/api/trainermeals", {
+          params: {
+            memberId,
+            mealDate,
+            mealType: mealTypeMap[t],
+          },
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // res.data.meal 에 식단 객체가 들어옵니다
+        const meal = res.data.meal;
+        dateData[t] = {
+          mealType: t,
+          carb: meal.carb,
+          protein: meal.protein,
+          fat: meal.fat,
+        };
+
+        console.log(`✅ ${t} 식단 불러오기 성공:`, dateData[t]);
+      } catch (err: any) {
+        dateData[t] = null;
+        console.warn(`⚠️ ${t} 식단 불러오기 실패:`, err?.response?.data || err.message);
+      }
+    }
+
+    setFetchedMealPlans(prev => ({ ...prev, [mealDate]: dateData }));
+  };
+
   useEffect(() => {
-    if (!selectedMember) return;
-    fetchMealImages(selectedMember.member.id, selectedDate);
+    if (selectedMember) {
+      fetchMealImages(selectedMember.member.id, selectedDate);
+      fetchMealPlans(selectedMember.member.id, selectedDate);
+    }
   }, [selectedMember, selectedDate]);
 
   const handleDateClick = (date: Date) => {
@@ -101,49 +138,63 @@ export default function MealsTrainer() {
 
   const dateKey = formatDate(selectedDate);
   const todayMeals = mealImages[dateKey] || { 아침: null, 점심: null, 저녁: null };
+  const todayMealPlans = fetchedMealPlans[dateKey] || { 아침: null, 점심: null, 저녁: null };
 
   const handleRegisterMealPlan = async () => {
+    if (!selectedMember) {
+      alert("회원이 선택되지 않았습니다.");
+      return;
+    }
+
     const token = localStorage.getItem("token");
     if (!token) {
       alert("로그인이 필요합니다.");
       return;
     }
 
-    const failedMembers: string[] = [];
+    const payload = JSON.parse(window.atob(token.split(".")[1]));
+    const trainerId = payload.id;
 
-    for (const m of members) {
-      try {
-        await axios.post(
-          "http://13.209.19.146:3000/api/meal",
-          {
-            userId: m.member.id,
-            carb: mealPlan.carbohydrate,
-            protein: mealPlan.protein,
-            fat: mealPlan.fat,
-            mealDate: dateKey,
-            mealType: mealTypeMap[mealPlan.mealType],
-          },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-      } catch (error: any) {
-        failedMembers.push(m.member.name);
-      }
-    }
-
-    if (failedMembers.length > 0) {
-      alert(`❗일부 회원에게 식단 등록 실패:\n${failedMembers.join(", ")}`);
-    } else {
-      alert(`✅ 전체 ${members.length}명 회원에게 식단이 등록되었습니다!`);
+    try {
+      const response = await axios.post(
+        "http://13.209.19.146:3000/api/meal",
+        {
+          userId: trainerId,
+          memberId: selectedMember.member.id,
+          carb: mealPlan.carb,
+          protein: mealPlan.protein,
+          fat: mealPlan.fat,
+          mealDate: dateKey,
+          mealType: mealTypeMap[mealPlan.mealType],
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      console.log("✅ 식단 전송 성공:", response.data);
+      alert("✅ 식단이 성공적으로 등록되었습니다!");
+      fetchMealPlans(selectedMember.member.id, selectedDate); // 등록 후 새로고침
+    } catch (error: any) {
+      console.error("Request payload:", {
+        userId: trainerId,
+        memberId: selectedMember.member.id,
+        carb: mealPlan.carb,
+        protein: mealPlan.protein,
+        fat: mealPlan.fat,
+        mealDate: dateKey,
+        mealType: mealTypeMap[mealPlan.mealType],
+      });
+      console.error("Response error data:", error.response?.data);
+      alert("❗식단 등록 중 오류가 발생했습니다.");
     }
   };
 
   return (
     <div className="meal-container">
       <h2>회원 식단 관리</h2>
+
       <div className="member-select-wrapper">
-        <label>회원 선택 (사진 조회용):</label>
+        <label>회원 선택:</label>
         <select
           value={selectedMember?.member.id || ""}
           onChange={e => {
@@ -164,9 +215,8 @@ export default function MealsTrainer() {
 
       {selectedMember && (
         <div className="meal-plan-section">
-          <h3>🍱 식단 추천 박스</h3>
-
-          <div className="meal-plan-form">
+          <h3>🍱 식단 등록</h3>
+          <div className="meal-plan-form meal-summary-box">
             <label>식사 시간:</label>
             <select
               value={mealPlan.mealType}
@@ -179,12 +229,12 @@ export default function MealsTrainer() {
 
             <label>탄수화물:</label>
             <select
-              value={mealPlan.carbohydrate}
-              onChange={e => setMealPlan({ ...mealPlan, carbohydrate: e.target.value })}
+              value={mealPlan.carb}
+              onChange={e => setMealPlan({ ...mealPlan, carb: e.target.value })}
             >
               <option value="">선택하세요</option>
-              {foodOptions.carbohydrate.map((food, i) => (
-                <option key={i} value={food}>{food}</option>
+              {foodOptions.carb.map(food => (
+                <option key={food} value={food}>{food}</option>
               ))}
             </select>
 
@@ -194,8 +244,8 @@ export default function MealsTrainer() {
               onChange={e => setMealPlan({ ...mealPlan, protein: e.target.value })}
             >
               <option value="">선택하세요</option>
-              {foodOptions.protein.map((food, i) => (
-                <option key={i} value={food}>{food}</option>
+              {foodOptions.protein.map(food => (
+                <option key={food} value={food}>{food}</option>
               ))}
             </select>
 
@@ -205,20 +255,20 @@ export default function MealsTrainer() {
               onChange={e => setMealPlan({ ...mealPlan, fat: e.target.value })}
             >
               <option value="">선택하세요</option>
-              {foodOptions.fat.map((food, i) => (
-                <option key={i} value={food}>{food}</option>
+              {foodOptions.fat.map(food => (
+                <option key={food} value={food}>{food}</option>
               ))}
             </select>
-          </div>
 
-          <button onClick={handleRegisterMealPlan}>식단 등록</button>
+            <button onClick={handleRegisterMealPlan}>식단 등록</button>
+          </div>
         </div>
       )}
 
       {showPopup && (
         <div className="popup-overlay" onClick={closePopup}>
           <div className="popup-content" onClick={e => e.stopPropagation()}>
-            <h3>{dateKey} 식단 사진</h3>
+            <h3>식단 사진 & 내용 ({dateKey})</h3>
             <div className="meal-images">
               {(["아침", "점심", "저녁"] as MealTime[]).map(t => (
                 <div key={t} className="meal-image-box">
@@ -228,6 +278,17 @@ export default function MealsTrainer() {
                   ) : (
                     <span>사진 없음</span>
                   )}
+                  <div className="meal-plan-text">
+                    {todayMealPlans[t] ? (
+                      <p>
+                        탄: {todayMealPlans[t]!.carb}<br />
+                        단: {todayMealPlans[t]!.protein}<br />
+                        지: {todayMealPlans[t]!.fat}
+                      </p>
+                    ) : (
+                      <p>식단 내용 없음</p>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
