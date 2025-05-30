@@ -6,17 +6,17 @@ import "./Meals.css";
 
 type MealTime = "아침" | "점심" | "저녁";
 
-const mealTypeMap: Record<MealTime, string> = {
-  아침: "breakfast",
-  점심: "lunch",
-  저녁: "dinner",
-};
-
 interface MealPlan {
   carb: string;
   protein: string;
   fat: string;
 }
+
+const mealTypeMap: Record<MealTime, string> = {
+  아침: "breakfast",
+  점심: "lunch",
+  저녁: "dinner",
+};
 
 export default function Meals() {
   const [userId, setUserId] = useState<number | null>(null);
@@ -39,6 +39,7 @@ export default function Meals() {
     return `${year}-${month}-${day}`;
   };
 
+  // 토큰 설정
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -46,6 +47,7 @@ export default function Meals() {
     }
   }, []);
 
+  // 사용자 정보 불러오기
   useEffect(() => {
     (async () => {
       try {
@@ -57,18 +59,21 @@ export default function Meals() {
     })();
   }, []);
 
+  // 이미지 불러오기
   const loadImages = async (date: Date) => {
     if (!userId) return;
     const mealDate = formatDate(date);
     try {
-      const res = await axios.get("http://13.209.19.146:3000/api/images/meal", {
-        params: { memberId: userId, mealDate },
-      });
+      const res = await axios.get("http://13.209.19.146:3000/api/meals");
       const meals: Record<MealTime, string | null> = { 아침: null, 점심: null, 저녁: null };
-      res.data.meals.forEach((m: { mealType: string; imageUrl: string }) => {
-        const time = (Object.entries(mealTypeMap).find(([, v]) => v === m.mealType)?.[0]) as MealTime;
-        if (time) meals[time] = m.imageUrl;
-      });
+
+      res.data.meals
+        .filter((m: { mealDate: string }) => m.mealDate === mealDate)
+        .forEach((m: { mealType: string; imageUrl: string }) => {
+          const time = (Object.entries(mealTypeMap).find(([, v]) => v === m.mealType)?.[0]) as MealTime;
+          if (time) meals[time] = m.imageUrl;
+        });
+
       setMealImages((prev) => ({ ...prev, [mealDate]: meals }));
     } catch {
       setMealImages((prev) => ({
@@ -78,9 +83,11 @@ export default function Meals() {
     }
   };
 
+  // 추천 식단 불러오기
   const loadDailyPlans = async (date: Date) => {
     const mealDate = formatDate(date);
     const plans: Record<MealTime, MealPlan | null> = { 아침: null, 점심: null, 저녁: null };
+
     for (const time of ["아침", "점심", "저녁"] as MealTime[]) {
       try {
         const res = await axios.get("http://13.209.19.146:3000/api/membermeals", {
@@ -92,6 +99,7 @@ export default function Meals() {
         plans[time] = null;
       }
     }
+
     setDailyPlans(plans);
   };
 
@@ -106,6 +114,11 @@ export default function Meals() {
     setShowPopup(true);
   };
 
+  const handleFileButtonClick = () => fileInputRef.current?.click();
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) uploadFile(e.target.files[0]);
+  };
+
   const uploadFile = async (file: File) => {
     if (!selectedMealTime || !userId) return;
     const form = new FormData();
@@ -114,8 +127,11 @@ export default function Meals() {
     const mealType = mealTypeMap[selectedMealTime];
     const mealDate = formatDate(selectedDate);
 
+    form.append("mealDate", mealDate);
+    form.append("mealType", mealType);
+
     try {
-      const res = await axios.patch("http://13.209.19.146:3000/upload/meal", form, {
+      const res = await axios.patch("http://13.209.19.146:3000/api/upload/meal", form, {
         params: { mealDate, mealType },
       });
       alert(res.data.message);
@@ -125,11 +141,6 @@ export default function Meals() {
     } catch (e: any) {
       alert(`업로드 실패: ${e.response?.data?.message || e.message}`);
     }
-  };
-
-  const handleFileButtonClick = () => fileInputRef.current?.click();
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) uploadFile(e.target.files[0]);
   };
 
   const dateKey = formatDate(selectedDate);
@@ -177,6 +188,7 @@ export default function Meals() {
           {(["아침", "점심", "저녁"] as MealTime[]).map((time) => (
             <div key={time} className="meal-card">
               <h3>{time}</h3>
+              {todayMeals[time] && <img src={todayMeals[time]!} alt={`${time} 사진`} />}
               <div className="plan-text">
                 {dailyPlans[time] ? (
                   <>
