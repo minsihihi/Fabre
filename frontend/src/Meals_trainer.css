@@ -1,5 +1,5 @@
 /* MealsTrainer.css */
-.meal-container {
+  .meal-container {
     max-width: 900px;
     margin: 20px auto;
     padding: 20px;
@@ -24,7 +24,7 @@
   }
   
 /* MealsTrainer.css */
-.popup-overlay {
+  .popup-overlay {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.45);
@@ -79,6 +79,17 @@
   
   .register-meal-btn:hover {
     background-color: #1c6ed5;
+  }
+
+  /* Meals_Trainer.css 에 추가 */
+
+  .meal-summary-box {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+    background: #fafafa;
+    max-width: 360px;
   }
 
   
@@ -190,4 +201,50 @@
     }
   }
   
+  .meal-plan-form.meal-summary-box {
+    border: 1px solid #ccc;
+    padding: 16px;
+    border-radius: 10px;
+    background: #f9f9f9;
+    margin-top: 10px;
+  }
+  
+  .meal-image-box {
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .meal-image-box img {
+    max-width: 150px;
+    border-radius: 8px;
+    margin-top: 5px;
+  }
+  
+  .meal-text {
+    margin-top: 8px;
+    font-size: 14px;
+    color: #444;
+  }
+  .meal-image-box {
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .meal-image-box img {
+    max-width: 150px;
+    border-radius: 8px;
+    margin-top: 5px;
+  }
+  
+  .meal-text {
+    margin-top: 8px;
+    font-size: 14px;
+    color: #444;
+  }
+    
+  
+  .meal-plan-text {
+    margin-top: 8px;
+    font-size: 0.9em;
+  }
   
