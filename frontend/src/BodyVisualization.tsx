@@ -1,4 +1,5 @@
 import React from "react";
+import bodyFront from "./assets/body-front.png";
 import "./BodyVisualization.css";
 
 interface MuscleData {
@@ -19,7 +20,7 @@ const musclePositions: { [key: string]: { top: string; left: string } } = {
 export default function BodyVisualization({ data }: Props) {
   return (
     <div className="body-container">
-      <img src="/body-front.png" alt="body" className="body-image" />
+      <img src={bodyFront} alt="body" className="body-image" />
       {data.map((m) => {
         const pos = musclePositions[m.muscle];
         if (!pos) return null;

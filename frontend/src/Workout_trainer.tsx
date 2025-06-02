@@ -40,6 +40,13 @@ interface WorkoutRecord {
   workout_details: WorkoutDetail[];
 }
 
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 const TrainerRecordsPage: React.FC = () => {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [members, setMembers] = useState<TrainerMember[]>([]);
@@ -61,7 +68,6 @@ const TrainerRecordsPage: React.FC = () => {
         const res = await axios.get("http://13.209.19.146:3000/api/users/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log("유저 정보 조회 성공:", res.data);
         setUserInfo(res.data);
       } catch (err) {
         console.error("유저 정보 조회 실패:", err);
@@ -81,7 +87,6 @@ const TrainerRecordsPage: React.FC = () => {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        console.log("회원 목록 조회 성공:", res.data.data);
         setMembers(res.data.data);
       })
       .catch((err) => {
@@ -89,18 +94,30 @@ const TrainerRecordsPage: React.FC = () => {
       });
   }, [token, userInfo]);
 
-  // 3) 운동 기록 조회 & normalize
+  // 3) 당일 운동 기록 조회 & normalize
   const fetchWorkoutRecords = async (memberId: number) => {
-    console.log("운동 기록 조회 요청, memberId:", memberId);
+    if (!token) return;
+    const today = formatLocalDate(new Date());
     try {
       const res = await axios.get("http://13.209.19.146:3000/api/record", {
         headers: { Authorization: `Bearer ${token}` },
-        params: { memberId },
+        params: { memberId, workoutDate: today }, // 당일만 요청
       });
-      console.log("원본 운동 기록 응답:", res.data.data);
+      // 응답 데이터 예시: res.data.data = [{ id, workout_date, start_time, end_time, total_duration, WorkoutDetails: [...] }, ...]
+      const allRecords: any[] = res.data.data || [];
 
-      // 서버 필드 `WorkoutDetails`를 `workout_details`로 매핑
-      const normalized: WorkoutRecord[] = (res.data.data || []).map((r: any) => ({
+      // workout_date가 오늘인 것만 필터 (백엔드에서 이미 필터링했지만, 안전 차원에서 추가)
+      const todayRecords = allRecords.filter(r => r.workout_date === today);
+
+      // 중복 제거: 만약 동일한 날짜 레코드가 여러 개라면, id 기준으로 고유하게 유지
+      const uniqueRecordsMap: { [key: number]: any } = {};
+      todayRecords.forEach(r => {
+        uniqueRecordsMap[r.id] = r;
+      });
+      const uniqueRecords = Object.values(uniqueRecordsMap) as any[];
+
+      // normalize: 서버 필드 `WorkoutDetails`를 `workout_details`로 매핑
+      const normalized: WorkoutRecord[] = uniqueRecords.map((r: any) => ({
         id: r.id,
         workout_date: r.workout_date,
         start_time: r.start_time,
@@ -120,6 +137,7 @@ const TrainerRecordsPage: React.FC = () => {
     } catch (err: any) {
       console.error("운동 기록 조회 오류:", err);
       alert(err.response?.data?.message || "운동 기록 조회 실패");
+      setWorkoutRecords([]);
     }
   };
 
@@ -155,37 +173,38 @@ const TrainerRecordsPage: React.FC = () => {
         </select>
       </div>
 
-      {/* 운동 기록 리스트 */}
+      {/* 당일 운동 기록 리스트 (가로 레이아웃) */}
       <div className="records-list">
-        {workoutRecords.length > 0 ? (
-          workoutRecords.map((r) => (
-            <div key={r.id} className="record-item">
-              <p>날짜: {r.workout_date}</p>
-              <p>
-                시간: {r.start_time} - {r.end_time} ({r.total_duration}분)
-              </p>
-              <div className="detail-list">
-                {r.workout_details.map((d) => (
-                  <div key={d.id} className="detail-item">
-                    <p>
-                      운동: {d.exercise.name} ({d.exercise.category})
-                    </p>
-                    <p>
-                      세트: {d.sets}, 반복: {d.reps}, 중량: {d.weight}kg
-                    </p>
-                    {d.note && <p>메모: {d.note}</p>}
-                  </div>
-                ))}
+        {selectedMemberId ? (
+          workoutRecords.length > 0 ? (
+            workoutRecords.map((r) => (
+              <div key={r.id} className="record-item">
+                <p className="record-date">날짜: {r.workout_date}</p>
+                <p className="record-time">
+                  시간: {r.start_time} - {r.end_time} ({r.total_duration}분)
+                </p>
+                <div className="detail-list">
+                  {r.workout_details.map((d) => (
+                    <div key={d.id} className="detail-item">
+                      <p className="exercise-name">
+                        운동: {d.exercise.name} ({d.exercise.category})
+                      </p>
+                      <p className="exercise-info">
+                        세트: {d.sets}, 반복: {d.reps}, 중량: {d.weight}kg
+                      </p>
+                      {d.note && <p className="exercise-note">메모: {d.note}</p>}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))
-        ) : selectedMemberId ? (
-          <p>선택된 회원의 운동 기록이 없습니다.</p>
+            ))
+          ) : (
+            <p className="no-records-text">오늘의 운동 기록이 없습니다.</p>
+          )
         ) : (
-          <p>회원 선택 후 기록을 확인하세요.</p>
+          <p className="select-member-text">회원 선택 후 기록을 확인하세요.</p>
         )}
       </div>
-
     </div>
   );
 };

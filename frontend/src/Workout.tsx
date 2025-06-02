@@ -1,3 +1,5 @@
+// 📁 src/WorkoutPage.tsx
+
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -5,11 +7,30 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "./Workout.css";
 
-// 운동 이름과 카테고리 예시
-const EXERCISE_NAMES = ["벤치프레스", "스쿼트", "데드리프트", "풀업", "벤치프레스", "스쿼트", "데드리프트", "풀업",
-  "랫풀다운", "숄더프레스", "레그프레스", "덤벨컬",
-  "사이드레터럴레이즈", "레그익스텐션", "레그컬", "힙쓰러스트",
-  "로우머신", "런지", "버피", "마운틴클라이머"];
+// 운동 이름과 카테고리 예시 (풀업, 벤치프레스 등이 중복되어 있습니다)
+const EXERCISE_NAMES = [
+  "벤치프레스",
+  "스쿼트",
+  "데드리프트",
+  "풀업",
+  "벤치프레스",
+  "스쿼트",
+  "데드리프트",
+  "풀업",
+  "랫풀다운",
+  "숄더프레스",
+  "레그프레스",
+  "덤벨컬",
+  "사이드레터럴레이즈",
+  "레그익스텐션",
+  "레그컬",
+  "힙쓰러스트",
+  "로우머신",
+  "런지",
+  "버피",
+  "마운틴클라이머",
+];
+
 const CATEGORIES = ["상체", "하체", "전신", "유산소"];
 
 // 서버의 category 값을 UI에 표시하기 위한 역매핑
@@ -67,7 +88,7 @@ function formatLocalDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-const WorkoutPage: React.FC = () => {
+export default function WorkoutPage() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [trainerInfo, setTrainerInfo] = useState<{ id: number; login_id: string; name: string } | null>(null);
   const [workoutDate, setWorkoutDate] = useState<Date>(new Date());
@@ -79,6 +100,7 @@ const WorkoutPage: React.FC = () => {
   ]);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [submitting, setSubmitting] = useState<boolean>(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [showChoicePopup, setShowChoicePopup] = useState(false);
   const [showImagePopup, setShowImagePopup] = useState(false);
@@ -88,7 +110,7 @@ const WorkoutPage: React.FC = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  // 사용자 정보 조회
+  // 1) 사용자 정보 조회
   useEffect(() => {
     const fetchUserInfo = async () => {
       setIsLoading(true);
@@ -98,9 +120,11 @@ const WorkoutPage: React.FC = () => {
         return;
       }
       try {
+        console.log("🔄 사용자 정보 요청 중...");
         const response = await axios.get("http://13.209.19.146:3000/api/users/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
+        console.log("✅ 사용자 정보 조회 성공:", response.data);
         setUserInfo(response.data);
       } catch (err: any) {
         let message = "사용자 정보를 불러오지 못했습니다.";
@@ -109,6 +133,7 @@ const WorkoutPage: React.FC = () => {
         } else if (err.response?.status === 404) {
           message = "사용자를 찾을 수 없습니다.";
         }
+        console.error("❌ 사용자 정보 조회 실패:", err);
         alert(message);
       } finally {
         setIsLoading(false);
@@ -117,7 +142,7 @@ const WorkoutPage: React.FC = () => {
     fetchUserInfo();
   }, [token, navigate]);
 
-  // 트레이너 정보 조회
+  // 2) 트레이너 정보 조회 (회원의 경우)
   useEffect(() => {
     if (!token || !userInfo) return;
     axios
@@ -126,15 +151,23 @@ const WorkoutPage: React.FC = () => {
       })
       .then((res) => {
         if (res.data.trainer) {
+          console.log("🔄 트레이너 정보 조회 성공:", res.data.trainer);
           setTrainerInfo(res.data.trainer);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error("❌ 트레이너 정보 조회 실패:", err);
+      });
   }, [token, userInfo]);
 
-  // 운동 기록 조회 함수
+  // 3) 운동 기록 조회 함수
   const fetchWorkoutRecords = async (date: Date) => {
     if (!token || !userInfo) return;
+
+    // 날짜 필터
+    const formattedDate = formatLocalDate(date);
+
+    // 멤버 파라미터 설정
     let params: any = {};
     if (userInfo.role === "trainer") {
       const memberIdLocal = localStorage.getItem("memberId");
@@ -144,16 +177,54 @@ const WorkoutPage: React.FC = () => {
       }
       params.memberId = memberIdLocal;
     }
+    // workoutDate 파라미터 추가
+    params.workoutDate = formattedDate;
+
     try {
+      console.log(`🔄 운동 기록 조회 요청 (memberId=${params.memberId}, workoutDate=${formattedDate})`);
       const response = await axios.get("http://13.209.19.146:3000/api/record", {
         headers: { Authorization: `Bearer ${token}` },
         params,
       });
       const allRecords: WorkoutLog[] = response.data.data || [];
-      const formattedDate = formatLocalDate(date);
-      const record = allRecords.find((r) => r.workout_date === formattedDate);
+      console.log("✅ 원본 운동 기록 응답:", allRecords);
 
-      if (record) {
+      // workout_date가 정확히 오늘인 것만 필터 (서버에서 이미 필터링했지만, 안전 차원)
+      const todayRecords = allRecords.filter((r) => r.workout_date === formattedDate);
+
+      // 중복 제거: id별로 고유하게
+      const uniqueMap: { [key: number]: WorkoutLog } = {};
+      todayRecords.forEach((r) => {
+        uniqueMap[r.id] = r;
+      });
+      const uniqueRecords = Object.values(uniqueMap);
+
+      // normalize: 서버 필드 `WorkoutDetails` => `workout_details` 모양으로 매핑
+      const normalized: WorkoutLog[] = uniqueRecords.map((r) => ({
+        id: r.id,
+        workout_date: r.workout_date,
+        start_time: r.start_time,
+        end_time: r.end_time,
+        total_duration: r.total_duration,
+        note: r.note,
+        WorkoutDetails: (r.WorkoutDetails || []).map((d) => ({
+          id: d.id,
+          sets: d.sets,
+          reps: d.reps,
+          weight: d.weight,
+          note: d.note,
+          Exercise: d.Exercise,
+        })),
+      }));
+
+      console.log("✅ 정제된 오늘 운동 기록:", normalized);
+      setStartTime(""); // 화면에 남은 이전 데이터 초기화
+      setEndTime("");
+      setTotalDuration("");
+      setExercises([{ name: "", category: "", sets: 0, reps: 0, weight: 0 }]);
+
+      if (normalized.length > 0) {
+        const record = normalized[0]; // 오늘 기록은 1개뿐이라고 가정
         setStartTime(record.start_time);
         setEndTime(record.end_time);
         setTotalDuration(record.total_duration);
@@ -170,37 +241,51 @@ const WorkoutPage: React.FC = () => {
             : [{ name: "", category: "", sets: 0, reps: 0, weight: 0 }],
         );
       } else {
+        // 오늘 기록이 없을 때
         setStartTime("");
         setEndTime("");
         setTotalDuration("");
         setExercises([{ name: "", category: "", sets: 0, reps: 0, weight: 0 }]);
       }
       setCurrentExerciseIndex(0);
-    } catch {
+    } catch (err) {
+      console.error("❌ 운동 기록 조회 오류:", err);
       alert("운동 기록 조회 실패");
+      // 기록이 없으면 빈 상태로 초기화
+      setStartTime("");
+      setEndTime("");
+      setTotalDuration("");
+      setExercises([{ name: "", category: "", sets: 0, reps: 0, weight: 0 }]);
+      setCurrentExerciseIndex(0);
     }
   };
 
-  // 달력 클릭 시 처리
+  // 4) 달력 클릭 시 처리
   const handleDateClick = async (value: Date) => {
     setWorkoutDate(value);
     const formattedDate = formatLocalDate(value);
 
-    // 이미지 조회
+    // 1) 이미지 조회
     const userIdStr = userInfo?.id.toString();
     if (userIdStr) {
       try {
+        console.log(`🔄 운동 인증샷 조회 요청 (userId=${userIdStr}, workoutDate=${formattedDate})`);
         const imgRes = await axios.get("http://13.209.19.146:3000/api/images/workout", {
           params: { userId: userIdStr, workoutDate: formattedDate },
           headers: { Authorization: `Bearer ${token}` },
         });
+        console.log("✅ 운동 인증샷 응답:", imgRes.data.workouts);
         setWorkoutImages(imgRes.data.workouts || []);
-      } catch {}
+      } catch (err) {
+        console.error("❌ 운동 인증샷 조회 오류:", err);
+        setWorkoutImages([]);
+      }
     }
 
+    // 2) 운동 기록 조회
     await fetchWorkoutRecords(value);
 
-    // 오늘일 때 팝업
+    // 3) 팝업 표시 로직
     const todayStr = formatLocalDate(new Date());
     if (formattedDate === todayStr && workoutImages.length === 0) {
       setShowChoicePopup(true);
@@ -209,7 +294,7 @@ const WorkoutPage: React.FC = () => {
     }
   };
 
-  // 운동 기록 저장
+  // 5) 운동 기록 저장
   const handleSubmit = async () => {
     if (!startTime || !endTime) {
       alert("시작 시간과 종료 시간을 입력해주세요.");
@@ -217,6 +302,10 @@ const WorkoutPage: React.FC = () => {
     }
     if (isLoading || !userInfo) {
       alert("사용자 정보를 불러오는 중입니다.");
+      return;
+    }
+    if (submitting) {
+      // 이미 제출 중이면 무시
       return;
     }
 
@@ -227,6 +316,7 @@ const WorkoutPage: React.FC = () => {
       return;
     }
 
+    // payload 생성
     const payload: any = {
       userId: userInfo.id,
       workout_date: formattedDate,
@@ -259,17 +349,28 @@ const WorkoutPage: React.FC = () => {
     }
 
     try {
-      await axios.post("http://13.209.19.146:3000/api/record", payload, {
+      setSubmitting(true);
+      console.log("🔄 운동 기록 저장 요청 payload:", payload);
+      const res = await axios.post("http://13.209.19.146:3000/api/record", payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      alert("운동 기록이 저장되었습니다!");
+      console.log("✅ 운동 기록 저장 응답:", res.data);
+
+      // 짧게 200ms 대기 (DB 반영을 기다리기 위함)
+      await new Promise((r) => setTimeout(r, 200));
+
+      // 저장 후 즉시 조회
       await fetchWorkoutRecords(workoutDate);
-    } catch {
+      alert("운동 기록이 저장되었습니다!");
+    } catch (err) {
+      console.error("❌ 운동 기록 저장 실패:", err);
       alert("운동 기록 저장에 실패했습니다.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  // 이미지 업로드
+  // 6) 운동 인증샷 업로드
   const uploadImage = async (file: File) => {
     if (!token) {
       alert("로그인이 필요합니다.");
@@ -280,11 +381,14 @@ const WorkoutPage: React.FC = () => {
     formData.append("image", file);
     formData.append("workoutDate", formatLocalDate(workoutDate));
     try {
+      console.log("🔄 운동 인증샷 업로드 요청");
       const res = await axios.post("http://13.209.19.146:3000/api/upload/workout", formData, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log("✅ 운동 인증샷 업로드 응답:", res.data);
       alert(res.data.message || "이미지 업로드 성공");
-    } catch {
+    } catch (err) {
+      console.error("❌ 운동 인증샷 업로드 실패:", err);
       alert("이미지 업로드 실패");
     }
   };
@@ -304,7 +408,7 @@ const WorkoutPage: React.FC = () => {
         const file = new File([blob], "workout.jpg", { type: "image/jpeg" });
         await uploadImage(file);
         setShowCameraModal(false);
-        // 재조회
+        // 업로드 후 재조회
         handleDateClick(workoutDate);
       }, "image/jpeg");
     }
@@ -385,6 +489,10 @@ const WorkoutPage: React.FC = () => {
     };
   }, [showCameraModal]);
 
+  if (isLoading) {
+    return <p>로딩 중...</p>;
+  }
+
   return (
     <div className="record-page-container">
       <h1 className="page-title">🏋️ WORKOUT</h1>
@@ -398,9 +506,17 @@ const WorkoutPage: React.FC = () => {
           />
           <div className="time-input-group">
             <label>시작 시간 *</label>
-            <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+            />
             <label>종료 시간 *</label>
-            <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+            <input
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+            />
             <label>총 운동 시간</label>
             <input type="number" value={totalDuration} readOnly />
           </div>
@@ -408,30 +524,59 @@ const WorkoutPage: React.FC = () => {
 
         <div className="exercise-section">
           <h2 className="exercise-title">운동 내용</h2>
+
           {exercises.length > 1 && (
             <div className="exercise-navigation">
-              <button onClick={() => setCurrentExerciseIndex((p) => Math.max(0, p - 1))}>◀</button>
+              <button
+                onClick={() =>
+                  setCurrentExerciseIndex((p) => Math.max(0, p - 1))
+                }
+              >
+                ◀
+              </button>
               <span>
                 {currentExerciseIndex + 1}/{exercises.length}
               </span>
-              <button onClick={() => setCurrentExerciseIndex((p) => Math.min(exercises.length - 1, p + 1))}>▶</button>
+              <button
+                onClick={() =>
+                  setCurrentExerciseIndex((p) =>
+                    Math.min(exercises.length - 1, p + 1)
+                  )
+                }
+              >
+                ▶
+              </button>
             </div>
           )}
+
           <div className="exercise-box">
             <select
               value={exercises[currentExerciseIndex].name}
-              onChange={(e) => handleExerciseChange(currentExerciseIndex, "name", e.target.value)}
+              onChange={(e) =>
+                handleExerciseChange(
+                  currentExerciseIndex,
+                  "name",
+                  e.target.value
+                )
+              }
             >
               <option value="">운동 선택</option>
-              {EXERCISE_NAMES.map((n) => (
-                <option key={n} value={n}>
+              {EXERCISE_NAMES.map((n, i) => (
+                <option key={`${n}-${i}`} value={n}>
                   {n}
                 </option>
               ))}
             </select>
+
             <select
               value={exercises[currentExerciseIndex].category}
-              onChange={(e) => handleExerciseChange(currentExerciseIndex, "category", e.target.value)}
+              onChange={(e) =>
+                handleExerciseChange(
+                  currentExerciseIndex,
+                  "category",
+                  e.target.value
+                )
+              }
             >
               <option value="">카테고리 선택</option>
               {CATEGORIES.map((c) => (
@@ -440,28 +585,52 @@ const WorkoutPage: React.FC = () => {
                 </option>
               ))}
             </select>
-            <div className={`category-tag ${getCategoryClass(exercises[currentExerciseIndex].category)}`}>
+
+            <div
+              className={`category-tag ${getCategoryClass(
+                exercises[currentExerciseIndex].category
+              )}`}
+            >
               {exercises[currentExerciseIndex].category}
             </div>
+
             <label>세트</label>
             <input
               type="number"
               value={exercises[currentExerciseIndex].sets}
-              onChange={(e) => handleExerciseChange(currentExerciseIndex, "sets", Number(e.target.value))}
+              onChange={(e) =>
+                handleExerciseChange(
+                  currentExerciseIndex,
+                  "sets",
+                  Number(e.target.value)
+                )
+              }
             />
             <label>반복</label>
             <input
               type="number"
               value={exercises[currentExerciseIndex].reps}
-              onChange={(e) => handleExerciseChange(currentExerciseIndex, "reps", Number(e.target.value))}
+              onChange={(e) =>
+                handleExerciseChange(
+                  currentExerciseIndex,
+                  "reps",
+                  Number(e.target.value)
+                )
+              }
             />
             <label>중량(kg)</label>
             <select
               value={exercises[currentExerciseIndex].weight}
-              onChange={(e) => handleExerciseChange(currentExerciseIndex, "weight", Number(e.target.value))}
+              onChange={(e) =>
+                handleExerciseChange(
+                  currentExerciseIndex,
+                  "weight",
+                  Number(e.target.value)
+                )
+              }
             >
               {[...Array(41)].map((_, i) => (
-                <option key={i} value={i * 5}>
+                <option key={`weight-${i}`} value={i * 5}>
                   {i * 5} kg
                 </option>
               ))}
@@ -469,17 +638,32 @@ const WorkoutPage: React.FC = () => {
             <input
               placeholder="메모"
               value={exercises[currentExerciseIndex].note || ""}
-              onChange={(e) => handleExerciseChange(currentExerciseIndex, "note", e.target.value)}
+              onChange={(e) =>
+                handleExerciseChange(
+                  currentExerciseIndex,
+                  "note",
+                  e.target.value
+                )
+              }
             />
-            <button className="delete-btn" onClick={() => deleteExerciseField(currentExerciseIndex)}>
+            <button
+              className="delete-btn"
+              onClick={() => deleteExerciseField(currentExerciseIndex)}
+            >
               🗑️
             </button>
           </div>
+
           <button className="add-btn" onClick={addExerciseField}>
             + 운동 추가
           </button>
-          <button className="submit-btn" onClick={handleSubmit}>
-            기록 저장
+
+          <button
+            className="submit-btn"
+            onClick={handleSubmit}
+            disabled={submitting}
+          >
+            {submitting ? "저장 중..." : "기록 저장"}
           </button>
         </div>
       </div>
@@ -489,7 +673,12 @@ const WorkoutPage: React.FC = () => {
         <div className="popup-overlay">
           <div className="popup-box">
             <h3>오운완 사진 등록하기</h3>
-            <button onClick={() => { setShowChoicePopup(false); setShowCameraModal(true); }}>
+            <button
+              onClick={() => {
+                setShowChoicePopup(false);
+                setShowCameraModal(true);
+              }}
+            >
               📷 카메라로 찍기
             </button>
             <button onClick={() => setShowChoicePopup(false)}>닫기</button>
@@ -505,14 +694,24 @@ const WorkoutPage: React.FC = () => {
             {workoutImages.length > 0 ? (
               <div className="image-gallery">
                 {workoutImages.map((img) => (
-                  <img key={img.id} src={img.imageUrl} alt="운동 인증샷" className="workout-image" />
+                  <img
+                    key={img.id}
+                    src={img.imageUrl}
+                    alt="운동 인증샷"
+                    className="workout-image"
+                  />
                 ))}
               </div>
             ) : (
               <p>등록된 인증샷이 없습니다.</p>
             )}
             {formatLocalDate(workoutDate) === formatLocalDate(new Date()) && (
-              <button onClick={() => { setShowImagePopup(false); setShowCameraModal(true); }}>
+              <button
+                onClick={() => {
+                  setShowImagePopup(false);
+                  setShowCameraModal(true);
+                }}
+              >
                 다시 찍기
               </button>
             )}
@@ -536,6 +735,4 @@ const WorkoutPage: React.FC = () => {
       )}
     </div>
   );
-};
-
-export default WorkoutPage;
+}

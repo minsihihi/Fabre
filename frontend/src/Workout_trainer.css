@@ -7,119 +7,92 @@ body {
   scroll-behavior: smooth;
 }
 
+/* 📁 Workout_trainer.css */
+
 .trainer-records-container {
-  max-width: 1024px;
-  margin: 0 auto;
-  padding: 1.5rem;
-  padding-top: 3rem;
-  box-sizing: border-box;
+  padding: 20px;
+  font-family: Arial, sans-serif;
 }
 
 .trainer-records-container h1 {
-  font-size: 28px;
-  font-weight: bold;
-  margin-bottom: 1rem;
-  text-align: center;
+  font-size: 24px;
+  margin-bottom: 20px;
 }
 
 .member-select-area {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 20px;
 }
 
 .member-select-area label {
-  font-size: 1rem;
-  font-weight: 500;
+  font-weight: bold;
+  margin-right: 10px;
 }
 
 .member-select-area select {
-  padding: 0.5rem;
-  font-size: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  outline: none;
+  padding: 5px;
+  font-size: 14px;
 }
 
+/* 가로 레이아웃: flex row */
 .records-list {
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  flex-direction: row;
+  gap: 20px; /* 카드 간 간격 */
+  overflow-x: auto; /* 가로 스크롤 허용 */
+  padding-bottom: 10px;
 }
 
 .record-item {
-  background-color: #f5f5f5;
-  padding: 1rem;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
   border-radius: 8px;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.05);
+  padding: 15px;
+  width: 280px; /* 카드 너비 */
+  flex-shrink: 0; /* 너비 고정, 줄어들지 않음 */
 }
 
-.record-item p {
-  margin: 0.5rem 0;
+.record-item .record-date {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.record-item .record-time {
+  font-size: 14px;
+  margin-bottom: 10px;
 }
 
 .detail-list {
-  margin-top: 1rem;
-  padding-left: 1rem;
-  border-left: 2px solid #ddd;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  margin-top: 10px;
 }
 
 .detail-item {
   background-color: #fff;
-  padding: 0.75rem;
+  border: 1px solid #ccc;
   border-radius: 6px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  padding: 8px;
+  margin-bottom: 8px;
 }
 
-.detail-item p {
-  margin: 0.25rem 0;
-  font-size: 0.95rem;
+.detail-item .exercise-name {
+  font-weight: bold;
+  margin-bottom: 4px;
 }
 
-.raw-json-container {
-  margin-top: 2rem;
-  padding: 1rem;
-  background-color: #272822;
-  color: #f8f8f2;
-  font-family: "Courier New", monospace;
-  border-radius: 8px;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+.detail-item .exercise-info {
+  font-size: 14px;
+  margin-bottom: 4px;
 }
 
-.raw-json-container h2 {
-  margin-bottom: 1rem;
-  font-size: 1.2rem;
-  color: #66d9ef;
+.detail-item .exercise-note {
+  font-size: 13px;
+  font-style: italic;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .trainer-records-container {
-    padding-top: 4rem;
-  }
-
-  .member-select-area {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .record-item {
-    padding: 0.75rem;
-  }
-
-  .detail-item {
-    padding: 0.5rem;
-  }
-
-  .raw-json-container {
-    font-size: 0.85rem;
-  }
+/* 선택 안내 메시지 스타일 */
+.select-member-text,
+.no-records-text {
+  font-size: 16px;
+  color: #555;
+  margin-top: 20px;
 }
