@@ -1,5 +1,6 @@
-/* Home_trainer.css */
-
+/* --------------------------- */
+/* 1) 전역 및 레이아웃 */
+/* --------------------------- */
 html, body {
   margin: 0;
   padding: 0;
@@ -10,31 +11,114 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center; /* 수직 중앙 정렬 */
+  justify-content: flex-start;
   padding: 30px;
   background-color: #f4f4f4;
   min-height: 100vh;
 }
 
-.calendar-container {
+/* --------------------------- */
+/* 2) “확정된 스케줄” 카드 */
+/* --------------------------- */
+/* 카드 전체 폭을 줄여서 작게 보이도록 small-card 클래스 추가 */
+.bookings-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 16px;
   width: 90%;
-  max-width: 500px; /* 기본 앱용: 최대 500px */
+  max-width: 600px;
   margin-bottom: 20px;
 }
 
-/* 웹 화면을 위한 스타일 (화면 너비가 1024px 이상) */
+.bookings-card.small-card {
+  padding: 12px;
+  max-width: 500px;
+}
+
+.bookings-card h4 {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333333;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 6px;
+}
+
+/* 예약 리스트 */
+.booking-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.booking-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.booking-item:last-child {
+  border-bottom: none;
+}
+
+.booking-member-profile {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #ccc;
+}
+
+.booking-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.booking-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #222;
+}
+
+.booking-time {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 2px;
+}
+
+.no-booking {
+  font-size: 0.9rem;
+  color: #777;
+  text-align: center;
+  padding: 10px 0;
+}
+
+/* --------------------------- */
+/* 3) 캘린더 섹션 */
+/* --------------------------- */
+.calendar-container {
+  width: 90%;
+  max-width: 500px;
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+
+/* 웹에서는 조금 더 크게 */
 @media (min-width: 1024px) {
   .calendar-container {
-    max-width: 700px; /* 웹에서는 좀 더 크게 */
-    margin-top: 40px;
+    max-width: 700px;
+    margin-top: 20px;
   }
 }
 
-/* react-calendar 기본 스타일 재정의 */
+/* react-calendar 스타일 재정의 */
 .react-calendar {
   width: 100%;
   max-width: 100%;
-  background: white;
+  background: #ffffff;
   border: 1px solid #bdeaff;
   font-family: Arial, Helvetica, sans-serif;
   line-height: 1.125em;
@@ -43,7 +127,7 @@ html, body {
 
 .react-calendar__navigation {
   display: flex;
-  height: 44px;
+  height: 40px;
   margin-bottom: 1em;
   align-items: center;
   justify-content: space-between;
@@ -54,7 +138,7 @@ html, body {
 .react-calendar__navigation button {
   background: none;
   border: none;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
   outline: none;
@@ -71,7 +155,7 @@ html, body {
   font-weight: bold;
   font-size: 0.75em;
   background-color: #e0e0e0;
-  padding: 5px 0;
+  padding: 4px 0;
   border-bottom: 1px solid #d0d0d0;
 }
 
@@ -82,7 +166,7 @@ html, body {
 .react-calendar__month-view__days__day,
 .react-calendar__month-view__days__day--neighboringMonth {
   min-width: 14.2%;
-  height: 70px;
+  height: 60px;
   margin: 0;
   display: flex;
   align-items: center;
@@ -108,7 +192,9 @@ html, body {
   background: #f0f8ff;
 }
 
-/* Modal 스타일 */
+/* --------------------------- */
+/* 4) 모달 (운동 완료/미완료 회원) */
+/* --------------------------- */
 .modal {
   position: fixed;
   top: 0;
@@ -124,102 +210,109 @@ html, body {
 
 .modal-content {
   background-color: #fff;
-  padding: 20px 30px;
-  border-radius: 10px;
+  padding: 16px 24px;
+  border-radius: 8px;
   width: 90%;
-  max-width: 600px;
+  max-width: 500px;
   text-align: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.modal-content p {
-  margin-bottom: 20px;
-  font-size: 18px;
+.modal-content h2 {
+  margin-bottom: 12px;
+  font-size: 1.3rem;
+  color: #333;
 }
 
-.modal-content button {
-  margin: 0 10px;
-  padding: 8px 16px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-/* -- 추가: 팝업 회원 사진 & 이름 스타일 -- */
 .modal-content .members-container {
   display: flex;
-  flex-direction: column; /* 세로 방향으로 쌓기 */
-  align-items: stretch;   /* 자식이 전체 너비 사용 */
-  gap: 20px;              /* 위아래 간격 */
-  margin-top: 20px;
+  gap: 20px;
+  justify-content: space-between;
+  margin-top: 16px;
 }
 
 .modal-content .completed,
 .modal-content .not-completed {
-  width: 100%;            /* 각 섹션이 가로 전체 사용 */
+  flex: 1;
+  background: #f9f9f9;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.modal-content .completed h3,
+.modal-content .not-completed h3 {
+  margin-bottom: 10px;
+  font-size: 1rem;
+  color: #444;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 4px;
 }
 
 .modal-content .member-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .modal-content .member-item:last-child {
-  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .modal-content .profile-img {
-  width: 12%;
-  height: 12%;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: cover;
+  border: 1px solid #ccc;
 }
 
-/* 운동 시간 설정 테이블 스타일 (Home.tsx용) */
-.table-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: #fff;
-  border: 1px solid #ddd;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.modal-content .completed p,
+.modal-content .not-completed p {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.modal-content .close-btn {
+  margin-top: 16px;
+  padding: 8px 12px;
+  background-color: #ef4444;
+  color: #fff;
+  font-weight: 600;
+  border: none;
   border-radius: 8px;
-}
-
-.workout-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.workout-table th,
-.workout-table td {
-  border: 1px solid #fffcfc;
-  padding: 10px;
-  text-align: center;
-}
-
-.workout-table th {
-  background-color: #f0f0f0;
-  font-weight: bold;
-}
-
-/* Action buttons */
-.action-buttons {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-}
-
-.action-buttons button {
-  margin: 0 10px;
-  padding: 10px 20px;
-  font-size: 16px;
   cursor: pointer;
+  transition: background-color 0.25s ease;
 }
 
-/* 반응형 처리 */
+.modal-content .close-btn:hover {
+  background-color: #dc2626;
+}
+
+/* --------------------------- */
+/* 5) 반응형 처리 */
+/* --------------------------- */
+@media (max-width: 768px) {
+  .bookings-card {
+    width: 95%;
+    padding: 12px;
+  }
+  .booking-member-profile {
+    width: 28px;
+    height: 28px;
+  }
+  .booking-name {
+    font-size: 0.9rem;
+  }
+  .booking-time {
+    font-size: 0.8rem;
+  }
+  .modal-content .members-container {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
 @media (max-width: 600px) {
   .calendar-container {
     width: 100%;

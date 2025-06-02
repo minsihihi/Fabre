@@ -1,11 +1,33 @@
+// 📁 frontend/src/Record_Trainer.tsx
+
 import { useState, useEffect } from "react";
+import axios from "axios";
 import "./Record.css";
 
-export default function Report() {
-  const [selectedMonth, setSelectedMonth] = useState<number>(1);
-  const [selectedWeek, setSelectedWeek] = useState<number>(1);
+interface TrainerMember {
+  member: {
+    id: number;
+    login_id: string;
+    name: string;
+  };
+}
+
+export default function RecordTrainer() {
+  const [members, setMembers] = useState<TrainerMember[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
+
+  const today = new Date();
+  const currentMonth = today.getMonth() + 1;
+  const currentWeek = Math.ceil(today.getDate() / 7);
+
+  const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
+  const [selectedWeek, setSelectedWeek] = useState<number>(currentWeek);
   const [viewType, setViewType] = useState<string>("주간");
   const [reportData, setReportData] = useState<any>(null);
+
+  const handleMemberChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedMemberId(Number(event.target.value));
+  };
 
   const handleMonthChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedMonth(Number(event.target.value));
@@ -19,37 +41,84 @@ export default function Report() {
     setViewType(event.target.value);
   };
 
+  // 1) 트레이너 회원 목록 불러오기
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get("http://13.209.19.146:3000/api/trainer/members", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setMembers(res.data.data);
+      } catch (error) {
+        console.error("회원 목록 불러오기 실패:", error);
+      }
+    })();
+  }, []);
+
+  // 2) 선택된 회원/기간/타입이 바뀔 때마다 리포트 호출
   useEffect(() => {
     const fetchReport = async () => {
+      if (!selectedMemberId) return;
+
       try {
-        const response = await fetch("http://13.209.19.146:3000/api/workouts/analyze-weekly", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${localStorage.getItem("token")}` // 혹은 적절한 인증 방식 적용
-          },
-          body: JSON.stringify({
-            memberId: "12345" // 실제 memberId로 수정 필요
-          }),
-        });
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          "http://13.209.19.146:3000/api/workouts/analyze-weekly",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              memberId: selectedMemberId,
+              viewType,
+              month: selectedMonth,
+              week: selectedWeek,
+            }),
+          }
+        );
         const data = await response.json();
         if (data.report) {
           setReportData(data.report);
         } else {
           console.error("리포트가 없습니다.");
+          setReportData(null);
         }
       } catch (error) {
         console.error("리포트 불러오기 실패:", error);
+        setReportData(null);
       }
     };
 
     fetchReport();
-  }, [selectedMonth, selectedWeek, viewType]);
+  }, [selectedMemberId, selectedMonth, selectedWeek, viewType]);
 
   return (
     <div className="record-container">
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">📝 R E C O R D</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-4">📝 트레이너 리포트 조회</h1>
 
+      {/* 회원 선택 */}
+      <div className="member-selector">
+        <label htmlFor="memberSelect">회원 선택:</label>
+        <select
+          id="memberSelect"
+          value={selectedMemberId ?? ""}
+          onChange={handleMemberChange}
+        >
+          <option value="" disabled>
+            -- 회원 선택 --
+          </option>
+          {members.map((m) => (
+            <option key={m.member.id} value={m.member.id}>
+              {m.member.name} ({m.member.login_id})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* 주차/월, 월/주 선택 */}
       <div className="record-selectors">
         <div className="view-selector">
           <label htmlFor="viewType">주차/월:</label>
@@ -85,19 +154,26 @@ export default function Report() {
         </div>
       </div>
 
+      {/* 리포트 내용 */}
       <div className="record-content">
-        <h2 className="record-title">{`${selectedMonth}월 ${viewType} 리포트`}</h2>
+        <h2 className="record-title">
+          {selectedMemberId
+            ? `${selectedMonth}월 ${viewType} 리포트`
+            : "회원 선택 후 리포트를 확인하세요"}
+        </h2>
         <div className="record-box">
-          {reportData ? (
-            <div className="record-data">
-              <p>🔥 총 소모 칼로리: {reportData.total_calories_burned} kcal</p>
-              <p>💪 근육 변화: {reportData.muscle_change} kg</p>
-              <p>⚖️ 체중 변화: {reportData.body_change} kg</p>
-              <p>📢 피드백: {reportData.feedback}</p>
-            </div>
-          ) : (
-            <p>리포트를 불러오는 중...</p>
-          )}
+          {selectedMemberId ? (
+            reportData ? (
+              <div className="record-data">
+                <p>🔥 총 소모 칼로리: {reportData.total_calories_burned} kcal</p>
+                <p>💪 근육 변화: {reportData.muscle_change} kg</p>
+                <p>⚖️ 체중 변화: {reportData.body_change} kg</p>
+                <p>📢 피드백: {reportData.feedback}</p>
+              </div>
+            ) : (
+              <p>리포트를 불러오는 중...</p>
+            )
+          ) : null}
         </div>
       </div>
     </div>

@@ -1,57 +1,85 @@
+/* 📁 src/Record.css */
+
+/* 기존 스타일 유지 */
 .record-container h1 {
-    text-align: center;
-  }
-  
-  .record-container {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 20px;
-  }
-  
-  .record-selectors {
-    display: flex;
-    gap: 20px;
-    justify-content: space-between;
-  }
-  
-  .record-selectors div {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .record-selectors label {
-    font-weight: bold;
-  }
-  
-  .record-selectors select {
-    padding: 8px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-  }
-  
-  .record-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .record-title {
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 20px;
-  }
-  
-  .record-box {
-    width: 80%;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 16px;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-    text-align: center;
-  }
-  
-  .record-data {
-    margin-top: 20px;
-  }
-  
+  text-align: center;
+}
+
+.record-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+}
+
+/* 회원 선택 섹션 */
+.member-selector {
+  display: flex;
+  flex-direction: column;
+  max-width: 300px;
+  margin: 0 auto; /* 가운데 정렬 */
+  gap: 8px;
+}
+
+.member-selector label {
+  font-weight: bold;
+}
+
+.member-selector select {
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  background-color: #fafafa;
+}
+
+/* 기존 record-selectors */
+.record-selectors {
+  display: flex;
+  gap: 20px;
+  justify-content: center; /* 회원 선택과 동일하게 가운데 정렬 */
+}
+
+.record-selectors div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.record-selectors label {
+  font-weight: bold;
+}
+
+.record-selectors select {
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  background-color: #fafafa;
+}
+
+/* record-content */
+.record-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.record-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.record-box {
+  width: 80%;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.record-data {
+  margin-top: 20px;
+}

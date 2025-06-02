@@ -1,4 +1,5 @@
-// Meals_Trainer.tsx
+// 📁 frontend/src/Meals_Trainer.tsx
+
 import { useState, useEffect } from "react";
 import axios from "axios";
 import Calendar from "react-calendar";
@@ -26,12 +27,13 @@ interface MealPlan {
   carb: string;
   protein: string;
   fat: string;
+  matchRate: number | null;
 }
 
 const foodOptions = {
   carb: ["삶은고구마", "밥", "바나나", "단호박"],
-  protein: ["닭가슴살구이", "쇠고기구이", "두부", "연어구이", "삶은달걀"],
-  fat: ["아몬드", "캐슈넛", "방울토마토"]
+  protein: ["닭가슴살구이", "두부", "연어구이", "삶은달걀", "쇠고기구이"],
+  fat: ["아몬드", "캐슈넛", "방울토마토"],
 };
 
 export default function MealsTrainer() {
@@ -42,11 +44,15 @@ export default function MealsTrainer() {
   const [fetchedMealPlans, setFetchedMealPlans] = useState<Record<string, Record<MealTime, MealPlan | null>>>({});
   const [showPopup, setShowPopup] = useState(false);
 
+  // Which meal time's detailed popup is open (“아침” | “점심” | “저녁” | null)
+  const [detailPopupTime, setDetailPopupTime] = useState<MealTime | null>(null);
+
   const [mealPlan, setMealPlan] = useState<MealPlan>({
     mealType: "아침",
     carb: "",
     protein: "",
-    fat: ""
+    fat: "",
+    matchRate: null,
   });
 
   const formatDate = (d: Date) => {
@@ -56,6 +62,7 @@ export default function MealsTrainer() {
     return `${year}-${month}-${day}`;
   };
 
+  // 1) 회원 목록 불러오기 (트레이너)
   useEffect(() => {
     (async () => {
       try {
@@ -70,6 +77,7 @@ export default function MealsTrainer() {
     })();
   }, []);
 
+  // 2) 해당 회원과 날짜가 선택되었을 때: 이미지 + 식단(탄/단/지/일치율) 가져오기
   const fetchMealImages = async (memberId: number, date: Date) => {
     const mealDate = formatDate(date);
     try {
@@ -110,6 +118,7 @@ export default function MealsTrainer() {
           carb: meal.carb,
           protein: meal.protein,
           fat: meal.fat,
+          matchRate: meal.matchRate !== undefined ? meal.matchRate : null,
         };
       } catch {
         dateData[t] = null;
@@ -126,34 +135,38 @@ export default function MealsTrainer() {
     }
   }, [selectedMember, selectedDate]);
 
+  // 3) 날짜 클릭 → “메뉴 보기” 팝업 열기
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
     setShowPopup(true);
+    setDetailPopupTime(null);
   };
 
-  const closePopup = () => setShowPopup(false);
+  const closePopup = () => {
+    setShowPopup(false);
+    setDetailPopupTime(null);
+  };
 
   const dateKey = formatDate(selectedDate);
   const todayMeals = mealImages[dateKey] || { 아침: null, 점심: null, 저녁: null };
   const todayMealPlans = fetchedMealPlans[dateKey] || { 아침: null, 점심: null, 저녁: null };
 
+  // 4) 트레이너가 식단 등록하기
   const handleRegisterMealPlan = async () => {
     if (!selectedMember) {
       alert("회원이 선택되지 않았습니다.");
       return;
     }
-
     const token = localStorage.getItem("token");
     if (!token) {
       alert("로그인이 필요합니다.");
       return;
     }
-
     const payload = JSON.parse(window.atob(token.split(".")[1]));
     const trainerId = payload.id;
 
     try {
-      const response = await axios.post(
+      await axios.post(
         "http://13.209.19.146:3000/api/meal",
         {
           userId: trainerId,
@@ -164,31 +177,37 @@ export default function MealsTrainer() {
           mealDate: dateKey,
           mealType: mealTypeMap[mealPlan.mealType],
         },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       alert("✅ 식단이 성공적으로 등록되었습니다!");
       fetchMealPlans(selectedMember.member.id, selectedDate);
-    } catch (error: any) {
+    } catch {
       alert("❗식단 등록 중 오류가 발생했습니다.");
     }
+  };
+
+  // 5) “식단 사진 보기” 클릭 → 상세 팝업 열기
+  const openDetailPopup = (time: MealTime) => {
+    setDetailPopupTime(time);
   };
 
   return (
     <div className="meal-container">
       <h2>회원 식단 관리</h2>
 
+      {/* 1) 회원 선택 드롭다운 */}
       <div className="member-select-wrapper">
         <label>회원 선택:</label>
         <select
           value={selectedMember?.member.id || ""}
           onChange={e => {
-            const mem = members.find(m => m.member.id === +e.target.value) || null;
-            setSelectedMember(mem);
+            const sel = members.find(m => m.member.id === +e.target.value) || null;
+            setSelectedMember(sel);
           }}
         >
-          <option value="" disabled>-- 회원을 선택하세요 --</option>
+          <option value="" disabled>
+            -- 회원을 선택하세요 --
+          </option>
           {members.map(m => (
             <option key={m.member.id} value={m.member.id}>
               {m.member.name} ({m.member.login_id})
@@ -197,8 +216,10 @@ export default function MealsTrainer() {
         </select>
       </div>
 
+      {/* 2) 달력: 날짜 선택 */}
       <Calendar onClickDay={handleDateClick} value={selectedDate} />
 
+      {/* 3) 트레이너가 식단 등록 UI + 추천 식단 */}
       {selectedMember && (
         <div className="meal-plan-section">
           <h3>🍱 식단 등록</h3>
@@ -209,7 +230,9 @@ export default function MealsTrainer() {
               onChange={e => setMealPlan({ ...mealPlan, mealType: e.target.value as MealTime })}
             >
               {["아침", "점심", "저녁"].map(t => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
             </select>
 
@@ -220,7 +243,9 @@ export default function MealsTrainer() {
             >
               <option value="">선택하세요</option>
               {foodOptions.carb.map(food => (
-                <option key={food} value={food}>{food}</option>
+                <option key={food} value={food}>
+                  {food}
+                </option>
               ))}
             </select>
 
@@ -231,7 +256,9 @@ export default function MealsTrainer() {
             >
               <option value="">선택하세요</option>
               {foodOptions.protein.map(food => (
-                <option key={food} value={food}>{food}</option>
+                <option key={food} value={food}>
+                  {food}
+                </option>
               ))}
             </select>
 
@@ -242,43 +269,82 @@ export default function MealsTrainer() {
             >
               <option value="">선택하세요</option>
               {foodOptions.fat.map(food => (
-                <option key={food} value={food}>{food}</option>
+                <option key={food} value={food}>
+                  {food}
+                </option>
               ))}
             </select>
 
-            <button onClick={handleRegisterMealPlan}>식단 등록</button>
+            <button className="register-meal-btn" onClick={handleRegisterMealPlan}>
+              식단 등록
+            </button>
           </div>
         </div>
       )}
 
-      {showPopup && (
+      {/* 4) 팝업: 선택한 날짜의 “일치율 먼저, 식단 보기 버튼” */}
+      {showPopup && selectedMember && (
         <div className="popup-overlay" onClick={closePopup}>
           <div className="popup-content" onClick={e => e.stopPropagation()}>
-            <h3>📸 식단 사진</h3>
-            {["아침", "점심", "저녁"].map(time => (
-              <div key={time}>
-                <h4>{time}</h4>
-                {todayMeals[time as MealTime] ? (
-                  <img
-                    src={todayMeals[time as MealTime] as string}
-                    alt={`${time} 식사 이미지`}
-                    style={{ width: "200px", height: "auto", borderRadius: "8px", marginBottom: "10px" }}
-                  />
-                ) : (
-                  <p>이미지가 없습니다.</p>
-                )}
-                {todayMealPlans[time as MealTime] ? (
-                  <ul>
-                    <li>탄수화물: {todayMealPlans[time as MealTime]?.carb}</li>
-                    <li>단백질: {todayMealPlans[time as MealTime]?.protein}</li>
-                    <li>지방: {todayMealPlans[time as MealTime]?.fat}</li>
-                  </ul>
-                ) : (
-                  <p>등록된 식단이 없습니다.</p>
-                )}
-              </div>
-            ))}
-            <button onClick={closePopup}>닫기</button>
+            <h3>{dateKey} 일치율</h3>
+
+            {(["아침", "점심", "저녁"] as MealTime[]).map(time => {
+              const plan = todayMealPlans[time];
+              const matchRate = plan?.matchRate;
+              return (
+                <div key={time} className="popup-meal-section">
+                  <h4>{time}</h4>
+                  {matchRate !== null && matchRate !== undefined ? (
+                    <p>일치율: {matchRate}%</p>
+                  ) : (
+                    <p>일치율: 없음</p>
+                  )}
+                  <button
+                    onClick={() => openDetailPopup(time)}
+                    disabled={!todayMeals[time]}
+                  >
+                    식단 보기
+                  </button>
+                </div>
+              );
+            })}
+
+            <button className="close-btn" onClick={closePopup}>
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 5) 상세 팝업: 사진 + 식단 (탄/단/지) */}
+      {detailPopupTime && (
+        <div className="popup-overlay" onClick={() => setDetailPopupTime(null)}>
+          <div className="popup-content" onClick={e => e.stopPropagation()}>
+            <h3>
+              {dateKey} {detailPopupTime} 식단 상세
+            </h3>
+            <img
+              src={todayMeals[detailPopupTime]!}
+              alt={`${detailPopupTime} 식사 이미지`}
+              style={{
+                width: "100%",
+                maxWidth: "350px",
+                borderRadius: "8px",
+                marginBottom: "10px",
+              }}
+            />
+            {todayMealPlans[detailPopupTime] ? (
+              <ul className="popup-plan-details">
+                <li>탄수화물: {todayMealPlans[detailPopupTime]!.carb}</li>
+                <li>단백질: {todayMealPlans[detailPopupTime]!.protein}</li>
+                <li>지방: {todayMealPlans[detailPopupTime]!.fat}</li>
+              </ul>
+            ) : (
+              <p>등록된 식단이 없습니다.</p>
+            )}
+            <button className="close-btn" onClick={() => setDetailPopupTime(null)}>
+              닫기
+            </button>
           </div>
         </div>
       )}

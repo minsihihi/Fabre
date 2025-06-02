@@ -1,5 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
-/* 기존 스타일 */
+
+/* --------------------------- */
+/* 1) 글로벌 배경 및 기본 설정 */
+/* --------------------------- */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #f4f4f4; /* 메인 영역 배경색 */
+  box-sizing: border-box;
+}
+
 #root {
   width: 100%;
   height: 100%;
@@ -8,7 +19,9 @@
   box-sizing: border-box;
 }
 
-/* 로고 관련 스타일 */
+/* --------------------------- */
+/* 2) 로고 관련 스타일 */
+/* --------------------------- */
 .logo {
   width: 70px;
   height: auto;
@@ -25,17 +38,17 @@
   filter: drop-shadow(0 0 2em #80e3ffaa);
 }
 
-
-
-/* 로고 텍스트 (채찍피티 글씨체 변경) */
+/* “채찍피티” 로고 텍스트 스타일 */
 .logo-text {
-  font-family: 'Montserrat', sans-serif; /* 변경된 글씨체 */
+  font-family: 'Montserrat', sans-serif;
   font-size: 3rem;
   color: #ffffff;
   font-weight: bold;
 }
 
-/* 기본 카드 스타일 */
+/* --------------------------- */
+/* 3) 카드 스타일 */
+/* --------------------------- */
 .card {
   padding: 2em;
   background: #fff;
@@ -43,21 +56,28 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* 문서 읽기 텍스트 */
+/* --------------------------- */
+/* 4) 링크 안내 텍스트 */
+/* --------------------------- */
 .read-the-docs {
   color: #888;
 }
 
-/* 새로운 레이아웃 */
+/* --------------------------- */
+/* 5) 레이아웃 컨테이너 */
+/* --------------------------- */
 .container {
   display: flex;
   width: 100vw;
-  height: 120vh;
+  /* height: 120vh;  기존 고정 높이 제거 */
+  min-height: 100vh; /* 화면 최소 높이 유지 */
   margin: 0;
   padding: 0;
 }
 
-/* 사이드바 영역 */
+/* --------------------------- */
+/* 6) 사이드바 영역 */
+/* --------------------------- */
 .left-sidebar {
   width: 16.6667%;
   background: linear-gradient(135deg, #999fca, #9ad7ba);
@@ -65,19 +85,12 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;  /* 가운데 정렬로 변경 */
+  align-items: center;  /* 가로 세로 중앙 정렬 */
   transition: transform 0.3s ease-in-out;
+  min-height: 100vh; /* 스크롤 시에도 배경이 이어지도록 */
 }
 
-.main-content {
-  flex: 1;
-  background-color: #f4f4f4;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-/* 모바일에서 사이드바 숨기기 */
+/* 사이드바 숨김/보임 상태 */
 .left-sidebar.closed {
   transform: translateX(-100%);
   position: absolute;
@@ -127,7 +140,20 @@
   transform: scale(1.05);
 }
 
-/* 반응형 */
+/* --------------------------- */
+/* 7) 메인 콘텐츠 영역 */
+/* --------------------------- */
+.main-content {
+  flex: 1;
+  background-color: #f4f4f4; /* html/body 배경과 동일 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* --------------------------- */
+/* 8) 반응형 (Mobile) */
+/* --------------------------- */
 @media (max-width: 768px) {
   .left-sidebar {
     width: 250px;
@@ -143,14 +169,17 @@
   }
 }
 
-/* 제목 스타일 */
-h1,
-h2 {
+/* --------------------------- */
+/* 9) 제목 스타일 */
+/* --------------------------- */
+h1, h2 {
   text-align: center;
   margin-bottom: 20px;
 }
 
-/* 링크 스타일 */
+/* --------------------------- */
+/* 10) 링크 스타일 */
+/* --------------------------- */
 a {
   display: block;
   text-align: center;
@@ -164,3 +193,343 @@ a:hover {
   opacity: 0.9;
 }
 
+/* --------------------------- */
+/* 11) Record 페이지 전용 스타일 */
+/* --------------------------- */
+.record-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  background: #f4f4f4; /* 전체 배경 유지 */
+}
+
+.record-container h1 {
+  text-align: center;
+}
+
+.record-selectors {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.record-selectors div {
+  display: flex;
+  flex-direction: column;
+}
+
+.record-selectors label {
+  font-weight: bold;
+}
+
+.record-selectors select {
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.record-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.record-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.record-box {
+  width: 80%;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.record-data {
+  margin-top: 20px;
+}
+
+/* --------------------------- */
+/* 12) MealsTrainer 페이지 전용 스타일 */
+/* --------------------------- */
+.meal-container {
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: #fdfdfd;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.member-select-wrapper {
+  margin: 20px 0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.member-select-wrapper label {
+  font-weight: 600;
+}
+
+/* 회원 선택 드롭다운 꾸미기 */
+.member-select-wrapper select {
+  min-width: 200px;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.member-select-wrapper select:hover {
+  border-color: #888;
+}
+
+/* 달력 주변 여백 */
+.calendar-box {
+  margin: 20px 0;
+}
+
+/* 팝업 오버레이 공통 */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* 팝업 카드 내부 */
+.popup-card,
+.popup-content {
+  background: #fff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+  width: 360px;
+  max-width: 90%;
+  text-align: center;
+  z-index: 1001;
+}
+
+/* 식단 등록 폼 레이아웃 */
+.meal-plan-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 40px; /* 세로 20px, 가로 40px */
+  align-items: center;
+}
+
+.meal-plan-form label {
+  min-width: 80px;
+  margin-right: 10px;
+  white-space: nowrap;
+}
+
+.meal-plan-form select {
+  min-width: 120px;
+  padding: 4px 8px;
+}
+
+/* 식단 등록 버튼 */
+.register-meal-btn {
+  margin-top: 15px;
+  padding: 8px 16px;
+  background-color: #2f8bfd;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.register-meal-btn:hover {
+  background-color: #1c6ed5;
+}
+
+/* 식단 요약 박스 */
+.meal-summary-box {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+  background: #fafafa;
+  max-width: 360px;
+}
+
+/* 식단 슬롯 (개별) */
+.meal-slot {
+  margin: 12px 0;
+  text-align: left;
+}
+
+.meal-slot strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.meal-slot img {
+  width: 100%;
+  max-height: 140px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* 닫기 버튼 */
+.close-btn {
+  margin-top: 16px;
+  padding: 8px 12px;
+  background-color: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.close-btn:hover {
+  background-color: #3b33b1;
+}
+
+/* 추천 식단 섹션 */
+.recommendation-section {
+  margin-top: 30px;
+  padding: 16px;
+  background: #fffbea;
+  border-radius: 8px;
+}
+
+.recommendation-section h3 {
+  margin-bottom: 12px;
+}
+
+.recommendation-section ul {
+  list-style: disc inside;
+  text-align: left;
+}
+
+.recommendation-section li {
+  margin-bottom: 8px;
+}
+
+.recommendation-section li:hover {
+  background-color: #fff3c4;
+  border-radius: 6px;
+  padding-left: 4px;
+  transition: background-color 0.3s;
+}
+
+/* 식단 등록 버튼 (녹색) */
+.register-meal-btn {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 10px 18px;
+  background-color: #22c55e;
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.25s ease;
+}
+
+.register-meal-btn:hover {
+  background-color: #16a34a;
+}
+
+/* 닫기 버튼 (빨간색) */
+.close-btn {
+  margin-top: 20px;
+  padding: 10px 16px;
+  background-color: #ef4444;
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.25s ease;
+}
+
+.close-btn:hover {
+  background-color: #dc2626;
+}
+
+/* 반응형 대응 (600px 이하) */
+@media (max-width: 600px) {
+  .meal-container {
+    padding: 16px;
+  }
+
+  .popup-card,
+  .popup-content {
+    width: 95%;
+    padding: 16px;
+  }
+
+  .register-meal-btn,
+  .close-btn {
+    width: 100%;
+    font-size: 1rem;
+  }
+}
+
+/* 식단 요약 박스 스타일 재정의 */
+.meal-plan-form.meal-summary-box {
+  border: 1px solid #ccc;
+  padding: 16px;
+  border-radius: 10px;
+  background: #f9f9f9;
+  margin-top: 10px;
+}
+
+/* 식단 이미지 박스 */
+.meal-image-box {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.meal-image-box img {
+  max-width: 150px;
+  border-radius: 8px;
+  margin-top: 5px;
+}
+
+/* 식단 텍스트 */
+.meal-text {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #444;
+}
+
+.meal-plan-text {
+  margin-top: 8px;
+  font-size: 0.9em;
+  color: #333;
+}
+
+/* 팝업 식단 상세 버튼 */
+.popup-plan-details {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+}
+
+.popup-plan-details li {
+  margin-bottom: 6px;
+}
+
+/* --------------------------- */
+/* End of CSS */
+/* --------------------------- */
