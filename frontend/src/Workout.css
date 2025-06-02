@@ -1,3 +1,5 @@
+/* 📁 src/Workout.css (기존 파일에 아래 내용을 덮어쓰거나 추가해 주세요) */
+
 html, body {
   height: 100%;
   margin: 0;
@@ -41,14 +43,26 @@ html, body {
   font-size: 14px;
 }
 
-.time-inputs {
+.time-input-group {
   display: flex;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 10px;
   margin-top: 1rem;
+  background-color: #f9f9f9;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.1);
 }
 
-.time-inputs input {
-  width: 120px;
+.time-input-group label {
+  font-weight: 500;
+}
+
+.time-input-group input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
 }
 
 .exercise-section {
@@ -104,7 +118,7 @@ html, body {
   margin: 2rem auto 0 auto;
 }
 
-/* 팝업 모달 스타일 */
+/* 팝업 모달 공통 스타일 */
 .popup-overlay,
 .camera-modal,
 .upload-modal {
@@ -117,8 +131,8 @@ html, body {
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 1000;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  justify-content: center; /* 가로 중앙 정렬 */
+  align-items: flex-start; /* 세로는 상단 정렬 */
   padding: 2rem 1rem;
   box-sizing: border-box;
 }
@@ -136,11 +150,45 @@ html, body {
   overflow-y: auto;
   text-align: center;
   position: relative;
-  margin-top: 1rem;
+  margin-top: 1rem; /* 팝업 박스가 화면 상단에서 조금 아래에 표시되도록 */
 }
 
+/* 운동 인증샷(오운완 사진) 팝업 */
+.popup-box .image-gallery {
+  display: flex;
+  justify-content: center; /* 이미지 컬렉션 가로 중앙 정렬 */
+  flex-wrap: wrap;         /* 여러 장의 이미지를 줄 바꿈하여 보여줄 경우 */
+  gap: 0.5rem;             /* 이미지 간 간격 */
+  margin-bottom: 1rem;
+}
+
+.popup-box .workout-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;          /* 단일 이미지도 중앙 정렬 */
+  border-radius: 8px;
+}
+
+/* 카메라 모달 내부 중앙 정렬 */
+.camera-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;   /* 내부 요소(비디오 등) 가로 중앙 정렬 */
+}
+
+.camera-content video#camera-feed {
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+/* 팝업 내부 버튼 스타일 (카메라, 닫기 등) */
 .camera-buttons button,
-.upload-buttons button {
+.upload-buttons button,
+.popup-box button {
   margin: 0.5rem;
   padding: 0.6rem 1rem;
   border: none;
@@ -150,27 +198,19 @@ html, body {
   color: white;
 }
 
-.time-input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 1rem;
-  background-color: #f9f9f9;
-  padding: 1rem;
-  border-radius: 12px;
-  box-shadow: 0 0 6px rgba(0,0,0,0.1);
+/* 이미지가 없을 때 텍스트 중앙 정렬 */
+.popup-box p {
+  text-align: center;
 }
 
-.time-input-group label {
-  font-weight: 500;
-}
-
+/* 캘린더 주변 여백 */
 .calendar-wrapper .react-calendar {
   width: 100% !important;
   max-width: 400px;
   margin-top: 1rem; /* 캘린더 자체 여백 추가 */
 }
 
+/* 중량 선택 input */
 .weight-select {
   width: 100%;
   padding: 0.5rem;
@@ -183,41 +223,33 @@ html, body {
   .record-page-container {
     padding-top: 5rem; /* 모바일에서 상단 여백 크게 */
   }
-
   .form-layout {
     flex-direction: column;
     gap: 1.5rem;
     margin-top: 0.5rem;
   }
-
   .calendar-section {
     min-width: unset;
     width: 100%;
     margin-top: 0.5rem;
   }
-
   .calendar-wrapper .react-calendar {
     margin-top: 0.5rem;
   }
-
   .exercise-section {
     min-width: unset;
     width: 100%;
   }
-
   .calendar-wrapper {
     max-height: unset;
   }
-
-  .time-inputs {
+  .time-input-group {
     flex-direction: column;
     gap: 0.75rem;
   }
-
-  .time-inputs input {
+  .time-input-group input {
     width: 100%;
   }
-
   /* 모바일 모달 최적화 */
   .popup-overlay,
   .camera-modal,
@@ -225,7 +257,6 @@ html, body {
     padding-top: 4rem;
     align-items: flex-start;
   }
-
   .popup-box,
   .camera-content,
   .upload-content {
