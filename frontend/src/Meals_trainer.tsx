@@ -1,3 +1,4 @@
+// Meals_Trainer.tsx
 import { useState, useEffect } from "react";
 import axios from "axios";
 import Calendar from "react-calendar";
@@ -72,8 +73,10 @@ export default function MealsTrainer() {
   const fetchMealImages = async (memberId: number, date: Date) => {
     const mealDate = formatDate(date);
     try {
-      const res = await axios.get("http://13.209.19.146:3000/api/meals", {
-        params: { userId: memberId, mealDate },
+      const token = localStorage.getItem("token");
+      const res = await axios.get("http://13.209.19.146:3000/api/images/meal", {
+        params: { memberId, mealDate },
+        headers: { Authorization: `Bearer ${token}` },
       });
       const day: Record<MealTime, string | null> = { 아침: null, 점심: null, 저녁: null };
       res.data.meals.forEach((m: { mealType: string; imageUrl: string }) => {
@@ -91,7 +94,6 @@ export default function MealsTrainer() {
     const mealDate = formatDate(date);
     const dateData: Record<MealTime, MealPlan | null> = { 아침: null, 점심: null, 저녁: null };
 
-    console.log(`📅 Fetching meal plans for memberId=${memberId} on ${mealDate}...`);
     for (const t of ["아침", "점심", "저녁"] as MealTime[]) {
       try {
         const res = await axios.get("http://13.209.19.146:3000/api/trainermeals", {
@@ -102,8 +104,6 @@ export default function MealsTrainer() {
           },
           headers: { Authorization: `Bearer ${token}` },
         });
-
-        // res.data.meal 에 식단 객체가 들어옵니다
         const meal = res.data.meal;
         dateData[t] = {
           mealType: t,
@@ -111,11 +111,8 @@ export default function MealsTrainer() {
           protein: meal.protein,
           fat: meal.fat,
         };
-
-        console.log(`✅ ${t} 식단 불러오기 성공:`, dateData[t]);
-      } catch (err: any) {
+      } catch {
         dateData[t] = null;
-        console.warn(`⚠️ ${t} 식단 불러오기 실패:`, err?.response?.data || err.message);
       }
     }
 
@@ -171,20 +168,9 @@ export default function MealsTrainer() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      console.log("✅ 식단 전송 성공:", response.data);
       alert("✅ 식단이 성공적으로 등록되었습니다!");
-      fetchMealPlans(selectedMember.member.id, selectedDate); // 등록 후 새로고침
+      fetchMealPlans(selectedMember.member.id, selectedDate);
     } catch (error: any) {
-      console.error("Request payload:", {
-        userId: trainerId,
-        memberId: selectedMember.member.id,
-        carb: mealPlan.carb,
-        protein: mealPlan.protein,
-        fat: mealPlan.fat,
-        mealDate: dateKey,
-        mealType: mealTypeMap[mealPlan.mealType],
-      });
-      console.error("Response error data:", error.response?.data);
       alert("❗식단 등록 중 오류가 발생했습니다.");
     }
   };
@@ -268,30 +254,30 @@ export default function MealsTrainer() {
       {showPopup && (
         <div className="popup-overlay" onClick={closePopup}>
           <div className="popup-content" onClick={e => e.stopPropagation()}>
-            <h3>식단 사진 & 내용 ({dateKey})</h3>
-            <div className="meal-images">
-              {(["아침", "점심", "저녁"] as MealTime[]).map(t => (
-                <div key={t} className="meal-image-box">
-                  <strong>{t}</strong><br />
-                  {todayMeals[t] ? (
-                    <img src={todayMeals[t] || ""} alt={`${t} 식단 사진`} />
-                  ) : (
-                    <span>사진 없음</span>
-                  )}
-                  <div className="meal-plan-text">
-                    {todayMealPlans[t] ? (
-                      <p>
-                        탄: {todayMealPlans[t]!.carb}<br />
-                        단: {todayMealPlans[t]!.protein}<br />
-                        지: {todayMealPlans[t]!.fat}
-                      </p>
-                    ) : (
-                      <p>식단 내용 없음</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <h3>📸 식단 사진</h3>
+            {["아침", "점심", "저녁"].map(time => (
+              <div key={time}>
+                <h4>{time}</h4>
+                {todayMeals[time as MealTime] ? (
+                  <img
+                    src={todayMeals[time as MealTime] as string}
+                    alt={`${time} 식사 이미지`}
+                    style={{ width: "200px", height: "auto", borderRadius: "8px", marginBottom: "10px" }}
+                  />
+                ) : (
+                  <p>이미지가 없습니다.</p>
+                )}
+                {todayMealPlans[time as MealTime] ? (
+                  <ul>
+                    <li>탄수화물: {todayMealPlans[time as MealTime]?.carb}</li>
+                    <li>단백질: {todayMealPlans[time as MealTime]?.protein}</li>
+                    <li>지방: {todayMealPlans[time as MealTime]?.fat}</li>
+                  </ul>
+                ) : (
+                  <p>등록된 식단이 없습니다.</p>
+                )}
+              </div>
+            ))}
             <button onClick={closePopup}>닫기</button>
           </div>
         </div>
