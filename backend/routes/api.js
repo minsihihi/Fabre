@@ -44,10 +44,9 @@ require('dotenv').config({ path: 'backend/.env' });
 // 🎯 식단 분석 인덱스 일치율 계산 함수
 function calculateMatchRate(meal, detectedIndexes) {
     const classNames = [
-        "닭가슴살구이", "방울토마토", "삶은고구마", "삶은달걀",
-        "쇠고기구이", "두부", "연어구이",
-        "밥", "단호박", "바나나",
-        "아몬드", "캐슈넛"
+        "chicken", "tomato", "sweet potato", 
+        "boiled egg", "beef", "tofu", "salmon", "rice", 
+        "sweet pumpkin", "banana", "almond", "cashew nut"
     ];
 
     const expectedFoods = [meal.carb, meal.protein, meal.fat];
@@ -388,7 +387,7 @@ router.post('/meals/analyze', verifyToken, async (req, res) => {
                         {
                             type: "text",
                             text: `Analyze this meal and return the indexes of up to 3 detected ingredients from the following: 
-(닭가슴살구이: 0, 방울토마토: 1, 삶은고구마: 2, 삶은달걀: 3, 쇠고기구이: 4, 두부: 5, 연어구이: 6, 밥: 7, 단호박: 8, 바나나: 9, 아몬드: 10, 캐슈넛: 11).
+(chicken: 0, tomato: 1, sweet potato: 2, boiled egg: 3, beef: 4, tofu: 5, salmon: 6, rice: 7, sweet pumpkin: 8, banana: 9, almond: 10, cashew nut: 11).
 Just return a comma-separated index list like: 0, 2, 7`
                         },
                         {
