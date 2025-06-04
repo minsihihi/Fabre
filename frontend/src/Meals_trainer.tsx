@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
-import "./Meals_Trainer.css";
+import "./Meals_trainer.css";
 
 type MealTime = "아침" | "점심" | "저녁";
 const mealTypeMap: Record<MealTime, string> = {
