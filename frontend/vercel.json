@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "http://13.209.19.146:3000/api/$1"  // EC2 백엔드 URL로 리디렉션
+      "destination": "http://13.209.19.146:3000/api/$1"
     },
     {
       "source": "/(.*)",
-      "destination": "/index.html"  // 다른 모든 요청은 index.html로 리디렉션
+      "destination": "/index.html"
     }
   ]
 }
