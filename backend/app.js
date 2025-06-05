@@ -45,15 +45,10 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use(
-  cors({
-    origin: [
-      "https://13.209.19.146:3000",
-      "http://localhost:5173",
-      "http://localhost:5173",
-      "https://fabre-livid.vercel.app/",
-    ],
-    credentials: true,
-  })
+    cors({
+        origin: '*',  // 모든 도메인 허용
+        credentials: true,
+    })
 );
 
 // API 연결 테스트
