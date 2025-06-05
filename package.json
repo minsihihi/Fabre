@@ -12,12 +12,15 @@
     "build": "vite build --config frontend/vite.config.js",
     "dist": "electron-builder",
     "deploy": "npm run build && npm run dist -- --publish always",
-    "postbuild": "xattr -cr dist/mac-arm64/채찍피티.app"
+    "deploy:win": "npm run deploy:win32 && npm run deploy:win64",
+    "deploy:win32": "electron-builder --win nsis:ia32",
+    "deploy:win64": "electron-builder --win nsis:x64",
+    "postbuild": "node -e \"if (process.platform === 'darwin') { require('child_process').execSync('xattr -cr dist/mac-arm64/채찍피티.app'); }\""
   },
   "build": {
     "appId": "com.chaejjikpt",
-    "productName": "채찍피티",
-    "asar": false,
+    "productName": "Start chaejjikpt",
+    "asar": true,
     "files": [
       "frontend/main.js",
       "frontend/preload.js",
@@ -26,17 +29,38 @@
       "node_modules/**",
       "package.json"
     ],
-    "directories": {
-      "buildResources": "assets",
-      "output": "dist"
-    },
+    "dmg": {
+            "title": "Start Electron"
+        },
+        "win": {
+            "target": [
+                {
+                    "target": "nsis",
+                    "arch": [
+                        "x64",
+                        "ia32"
+                    ]
+                }
+            ]
+        },
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": false,
+            "createDesktopShortcut": true
+        },
+        "directories": {
+            "buildResources": "./resources/installer/",
+            "output": "./dist/",
+            "app": "."
+        },
     "mac": {
       "target": "dmg",
       "hardenedRuntime": true,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
       "gatekeeperAssess": false,
-      "identity": null
+      "identity": null,
+      "icon": "assets/icon.icns"
     },
     "publish": {
       "provider": "github",
@@ -53,7 +77,7 @@
     "@react-three/fiber": "^9.1.2",
     "aws-sdk": "^2.1692.0",
     "axios": "^1.7.9",
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
