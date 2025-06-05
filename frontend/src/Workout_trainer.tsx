@@ -65,7 +65,7 @@ const TrainerRecordsPage: React.FC = () => {
         return;
       }
       try {
-        const res = await axios.get("http://13.209.19.146:3000/api/users/me", {
+        const res = await axios.get("https://13.209.19.146:3000/api/users/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUserInfo(res.data);
@@ -83,7 +83,7 @@ const TrainerRecordsPage: React.FC = () => {
   useEffect(() => {
     if (!token || userInfo?.role !== "trainer") return;
     axios
-      .get("http://13.209.19.146:3000/api/trainer/members", {
+      .get("https://13.209.19.146:3000/api/trainer/members", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
@@ -99,7 +99,7 @@ const TrainerRecordsPage: React.FC = () => {
     if (!token) return;
     const today = formatLocalDate(new Date());
     try {
-      const res = await axios.get("http://13.209.19.146:3000/api/record", {
+      const res = await axios.get("https://13.209.19.146:3000/api/record", {
         headers: { Authorization: `Bearer ${token}` },
         params: { memberId, workoutDate: today }, // 당일만 요청
       });

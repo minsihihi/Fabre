@@ -6,7 +6,8 @@
     "build": "vite build",
     "preview": "vite preview"
   },
-  "dependencies": {"@react-three/drei": "^10.0.7",
+  "dependencies": {
+    "@react-three/drei": "^10.0.7",
     "@react-three/fiber": "^9.1.2",
     "aws-sdk": "^2.1692.0",
     "axios": "^1.7.9",
