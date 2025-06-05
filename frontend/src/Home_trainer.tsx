@@ -1,10 +1,12 @@
+// 📁 frontend/src/TrainerHome.tsx
+
 import React, { useState, useEffect, useMemo } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "./Home_trainer.css";
 import axios from "axios";
 
-// --- Existing Member Interface ---
+// --- 기존 Member 인터페이스 ---
 interface Member {
   id: number;
   name: string;
@@ -12,7 +14,7 @@ interface Member {
   profileImageUrl: string;
 }
 
-// --- New Interfaces for Trainer Bookings ---
+// --- 예약 관련 인터페이스 ---
 interface BookingMember {
   id: number;
   name: string;
@@ -21,25 +23,34 @@ interface BookingMember {
 
 interface BookingSchedule {
   id: number;
-  date: string;       // ISO date string
-  startTime: string;  // HH:MM:SS
-  endTime: string;    // HH:MM:SS
+  date: string;       // ISO date 문자열
+  startTime: string;  // "HH:MM:SS"
+  endTime: string;    // "HH:MM:SS"
 }
 
 interface Booking {
   id: number;
-  status: string;     // e.g. "confirmed"
-  createdAt: string;  // ISO date string
+  status: string;     // "confirmed" | "completed" 등
+  createdAt: string;  // ISO date 문자열
   member: BookingMember;
   schedule: BookingSchedule;
 }
 
-// --- Helper Function ---
-function formatLocalDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+// Helper: ISO 문자열 → "YYYY-MM-DD" 형태로 변환
+function toYMD(isodate: string): string {
+  const d = new Date(isodate);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// 오늘/내일 날짜 문자열
+function todayYMD(): string {
+  return toYMD(new Date().toISOString());
+}
+function tomorrowYMD(): string {
+  return toYMD(new Date(Date.now() + 86400000).toISOString());
 }
 
 export default function TrainerHome() {
@@ -58,13 +69,13 @@ export default function TrainerHome() {
     fetchTrainerBookings();
   }, [token]);
 
-  // --- 회원 목록 불러오기 ---
+  // 1) 회원 목록 불러오기
   const fetchMembers = async () => {
     try {
       const res = await axios.get("http://13.209.19.146:3000/api/trainer/members", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data: any[] = res.data.data; // [{ member: { id, name, profileImage } }, ...]
+      const data: any[] = res.data.data;
       const updated = await Promise.all(
         data.map(async (rec) => {
           const { id, name } = rec.member;
@@ -74,9 +85,11 @@ export default function TrainerHome() {
               params: { userId: id },
               headers: { Authorization: `Bearer ${token}` },
             });
-            if (imgRes.data.imageUrl) profileImageUrl = imgRes.data.imageUrl;
+            if (imgRes.data.imageUrl) {
+              profileImageUrl = imgRes.data.imageUrl;
+            }
           } catch {
-            /* ignore */
+            // 실패 시 기본 이미지 유지
           }
           return { id, name, completed: false, profileImageUrl };
         })
@@ -87,7 +100,7 @@ export default function TrainerHome() {
     }
   };
 
-  // --- 트레이너 예약 조회 ---
+  // 2) 트레이너 예약 조회
   const fetchTrainerBookings = async () => {
     try {
       const res = await axios.get<{ bookings: Booking[] }>(
@@ -101,9 +114,9 @@ export default function TrainerHome() {
     }
   };
 
-  // --- 회원 운동 완료 여부 업데이트 ---
+  // 3) “선택된 날짜” 기준으로 회원별 운동 완료 여부 업데이트
   const updateMembersCompletion = async (selectedDate: Date) => {
-    const dateStr = formatLocalDate(selectedDate);
+    const dateStr = toYMD(selectedDate.toISOString());
     const updated = await Promise.all(
       members.map(async (m) => {
         try {
@@ -119,92 +132,68 @@ export default function TrainerHome() {
     );
     setMembers(updated);
   };
+
   const handleDateClick = async (value: Date) => {
     setDate(value);
-    if (members.length) await updateMembersCompletion(value);
+    if (members.length) {
+      await updateMembersCompletion(value);
+    }
     setModalOpen(true);
   };
 
-  // --- 오늘·내일 확정 예약 필터링 & 정렬 ---
-  const today = formatLocalDate(new Date());
-  const tomorrow = formatLocalDate(new Date(Date.now() + 86400000));
+  // 오늘/내일 날짜 문자열
+  const today = todayYMD();
+  const tomorrow = tomorrowYMD();
 
-  const todaysBookings = useMemo(
-    () =>
-      bookings
-        .filter(b => b.schedule.date.startsWith(today) && b.status === "confirmed")
-        .sort((a, b) => a.schedule.startTime.localeCompare(b.schedule.startTime)),
-    [bookings, today]
-  );
-
-  const tomorrowsBookings = useMemo(
-    () =>
-      bookings
-        .filter(b => b.schedule.date.startsWith(tomorrow) && b.status === "confirmed")
-        .sort((a, b) => a.schedule.startTime.localeCompare(b.schedule.startTime)),
-    [bookings, tomorrow]
-  );
+  // 4) “confirmed” 또는 “completed” 상태인 예약들 중 오늘·내일만 필터 → 정렬
+  const filteredBookings = useMemo(() => {
+    return bookings
+      .filter((b) => {
+        const day = toYMD(b.schedule.date);
+        return (
+          (day === today || day === tomorrow) &&
+          (b.status === "confirmed" || b.status === "completed")
+        );
+      })
+      .sort((a, b) => {
+        const dayA = toYMD(a.schedule.date);
+        const dayB = toYMD(b.schedule.date);
+        if (dayA !== dayB) {
+          // 오늘 먼저 나오도록
+          return dayA === today ? -1 : 1;
+        }
+        return a.schedule.startTime.localeCompare(b.schedule.startTime);
+      });
+  }, [bookings, today, tomorrow]);
 
   return (
     <div className="home-container">
-      <style>{`
-        /* 인라인 스타일 유지 */
-      `}</style>
-
-      {/* --- 예약 내역 섹션 --- */}
-      <div className="upcoming-bookings-container">
-        <div className="bookings-section">
-          <h4>오늘 확정된 스케줄 ({today})</h4>
-          {todaysBookings.length ? (
-            todaysBookings.map(b => (
-              <div key={b.id} className="booking-item">
-                <div className="booking-item-details">
-                  {b.member.profileImage && (
-                    <img
-                      src={b.member.profileImage}
-                      alt={b.member.name}
-                      className="booking-member-profile"
-                      onError={e => (e.currentTarget.src = '/default-profile.png')}
-                    />
-                  )}
-                  <span>
-                    {b.member.name} — {b.schedule.startTime.slice(0,5)}–{b.schedule.endTime.slice(0,5)}
-                  </span>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p>오늘 확정된 예약이 없습니다.</p>
-          )}
-        </div>
-
-        <div className="bookings-section">
-          <h4>내일 확정된 스케줄 ({tomorrow})</h4>
-          {tomorrowsBookings.length ? (
-            tomorrowsBookings.map(b => (
-              <div key={b.id} className="booking-item">
-                <div className="booking-item-details">
-                  {b.member.profileImage && (
-                    <img
-                      src={b.member.profileImage}
-                      alt={b.member.name}
-                      className="booking-member-profile"
-                      onError={e => (e.currentTarget.src = '/default-profile.png')}
-                    />
-                  )}
-                  <span>
-                    {b.member.name} — {b.schedule.startTime.slice(0,5)}–{b.schedule.endTime.slice(0,5)}
-                  </span>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p>내일 확정된 예약이 없습니다.</p>
-          )}
-        </div>
+      {/* ——— “확정된 스케줄” 섹션 ——— */}
+      <div className="bookings-card small-card">
+        <h4>확정된 스케줄 (오늘 & 내일)</h4>
+        {filteredBookings.length > 0 ? (
+          <ul className="booking-list">
+            {filteredBookings.map((b) => {
+              const bookingDay = toYMD(b.schedule.date) === today ? "오늘" : "내일";
+              return (
+                <li key={b.id} className="booking-item">
+                  <div className="booking-info">
+                    {/* 이름 + 시간만 표시 */}
+                    <span className="booking-name">{b.member.name}</span>
+                    <span className="booking-time">
+                      [{bookingDay}] {b.schedule.startTime.slice(0, 5)}–{b.schedule.endTime.slice(0, 5)}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="no-booking">오늘·내일 확정된 예약이 없습니다.</p>
+        )}
       </div>
 
-      {/* --- 캘린더 --- */}
+      {/* ——— 캘린더 ——— */}
       <div className="calendar-container">
         <Calendar
           onChange={handleDateClick}
@@ -213,50 +202,58 @@ export default function TrainerHome() {
         />
       </div>
 
-      {/* --- 모달 (운동 완료/미완료 회원) --- */}
+      {/* ——— 모달 (운동 완료/미완료 회원) ——— */}
       {modalOpen && (
-        <div className="modal">
-          <div className="modal-content">
-            <h2>{formatLocalDate(date)} 운동 현황</h2>
+        <div className="modal" onClick={() => setModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>{toYMD(date.toISOString())} 운동 현황</h2>
             <div className="members-container">
               <div className="completed">
                 <h3>운동 완료 회원</h3>
-                {members.filter(m => m.completed).length ? (
-                  members.filter(m => m.completed).map(m => (
-                    <div key={m.id} className="member-item">
-                      <img
-                        src={m.profileImageUrl}
-                        alt={m.name}
-                        className="profile-img"
-                        onError={e => (e.currentTarget.src = '/default-profile.png')}
-                      />
-                      <p>{m.name}</p>
-                    </div>
-                  ))
+                {members.filter((m) => m.completed).length > 0 ? (
+                  members
+                    .filter((m) => m.completed)
+                    .map((m) => (
+                      <div key={m.id} className="member-item">
+                        {/* 프로필 이미지 추가 */}
+                        <img
+                          src={m.profileImageUrl}
+                          alt={m.name}
+                          className="profile-img"
+                          onError={(e) => (e.currentTarget.src = "/default-profile.png")}
+                        />
+                        <p>{m.name}</p>
+                      </div>
+                    ))
                 ) : (
                   <p>없음</p>
                 )}
               </div>
               <div className="not-completed">
                 <h3>운동 미완료 회원</h3>
-                {members.filter(m => !m.completed).length ? (
-                  members.filter(m => !m.completed).map(m => (
-                    <div key={m.id} className="member-item">
-                      <img
-                        src={m.profileImageUrl}
-                        alt={m.name}
-                        className="profile-img"
-                        onError={e => (e.currentTarget.src = '/default-profile.png')}
-                      />
-                      <p>{m.name}</p>
-                    </div>
-                  ))
+                {members.filter((m) => !m.completed).length > 0 ? (
+                  members
+                    .filter((m) => !m.completed)
+                    .map((m) => (
+                      <div key={m.id} className="member-item">
+                        {/* 프로필 이미지 추가 */}
+                        <img
+                          src={m.profileImageUrl}
+                          alt={m.name}
+                          className="profile-img"
+                          onError={(e) => (e.currentTarget.src = "/default-profile.png")}
+                        />
+                        <p>{m.name}</p>
+                      </div>
+                    ))
                 ) : (
                   <p>없음</p>
                 )}
               </div>
             </div>
-            <button onClick={() => setModalOpen(false)}>닫기</button>
+            <button className="close-btn" onClick={() => setModalOpen(false)}>
+              닫기
+            </button>
           </div>
         </div>
       )}

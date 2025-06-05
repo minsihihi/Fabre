@@ -7,7 +7,7 @@ import './Schedule.css';
 const getMonday = (d: Date): Date => {
   const date = new Date(d);
   const day = date.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
+  const diff = day === 0 ? -6 : 2- day;
   date.setDate(date.getDate() + diff);
   return date;
 };
