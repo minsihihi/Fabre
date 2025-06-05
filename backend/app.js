@@ -46,12 +46,9 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: [
-      "https://13.209.19.146:3000",
-      "http://localhost:5173",
-      "http://localhost:5173",
-      "https://fabre-livid.vercel.app/",
-    ],
+    origin: "*", // 모든 도메인 허용
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"], // 허용할 HTTP 메서드 설정
+    allowedHeaders: ["Content-Type", "Authorization"], // 허용할 헤더 설정
     credentials: true,
   })
 );
