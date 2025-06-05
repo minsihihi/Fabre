@@ -45,10 +45,12 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use(
-    cors({
-        origin: '*',  // 모든 도메인 허용
-        credentials: true,
-    })
+  cors({
+    origin: "*", // 모든 도메인 허용
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"], // 허용할 HTTP 메서드 설정
+    allowedHeaders: ["Content-Type", "Authorization"], // 허용할 헤더 설정
+    credentials: true,
+  })
 );
 
 // API 연결 테스트
