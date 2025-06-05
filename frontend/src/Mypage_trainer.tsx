@@ -25,7 +25,7 @@ export default function MypageTrainer() {
 
   const fetchUserInfo = async () => {
     try {
-      const { data } = await axios.get("https://13.209.19.146:3000/api/users/me");
+      const { data } = await axios.get("http://13.209.19.146:3000/api/users/me");
       setUserId(data.id);
       localStorage.setItem("userId", data.id); // 💾 다른 곳에서도 쓸 수 있도록 저장
       fetchProfileImage(data.id);
@@ -37,7 +37,7 @@ export default function MypageTrainer() {
 
   const fetchProfileImage = async (id: string) => {
     try {
-      const { data } = await axios.get("https://13.209.19.146:3000/api/images/profile", {
+      const { data } = await axios.get("http://13.209.19.146:3000/api/images/profile", {
         params: { userId: id },
       });
       setProfileImage(data.imageUrl);
@@ -48,7 +48,7 @@ export default function MypageTrainer() {
 
   const fetchMyMembers = async () => {
     try {
-      const { data } = await axios.get("https://13.209.19.146:3000/api/trainer/members");
+      const { data } = await axios.get("http://13.209.19.146:3000/api/trainer/members");
       const members = data.data.map((member: any) => ({
         id: member.member.id,
         name: member.member.name,
@@ -67,7 +67,7 @@ export default function MypageTrainer() {
       formData.append("image", file); // ✅ key는 image!
 
       try {
-        await axios.post("https://13.209.19.146:3000/api/upload/profile", formData, {
+        await axios.post("http://13.209.19.146:3000/api/upload/profile", formData, {
           headers: {
             "Content-Type": "multipart/form-data",
             Authorization: `Bearer ${localStorage.getItem("token")}`, // ✅ 토큰 직접 삽입
@@ -83,7 +83,7 @@ export default function MypageTrainer() {
   const handleAddMember = async () => {
     if (!newMemberId.trim()) return;
     try {
-      const { data } = await axios.post("https://13.209.19.146:3000/api/trainer/members", {
+      const { data } = await axios.post("http://13.209.19.146:3000/api/trainer/members", {
         memberId: newMemberId,
         sessionsLeft: 10,
       });
@@ -99,7 +99,7 @@ export default function MypageTrainer() {
 
   const handleDeleteMember = async (memberId: string) => {
     try {
-      await axios.put(`https://13.209.19.146:3000/api/trainer/members/${memberId}`);
+      await axios.put(`http://13.209.19.146:3000/api/trainer/members/${memberId}`);
       setMyMembers(myMembers.filter((member) => member.id !== memberId));
     } catch (error) {
       console.error("회원 삭제 실패", error);
@@ -108,7 +108,7 @@ export default function MypageTrainer() {
 
   const handleLogout = async () => {
     try {
-      await axios.post("https://13.209.19.146:3000/api/logout");
+      await axios.post("http://13.209.19.146:3000/api/logout");
       localStorage.removeItem("token");
       localStorage.removeItem("id");
       localStorage.removeItem("userId");

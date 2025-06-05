@@ -12,7 +12,7 @@ export default function Join() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-        const response = await fetch("https://13.209.19.146:3000/api/register", {
+        const response = await fetch("http://13.209.19.146:3000/api/register", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

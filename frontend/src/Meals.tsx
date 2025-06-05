@@ -63,7 +63,7 @@ export default function Meals() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await axios.get("https://13.209.19.146:3000/api/users/me");
+        const res = await axios.get("http://13.209.19.146:3000/api/users/me");
         setUserId(res.data.id);
       } catch {
         alert("로그인 상태를 확인해주세요.");
@@ -92,7 +92,7 @@ export default function Meals() {
     // 아침/점심/저녁 각각에 대해 membermeals 호출
     for (const time of ["아침", "점심", "저녁"] as MealTime[]) {
       try {
-        const res = await axios.get("https://13.209.19.146:3000/api/membermeals", {
+        const res = await axios.get("http://13.209.19.146:3000/api/membermeals", {
           params: {
             mealDate,
             mealType: mealTypeMap[time],
@@ -174,7 +174,7 @@ export default function Meals() {
     form.append("mealType", mealType);
 
     try {
-      const url = `https://13.209.19.146:3000/api/upload/meal`;
+      const url = `http://13.209.19.146:3000/api/upload/meal`;
       const res = await axios.patch(url, form, {
         params: { mealDate, mealType },
       });
@@ -197,7 +197,7 @@ export default function Meals() {
 
     try {
       // membermeals 호출해서 matchRate 값을 확인
-      const res = await axios.get("https://13.209.19.146:3000/api/membermeals", {
+      const res = await axios.get("http://13.209.19.146:3000/api/membermeals", {
         params: { mealDate, mealType },
       });
       const meal = res.data.meal;
