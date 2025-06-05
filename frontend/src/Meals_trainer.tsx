@@ -67,7 +67,7 @@ export default function MealsTrainer() {
     (async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("https://13.209.19.146:3000/api/trainer/members", {
+        const res = await axios.get("http://13.209.19.146:3000/api/trainer/members", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setMembers(res.data.data);
@@ -82,7 +82,7 @@ export default function MealsTrainer() {
     const mealDate = formatDate(date);
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("https://13.209.19.146:3000/api/images/meal", {
+      const res = await axios.get("http://13.209.19.146:3000/api/images/meal", {
         params: { memberId, mealDate },
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -104,7 +104,7 @@ export default function MealsTrainer() {
 
     for (const t of ["아침", "점심", "저녁"] as MealTime[]) {
       try {
-        const res = await axios.get("https://13.209.19.146:3000/api/trainermeals", {
+        const res = await axios.get("http://13.209.19.146:3000/api/trainermeals", {
           params: {
             memberId,
             mealDate,
@@ -167,7 +167,7 @@ export default function MealsTrainer() {
 
     try {
       await axios.post(
-        "https://13.209.19.146:3000/api/meal",
+        "http://13.209.19.146:3000/api/meal",
         {
           userId: trainerId,
           memberId: selectedMember.member.id,

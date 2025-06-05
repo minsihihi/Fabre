@@ -46,7 +46,7 @@ export default function RecordTrainer() {
     (async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("https://13.209.19.146:3000/api/trainer/members", {
+        const res = await axios.get("http://13.209.19.146:3000/api/trainer/members", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setMembers(res.data.data);
@@ -64,7 +64,7 @@ export default function RecordTrainer() {
       try {
         const token = localStorage.getItem("token");
         const response = await fetch(
-          "https://13.209.19.146:3000/api/workouts/analyze-weekly",
+          "http://13.209.19.146:3000/api/workouts/analyze-weekly",
           {
             method: "POST",
             headers: {
