@@ -121,7 +121,7 @@ export default function WorkoutPage() {
       }
       try {
         console.log("🔄 사용자 정보 요청 중...");
-        const response = await axios.get("http://13.209.19.146:3000/api/users/me", {
+        const response = await axios.get("https://13.209.19.146:3000/api/users/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log("✅ 사용자 정보 조회 성공:", response.data);
@@ -146,7 +146,7 @@ export default function WorkoutPage() {
   useEffect(() => {
     if (!token || !userInfo) return;
     axios
-      .get("http://13.209.19.146:3000/api/member/trainer", {
+      .get("https://13.209.19.146:3000/api/member/trainer", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
@@ -182,7 +182,7 @@ export default function WorkoutPage() {
 
     try {
       console.log(`🔄 운동 기록 조회 요청 (memberId=${params.memberId}, workoutDate=${formattedDate})`);
-      const response = await axios.get("http://13.209.19.146:3000/api/record", {
+      const response = await axios.get("https://13.209.19.146:3000/api/record", {
         headers: { Authorization: `Bearer ${token}` },
         params,
       });
@@ -270,7 +270,7 @@ export default function WorkoutPage() {
     if (userIdStr) {
       try {
         console.log(`🔄 운동 인증샷 조회 요청 (userId=${userIdStr}, workoutDate=${formattedDate})`);
-        const imgRes = await axios.get("http://13.209.19.146:3000/api/images/workout", {
+        const imgRes = await axios.get("https://13.209.19.146:3000/api/images/workout", {
           params: { userId: userIdStr, workoutDate: formattedDate },
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -351,7 +351,7 @@ export default function WorkoutPage() {
     try {
       setSubmitting(true);
       console.log("🔄 운동 기록 저장 요청 payload:", payload);
-      const res = await axios.post("http://13.209.19.146:3000/api/record", payload, {
+      const res = await axios.post("https://13.209.19.146:3000/api/record", payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log("✅ 운동 기록 저장 응답:", res.data);
@@ -382,7 +382,7 @@ export default function WorkoutPage() {
     formData.append("workoutDate", formatLocalDate(workoutDate));
     try {
       console.log("🔄 운동 인증샷 업로드 요청");
-      const res = await axios.post("http://13.209.19.146:3000/api/upload/workout", formData, {
+      const res = await axios.post("https://13.209.19.146:3000/api/upload/workout", formData, {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log("✅ 운동 인증샷 업로드 응답:", res.data);

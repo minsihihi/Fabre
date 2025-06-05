@@ -72,7 +72,7 @@ export default function TrainerHome() {
   // 1) 회원 목록 불러오기
   const fetchMembers = async () => {
     try {
-      const res = await axios.get("http://13.209.19.146:3000/api/trainer/members", {
+      const res = await axios.get("https://13.209.19.146:3000/api/trainer/members", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data: any[] = res.data.data;
@@ -81,7 +81,7 @@ export default function TrainerHome() {
           const { id, name } = rec.member;
           let profileImageUrl = "/default-profile.png";
           try {
-            const imgRes = await axios.get("http://13.209.19.146:3000/api/images/profile", {
+            const imgRes = await axios.get("https://13.209.19.146:3000/api/images/profile", {
               params: { userId: id },
               headers: { Authorization: `Bearer ${token}` },
             });
@@ -104,7 +104,7 @@ export default function TrainerHome() {
   const fetchTrainerBookings = async () => {
     try {
       const res = await axios.get<{ bookings: Booking[] }>(
-        "http://13.209.19.146:3000/api/trainer/bookings",
+        "https://13.209.19.146:3000/api/trainer/bookings",
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setBookings(res.data.bookings || []);
@@ -120,7 +120,7 @@ export default function TrainerHome() {
     const updated = await Promise.all(
       members.map(async (m) => {
         try {
-          const resp = await axios.get("http://13.209.19.146:3000/api/images/workout", {
+          const resp = await axios.get("https://13.209.19.146:3000/api/images/workout", {
             params: { userId: m.id, workoutDate: dateStr },
             headers: { Authorization: `Bearer ${token}` },
           });

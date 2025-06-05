@@ -108,7 +108,7 @@ export default function WorkoutTable() {
       return;
     }
     axios
-      .get("http://13.209.19.146:3000/api/users/me", {
+      .get("https://13.209.19.146:3000/api/users/me", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
@@ -127,7 +127,7 @@ export default function WorkoutTable() {
     if (!userInfo) return;
     try {
       const res = await axios.get<WorkoutSchedule[]>(
-        `http://13.209.19.146:3000/api/workout-schedule/${userInfo.id}`,
+        `https://13.209.19.146:3000/api/workout-schedule/${userInfo.id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       console.log("스케줄 조회 성공:", res.data);
@@ -177,7 +177,7 @@ export default function WorkoutTable() {
           ).padStart(2, "00")}`;
           try {
             const resp = await axios.get(
-              `http://13.209.19.146:3000/api/images/workout?userId=${userInfo.id}&workoutDate=${dateStr}`,
+              `https://13.209.19.146:3000/api/images/workout?userId=${userInfo.id}&workoutDate=${dateStr}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
             list.push({ date: dateStr, hasImage: resp.data.workouts.length > 0 });
@@ -226,7 +226,7 @@ export default function WorkoutTable() {
           const time = workoutTimes[day];
           if (!time) throw new Error("시간을 입력해 주세요.");
           return axios.post(
-            `http://13.209.19.146:3000/api/workout-schedule`,
+            `https://13.209.19.146:3000/api/workout-schedule`,
             { userId: userInfo.id, workoutTime: time, days: [day] },
             { headers: { Authorization: `Bearer ${token}` } }
           );
@@ -249,7 +249,7 @@ export default function WorkoutTable() {
           const time = workoutTimes[day];
           if (sched && time) {
             return axios.put(
-              `http://13.209.19.146:3000/api/workout-schedule/${sched.id}`,
+              `https://13.209.19.146:3000/api/workout-schedule/${sched.id}`,
               { workoutTime: time, days: [day] },
               { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -273,7 +273,7 @@ export default function WorkoutTable() {
           const sched = schedules[day];
           if (sched) {
             return axios.delete(
-              `http://13.209.19.146:3000/api/workout-schedule/${sched.id}`,
+              `https://13.209.19.146:3000/api/workout-schedule/${sched.id}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
           }

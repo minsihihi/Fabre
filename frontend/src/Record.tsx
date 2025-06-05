@@ -31,7 +31,7 @@ export default function Report() {
       if (!token) return;
 
       try {
-        const response = await fetch("http://13.209.19.146:3000/api/users/me", {
+        const response = await fetch("https://13.209.19.146:3000/api/users/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
@@ -49,7 +49,7 @@ export default function Report() {
       if (!userInfo?.id) return;
 
       try {
-        const response = await fetch("http://13.209.19.146:3000/api/workouts/analyze-weekly", {
+        const response = await fetch("https://13.209.19.146:3000/api/workouts/analyze-weekly", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
