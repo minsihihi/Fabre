@@ -1,7 +1,7 @@
 {
   "name": "capstone_project",
-  "version": "1.0.4",
-  "main": "frontend/main.js",
+  "version": "1.0.6",
+  "main": "main.js",
   "type": "commonjs",
   "scripts": {
     "start": "concurrently \"npm run frontend\" \"npm run electron\"",
@@ -14,15 +14,19 @@
     "deploy": "npm run build && npm run dist -- --publish always",
     "deploy:win": "npm run deploy:win32 && npm run deploy:win64",
     "deploy:win32": "electron-builder --win nsis:ia32",
-    "deploy:win64": "electron-builder --win nsis:x64",
-    "postbuild": "node -e \"if (process.platform === 'darwin') { require('child_process').execSync('xattr -cr dist/mac-arm64/채찍피티.app'); }\""
+    "deploy:win64": "electron-builder --win nsis:x64"
   },
   "build": {
     "appId": "com.chaejjikpt",
     "productName": "Start chaejjikpt",
     "asar": true,
+    "asarUnpack": [
+      "backend/**",
+      "frontend/preload.js"
+    ],
+    "afterPack": "./routes/afterPack.js",
     "files": [
-      "frontend/main.js",
+      "main.js",
       "frontend/preload.js",
       "frontend/dist/**",
       "backend/**",

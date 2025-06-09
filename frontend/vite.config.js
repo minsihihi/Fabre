@@ -7,9 +7,9 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
-    target: "esnext", // ✅ 추가: 모듈화 타겟 modern 브라우저
+    target: "esnext", // 추가: 모듈화 타겟 modern 브라우저
     rollupOptions: {
-      input: "./index.html", // ✅ 추가: 빌드 진입점을 명확히
+      input: "./index.html", // 추가: 빌드 진입점을 명확히
     },
   },
   server: {
