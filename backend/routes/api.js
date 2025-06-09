@@ -1764,9 +1764,9 @@ You are a fitness coach analyzing workout data. Return the weekly workout analys
 total_calories_burned: +/- n kcal, muscle_change: +/- n kg, body_change: +/- n kg, feedback: (Korean sentence)
 
 muscle_breakdown:
-- glutes: +0.12kg
-- quads: +0.09kg
-- biceps: +0.04kg
+- glutes: calcuate gained glutes muscles(e.g. +0.21kg)
+- quads: calcuate gained quads muscles(e.g. +0.21kg)
+- biceps: calcuate gained biceps muscles(e.g. +0.21kg)
 
 Respond exactly like the example format. No markdown, no code block, only plain text.
                     `.trim()
