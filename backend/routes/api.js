@@ -410,7 +410,7 @@ Just return a comma-separated index list like: 0, 2, 7`
             return res.status(400).json({ message: "분석 결과를 파싱할 수 없습니다." });
         }
 
-        const detectedIndexes = recommendedFood.split(',').map(v => v.trim());
+        const detectedIndexes = recommendedFood.split(', ').map(v => v.trim());
         const matchInfo = calculateMatchRate(meal, detectedIndexes);
 
         // ✅ Meal에 결과 저장
