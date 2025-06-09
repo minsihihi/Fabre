@@ -41,26 +41,26 @@ const { setLoggedInUser } = require('../utils/notificationScheduler');
 require('dotenv').config({ path: 'backend/.env' });
 
 
-// 🎯 식단 분석 인덱스 일치율 계산 함수
-function calculateMatchRate(meal, detectedIndexes) {
-    const classNames = [
-        "chicken", "tomato", "sweet potato", 
-        "boiled egg", "beef", "tofu", "salmon", "rice", 
-        "sweet pumpkin", "banana", "almond", "cashew nut"
-    ];
+    // 🎯 식단 분석 인덱스 일치율 계산 함수
+    function calculateMatchRate(meal, detectedIndexes) {
+        const classNames = [
+            "닭가슴살구이", "토마토", "고구마", 
+            "삶은달걀", "소고기", "두부", "연어", "밥", 
+            "단호박", "바나나", "아몬드", "캐슈넛"
+        ];
 
-    const expectedFoods = [meal.carb, meal.protein, meal.fat];
-    const detectedFoods = detectedIndexes.map(i => classNames[parseInt(i)]);
-    const matchCount = expectedFoods.filter(food => detectedFoods.includes(food)).length;
-    const matchRate = Math.round((matchCount / expectedFoods.length) * 100);
+        const expectedFoods = [meal.carb, meal.protein, meal.fat];
+        const detectedFoods = detectedIndexes.map(i => classNames[parseInt(i)]);
+        const matchCount = expectedFoods.filter(food => detectedFoods.includes(food)).length;
+        const matchRate = Math.round((matchCount / expectedFoods.length) * 100);
 
-    return {
-        expectedFoods,
-        detectedFoods,
-        matchCount,
-        matchRate
-    };
-}
+        return {
+            expectedFoods,
+            detectedFoods,
+            matchCount,
+            matchRate
+        };
+    }
 
 
 
@@ -237,126 +237,43 @@ router.post("/upload/:category", verifyToken, upload.single("image"), async (req
 /* ----------------------------------- */
 /* ✅ 업로드된 '식단' 이미지 조회 API (회원 기준, 날짜 기반) */
 /* ----------------------------------- */
-router.get("/images/meal", verifyToken, async (req, res) => {
-    try {
-        const { memberId, mealDate } = req.query;
-
-        // 트레이너만 조회 가능
-        if (req.user.role !== "trainer") {
-            return res.status(403).json({ message: "트레이너만 조회 가능합니다." });
-        }
-
-        if (!memberId || !mealDate) {
-            return res.status(400).json({ message: "memberId와 mealDate가 필요합니다." });
-        }
-
-        // 트레이너-회원 관계 확인
-        const relation = await TrainerMembers.findOne({
-            where: { trainerId: req.user.id, memberId, status: "active" }
-        });
-
-        if (!relation) {
-            return res.status(403).json({ message: "해당 회원과 연결된 트레이너가 아닙니다." });
-        }
-
-        // 식단 이미지 조회
-        const meals = await Meal.findAll({
-            where: { memberId, mealDate },
-            attributes: ["id", "imageUrl", "mealType"]
-        });
-
-        res.json({ meals });
-
-    } catch (error) {
-        console.error("❌ 식단 조회 오류:", error);
-        res.status(500).json({ message: "서버 오류", error: error.message });
-    }
-});
-
-
-
-/* ----------------------------------- */
-/* ✅ 업로드된 '오운완'이미지 조회 API */
-/* ----------------------------------- */
-router.get("/images/workout", async (req, res) => {
-    try {
-        const { userId, workoutDate } = req.query;
-        if (!userId || !workoutDate) {
-            return res.status(400).json({ message: "userId와 workoutDate가 필요합니다." });
-        }
-
-        const startOfDay = new Date(`${workoutDate}T00:00:00`);
-        const endOfDay = new Date(`${workoutDate}T23:59:59`);
-
-        const workouts = await Workout.findAll({
-            where: {
-                userId,
-                createdAt: {
-                    [Op.between]: [startOfDay, endOfDay]
-                }
-            },
-            attributes: ["id", "imageUrl"]
-        });
-
-        res.json({ workouts });
-
-    } catch (error) {
-        console.error("❌ 운동 인증샷 조회 오류:", error);
-        res.status(500).json({ message: "서버 오류", error: error.message });
-    }
-});
-
-
-/* ----------------------------------- */
-/* ✅ 업로드된 '프로필'이미지 조회 API */
-/* ----------------------------------- */
-router.get("/images/profile", async (req, res) => {
-    try {
-        const { userId } = req.query;
-        if (!userId) return res.status(400).json({ message: "userId가 필요합니다." });
-
-        const profile = await Profile.findOne({ where: { userId }, attributes: ["imageUrl"] });
-        if (!profile) return res.status(404).json({ message: "프로필 사진이 없습니다." });
-
-        res.json({ imageUrl: profile.imageUrl });
-
-    } catch (error) {
-        console.error("❌ 프로필 조회 오류:", error);
-        res.status(500).json({ message: "서버 오류", error: error.message });
-    }
-});
-
-
-
-/* ----------------------------------- */
-/* ✅ 2. OpenAI API를 이용한 식단 분석 API */
-/* ----------------------------------- */
-router.post('/meals/analyze', verifyToken, async (req, res) => {
+router.get('/meals/analyze', verifyToken, async (req, res) => {
     try {
         const { memberId, mealDate, mealType } = req.query;
 
-        if (!memberId || !mealDate || !mealType) {
-            return res.status(400).json({ message: "memberId, mealDate, mealType 쿼리값이 필요합니다." });
+        if (!mealDate || !mealType) {
+            return res.status(400).json({ message: "mealDate와 mealType은 필수입니다." });
         }
 
-        // ✅ 회원 인증자 본인인지 또는 트레이너-회원 관계 확인
-        if (req.user.role === 'member' && req.user.id !== parseInt(memberId)) {
-            return res.status(403).json({ message: "본인의 식단만 분석할 수 있습니다." });
-        }
+        let targetMemberId;
 
         if (req.user.role === 'trainer') {
+            if (!memberId) {
+                return res.status(400).json({ message: "트레이너는 memberId를 함께 전달해야 합니다." });
+            }
+
+            // 트레이너-회원 관계 확인
             const relation = await TrainerMembers.findOne({
                 where: { trainerId: req.user.id, memberId, status: 'active' }
             });
+
             if (!relation) {
-                return res.status(403).json({ message: "연결된 회원이 아닙니다." });
+                return res.status(403).json({ message: "해당 회원과 연결된 트레이너가 아닙니다." });
             }
+
+            targetMemberId = memberId;
+
+        } else if (req.user.role === 'member') {
+            targetMemberId = req.user.id;
+
+        } else {
+            return res.status(403).json({ message: "권한이 없습니다." });
         }
 
-        // ✅ 해당 조건의 식단 찾기
+        // `mealDate`, `mealType`, `memberId`로 해당 식단을 찾기
         const meal = await Meal.findOne({
             where: {
-                memberId,
+                memberId: targetMemberId,  // 요청한 회원의 meal만 확인
                 mealDate,
                 mealType
             }
@@ -366,54 +283,53 @@ router.post('/meals/analyze', verifyToken, async (req, res) => {
             return res.status(404).json({ message: "해당 조건의 식단을 찾을 수 없습니다." });
         }
 
-        const imageUrl = meal.imageUrl;
-        if (!imageUrl) {
-            return res.status(400).json({ message: "이미지가 등록되지 않은 식단입니다." });
-        }
-
-        const fileId = imageUrl.split('.com/')[1];
-
-        // ✅ OpenAI Vision API 요청
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                {
-                    role: "system",
-                    content: "You are a nutritionist analyzing meal images."
-                },
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "text",
-                            text: `Analyze this meal and return the indexes of up to 3 detected ingredients from the following: 
-(chicken: 0, tomato: 1, sweet potato: 2, boiled egg: 3, beef: 4, tofu: 5, salmon: 6, rice: 7, sweet pumpkin: 8, banana: 9, almond: 10, cashew nut: 11).
-Just return a comma-separated index list like: 0, 2, 7`
-                        },
-                        {
-                            type: "image_url",
-                            image_url: { url: imageUrl }
-                        }
-                    ]
-                }
-            ],
-            max_tokens: 300
+        // 분석 결과 찾기
+        const analysis = await MealAnalysis.findOne({
+            where: {
+                mealId: meal.id
+            },
+            attributes: ['id', 'mealId', 'fileId', 'recommendedFood', 'analysisResult', 'createdAt'],
+            order: [['createdAt', 'DESC']]
         });
 
-        // ✅ 응답 처리
-        const analysisResult = response.choices[0].message.content;
-        console.log("🔍 AI 분석 결과:", analysisResult);
-
-        const match = analysisResult.match(/([0-9,\s]+)/);
-        const recommendedFood = match ? match[1].replace(/\s+/g, '') : null;
-        if (!recommendedFood) {
-            return res.status(400).json({ message: "분석 결과를 파싱할 수 없습니다." });
+        if (!analysis) {
+            return res.status(404).json({ message: "식단 분석 결과가 없습니다." });
         }
 
-        const detectedIndexes = recommendedFood.split(',').map(v => v.trim());
-        const matchInfo = calculateMatchRate(meal, detectedIndexes);
+        // 🎯 식단 분석 인덱스 일치율 계산 함수
+        function calculateMatchRate(meal, detectedIndexes) {
+            const classNames = [
+                "닭가슴살구이", "토마토", "고구마", 
+                "삶은달걀", "소고기", "두부", "연어", "밥", 
+                "단호박", "바나나", "아몬드", "캐슈넛"
+            ];
 
-        // ✅ Meal에 결과 저장
+            // meal.carb, meal.protein, meal.fat에 해당하는 음식을 expectedFoods로 설정
+            const expectedFoods = [meal.carb, meal.protein, meal.fat];  // carb, protein, fat은 음식 이름이어야 합니다.
+
+            // detectedIndexes에서 인덱스를 음식 이름으로 변환
+            const detectedFoods = detectedIndexes.map(i => classNames[parseInt(i)]);  // detectedIndexes는 GPT에서 받은 음식 인덱스
+
+            // 일치하는 음식 항목의 개수를 세는 부분
+            const matchCount = expectedFoods.filter(food => detectedFoods.includes(food)).length;
+
+            // 일치율 계산
+            const matchRate = Math.round((matchCount / expectedFoods.length) * 100);
+
+            return {
+                expectedFoods,
+                detectedFoods,
+                matchCount,
+                matchRate
+            };
+        }
+
+        // 분석된 음식 인덱스를 기반으로 계산된 matchRate 얻기
+        const recommendedFood = analysis.recommendedFood;  // recommendedFood를 가져옵니다.
+        const detectedIndexes = recommendedFood.split(', ').map(v => v.trim());  // 추천된 음식 인덱스
+        const matchInfo = calculateMatchRate(meal, detectedIndexes);  // 음식 이름으로 비교
+
+        // Meal에 결과 저장
         meal.detection = detectedIndexes;
         meal.analysisResult = {
             matchRate: matchInfo.matchRate,
@@ -424,18 +340,18 @@ Just return a comma-separated index list like: 0, 2, 7`
         meal.matchRate = matchInfo.matchRate;
         await meal.save();
 
-        // ✅ 분석 로그 저장
+        // 분석 로그 저장
         const mealAnalysis = await MealAnalysis.create({
             userId: req.user.id,
             mealId: meal.id,
-            fileId,
-            analysisResult,
+            fileId: analysis.fileId,
+            analysisResult: analysis.analysisResult,
             recommendedFood
         });
 
         res.status(200).json({
             message: '식단 분석 완료',
-            analysisResult,
+            analysisResult: analysis.analysisResult,
             recommendedFood,
             matchRate: matchInfo.matchRate,
             matchedCount: matchInfo.matchCount,
@@ -443,10 +359,222 @@ Just return a comma-separated index list like: 0, 2, 7`
         });
 
     } catch (error) {
-        console.error("❌ OpenAI API 오류:", error);
-        res.status(500).json({ message: '서버 오류', error: error.message });
+        console.error("❌ MealAnalysis 조회 오류:", error);
+        return res.status(500).json({ message: "서버 오류", error: error.message });
     }
 });
+
+
+// router.get("/images/meal", verifyToken, async (req, res) => {
+//     try {
+//         const { memberId, mealDate } = req.query;
+
+//         // 트레이너만 조회 가능
+//         if (req.user.role !== "trainer") {
+//             return res.status(403).json({ message: "트레이너만 조회 가능합니다." });
+//         }
+
+//         if (!memberId || !mealDate) {
+//             return res.status(400).json({ message: "memberId와 mealDate가 필요합니다." });
+//         }
+
+//         // 트레이너-회원 관계 확인
+//         const relation = await TrainerMembers.findOne({
+//             where: { trainerId: req.user.id, memberId, status: "active" }
+//         });
+
+//         if (!relation) {
+//             return res.status(403).json({ message: "해당 회원과 연결된 트레이너가 아닙니다." });
+//         }
+
+//         // 식단 이미지 조회
+//         const meals = await Meal.findAll({
+//             where: { memberId, mealDate },
+//             attributes: ["id", "imageUrl", "mealType"]
+//         });
+
+//         res.json({ meals });
+
+//     } catch (error) {
+//         console.error("❌ 식단 조회 오류:", error);
+//         res.status(500).json({ message: "서버 오류", error: error.message });
+//     }
+// });
+
+
+
+// /* ----------------------------------- */
+// /* ✅ 업로드된 '오운완'이미지 조회 API */
+// /* ----------------------------------- */
+// router.get("/images/workout", async (req, res) => {
+//     try {
+//         const { userId, workoutDate } = req.query;
+//         if (!userId || !workoutDate) {
+//             return res.status(400).json({ message: "userId와 workoutDate가 필요합니다." });
+//         }
+
+//         const startOfDay = new Date(`${workoutDate}T00:00:00`);
+//         const endOfDay = new Date(`${workoutDate}T23:59:59`);
+
+//         const workouts = await Workout.findAll({
+//             where: {
+//                 userId,
+//                 createdAt: {
+//                     [Op.between]: [startOfDay, endOfDay]
+//                 }
+//             },
+//             attributes: ["id", "imageUrl"]
+//         });
+
+//         res.json({ workouts });
+
+//     } catch (error) {
+//         console.error("❌ 운동 인증샷 조회 오류:", error);
+//         res.status(500).json({ message: "서버 오류", error: error.message });
+//     }
+// });
+
+
+// /* ----------------------------------- */
+// /* ✅ 업로드된 '프로필'이미지 조회 API */
+// /* ----------------------------------- */
+// router.get("/images/profile", async (req, res) => {
+//     try {
+//         const { userId } = req.query;
+//         if (!userId) return res.status(400).json({ message: "userId가 필요합니다." });
+
+//         const profile = await Profile.findOne({ where: { userId }, attributes: ["imageUrl"] });
+//         if (!profile) return res.status(404).json({ message: "프로필 사진이 없습니다." });
+
+//         res.json({ imageUrl: profile.imageUrl });
+
+//     } catch (error) {
+//         console.error("❌ 프로필 조회 오류:", error);
+//         res.status(500).json({ message: "서버 오류", error: error.message });
+//     }
+// });
+
+
+
+// /* ----------------------------------- */
+// /* ✅ 2. OpenAI API를 이용한 식단 분석 API */
+// /* ----------------------------------- */
+// router.post('/meals/analyze', verifyToken, async (req, res) => {
+//     try {
+//         const { memberId, mealDate, mealType } = req.query;
+
+//         if (!memberId || !mealDate || !mealType) {
+//             return res.status(400).json({ message: "memberId, mealDate, mealType 쿼리값이 필요합니다." });
+//         }
+
+//         // ✅ 회원 인증자 본인인지 또는 트레이너-회원 관계 확인
+//         if (req.user.role === 'member' && req.user.id !== parseInt(memberId)) {
+//             return res.status(403).json({ message: "본인의 식단만 분석할 수 있습니다." });
+//         }
+
+//         if (req.user.role === 'trainer') {
+//             const relation = await TrainerMembers.findOne({
+//                 where: { trainerId: req.user.id, memberId, status: 'active' }
+//             });
+//             if (!relation) {
+//                 return res.status(403).json({ message: "연결된 회원이 아닙니다." });
+//             }
+//         }
+
+//         // ✅ 해당 조건의 식단 찾기
+//         const meal = await Meal.findOne({
+//             where: {
+//                 memberId,
+//                 mealDate,
+//                 mealType
+//             }
+//         });
+
+//         if (!meal) {
+//             return res.status(404).json({ message: "해당 조건의 식단을 찾을 수 없습니다." });
+//         }
+
+//         const imageUrl = meal.imageUrl;
+//         if (!imageUrl) {
+//             return res.status(400).json({ message: "이미지가 등록되지 않은 식단입니다." });
+//         }
+
+//         const fileId = imageUrl.split('.com/')[1];
+
+//         // ✅ OpenAI Vision API 요청
+//         const response = await openai.chat.completions.create({
+//             model: "gpt-4o-mini",
+//             messages: [
+//                 {
+//                     role: "system",
+//                     content: "You are a nutritionist analyzing meal images."
+//                 },
+//                 {
+//                     role: "user",
+//                     content: [
+//                         {
+//                             type: "text",
+//                             text: `Analyze this meal and return the indexes of up to 3 detected ingredients from the following: 
+// (닭가슴살구이: 0, 토마토: 1, 고구마: 2, 삶은달걀: 3, 소고기: 4, 두부: 5, 연어: 6, 밥: 7, 단호박: 8, 바나나: 9, 아몬드: 10, 캐슈넛: 11).
+// Just return a comma-separated index list like: 0, 2, 7`
+//                         },
+//                         {
+//                             type: "image_url",
+//                             image_url: { url: imageUrl }
+//                         }
+//                     ]
+//                 }
+//             ],
+//             max_tokens: 300
+//         });
+
+//         // ✅ 응답 처리
+//         const analysisResult = response.choices[0].message.content;
+//         console.log("🔍 AI 분석 결과:", analysisResult);
+
+//         const match = analysisResult.match(/([0-9,\s]+)/);
+//         const recommendedFood = match ? match[1].replace(/\s+/g, '') : null;
+//         if (!recommendedFood) {
+//             return res.status(400).json({ message: "분석 결과를 파싱할 수 없습니다." });
+//         }
+
+//         const detectedIndexes = recommendedFood.split(', ').map(v => v.trim());
+//         const matchInfo = calculateMatchRate(meal, detectedIndexes);
+
+//         // ✅ Meal에 결과 저장
+//         meal.detection = detectedIndexes;
+//         meal.analysisResult = {
+//             matchRate: matchInfo.matchRate,
+//             expectedFoods: matchInfo.expectedFoods,
+//             detectedFoods: matchInfo.detectedFoods,
+//             matchedCount: matchInfo.matchCount
+//         };
+//         meal.matchRate = matchInfo.matchRate;
+//         await meal.save();
+
+//         // ✅ 분석 로그 저장
+//         const mealAnalysis = await MealAnalysis.create({
+//             userId: req.user.id,
+//             mealId: meal.id,
+//             fileId,
+//             analysisResult,
+//             recommendedFood
+//         });
+
+//         res.status(200).json({
+//             message: '식단 분석 완료',
+//             analysisResult,
+//             recommendedFood,
+//             matchRate: matchInfo.matchRate,
+//             matchedCount: matchInfo.matchCount,
+//             analysisId: mealAnalysis.id
+//         });
+
+//     } catch (error) {
+//         console.error("❌ OpenAI API 오류:", error);
+//         res.status(500).json({ message: '서버 오류', error: error.message });
+//     }
+// });
 
 router.get('/meals/analyze', verifyToken, async (req, res) => {
     try {

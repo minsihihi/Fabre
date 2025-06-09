@@ -4,6 +4,7 @@ const WebSocket = require("ws");
 const eventEmitterPath = path.join(app.getAppPath(), "backend", "utils", "eventEmitter");
 const eventEmitter = require(eventEmitterPath);
 
+
 let mainWindow;
 let isDev;
 let autoUpdater; // 전역 선언
@@ -106,3 +107,4 @@ import("electron-is-dev").then(async (module) => {
     });
 
 });
+
