@@ -31,7 +31,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING, // 음식 이름으로 변경
         allowNull: false,
         validate: {
-          isIn: [["삶은고구마", "밥", "바나나", "단호박"]], // carb 음식 이름 리스트
+          isIn: [["삶은고구마마", "밥", "바나나", "단호박"]], // carb 음식 이름 리스트
         },
       },
       protein: {
