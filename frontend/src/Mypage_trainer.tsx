@@ -1,4 +1,5 @@
 import React, { useState, useEffect, ChangeEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./Mypage.css";
 
@@ -13,6 +14,7 @@ export default function MypageTrainer() {
   const [newMemberId, setNewMemberId] = useState("");
   const [myMembers, setMyMembers] = useState<Member[]>([]);
   const [userId, setUserId] = useState<string>("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     // 🔐 로컬스토리지에서 토큰 가져와서 axios 기본 헤더 설정
@@ -112,7 +114,8 @@ export default function MypageTrainer() {
       localStorage.removeItem("token");
       localStorage.removeItem("id");
       localStorage.removeItem("userId");
-      window.location.href = "/login";
+      // window.location.href = "/login";
+      navigate("/login");
     } catch (error) {
       console.error("로그아웃 실패", error);
     }
