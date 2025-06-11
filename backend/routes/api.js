@@ -49,8 +49,13 @@ function calculateMatchRate(meal, detectedIndexes) {
         "단호박", "바나나", "아몬드", "캐슈넛"
     ];
 
-    const expectedFoods = [meal.carb, meal.protein, meal.fat];
-    const detectedFoods = detectedIndexes.map(i => classNames[parseInt(i)]);
+
+    // expectedFoods는 meal.carb, meal.protein, meal.fat에 저장된 음식 이름 배열입니다.
+    const expectedFoods = [...meal.carb, ...meal.protein, ...meal.fat];  // carb, protein, fat을 합친 배열
+
+    // detection은 인덱스 번호 배열로 되어 있으므로, 이를 음식 이름으로 변환합니다.
+    const detectedFoods = detectedFoods.map(index => classNames[parseInt(index)]);  // 인덱스를 음식 이름으로 변환
+
     const matchCount = expectedFoods.filter(food => detectedFoods.includes(food)).length;
     const matchRate = Math.round((matchCount / expectedFoods.length) * 100);
 
@@ -387,8 +392,8 @@ router.post('/meals/analyze', verifyToken, async (req, res) => {
                         {
                             type: "text",
                             text: `Analyze this meal and return the indexes of up to 3 detected ingredients from the following: 
-(닭가슴살구이: 0, 토마토: 1, 고구마: 2, 삶은달걀: 3, 소고기: 4, 두부: 5, 연어: 6, 밥: 7, 단호박: 8, 바나나: 9, 아몬드: 10, 캐슈넛: 11).
-Just return a comma-separated index list like: 0, 2, 7`
+(닭가슴살구이: 0, 토마토: 1, 고구마: 2, 삶은달걀: 3, 소고기: 4, 두부: 5, 연어구이: 6, 밥: 7, 단호박: 8, 바나나: 9, 아몬드: 10, 캐슈넛: 11).
+Respond **only** with the follwoing JSON format: {"indexes": [0, 2, 7]}.`
                         },
                         {
                             type: "image_url",
